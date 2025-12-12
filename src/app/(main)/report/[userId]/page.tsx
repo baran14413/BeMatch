@@ -122,6 +122,7 @@ export default function ReportPage() {
       let screenshotUrl = '';
       if (screenshot) {
         const screenshotId = uuidv4();
+        // **FIX:** Use the current user's UID (the reporter) for the path.
         const storageRef = ref(storage, `reports/${user.uid}/${screenshotId}.jpg`);
         await uploadString(storageRef, screenshot, 'data_url');
         screenshotUrl = await getDownloadURL(storageRef);

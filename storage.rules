@@ -21,11 +21,14 @@ service firebase.storage {
        allow read, write: if request.auth != null && exists(/databases/$(database)/documents/matches/$(matchId)) && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.users;
     }
 
-    // Kullanıcıların kendi şikayetleri için ekran görüntüsü yüklemesine izin ver
-    match /reports/{userId}/{screenshotId} {
-      allow write: if request.auth != null && request.auth.uid == userId;
-      // Not: Raporları okuma yetkisi sadece admin/moderator'lere özel olmalı, bu yüzden client'tan okuma izni yok.
-      allow read: if false; 
-    }
+   match /reports/{userId}/{screenshotId} {
+  // Yazma izni: Sadece kendi klasörüne
+  allow write: if request.auth != null && request.auth.uid == userId;
+  
+  // OKUMA İZNİ (GÜNCELLENDİ):
+  // Kullanıcı kendi yüklediği dosyanın linkini alabilsin diye burayı açıyoruz.
+  allow read: if request.auth != null && request.auth.uid == userId;
+   }
+   
   }
 }
