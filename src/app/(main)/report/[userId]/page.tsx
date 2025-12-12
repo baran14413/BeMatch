@@ -11,7 +11,7 @@ import { ArrowLeft, Loader2, Send } from 'lucide-react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/context/language-context';
 import { useToast } from '@/hooks/use-toast';
-import { addDoc, collection, serverTimestamp, doc, setDoc, getDoc, deleteDoc, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,9 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
-const BEMATCH_SYSTEM_ID = 'bematch_system_account';
 
 export default function ReportPage() {
   const { user } = useUser();
@@ -51,48 +49,6 @@ export default function ReportPage() {
     { id: 'underage', label: t('report.reasons.underage') },
     { id: 'other', label: t('report.reasons.other') },
   ];
-
-  const sendSystemMessage = async (currentUserId: string) => {
-    if (!firestore) return;
-    
-    const matchId = [currentUserId, BEMATCH_SYSTEM_ID].sort().join('_');
-    const matchRef = doc(firestore, 'matches', matchId);
-    
-    try {
-        const matchSnap = await getDoc(matchRef);
-        if (!matchSnap.exists()) {
-            const bematchLogo = PlaceHolderImages.find(p => p.id === 'bematch-logo')?.imageUrl;
-            
-            const bematchUserRef = doc(firestore, 'users', BEMATCH_SYSTEM_ID);
-            const bematchUserSnap = await getDoc(bematchUserRef);
-            if (!bematchUserSnap.exists()) {
-                await setDoc(bematchUserRef, {
-                    id: BEMATCH_SYSTEM_ID,
-                    name: 'BeMatch',
-                    avatarUrl: bematchLogo || '',
-                    isSystemAccount: true,
-                });
-            }
-
-            await setDoc(matchRef, {
-                users: [currentUserId, BEMATCH_SYSTEM_ID],
-                timestamp: serverTimestamp(),
-                lastMessage: t('report.systemMessage'),
-            });
-        }
-        
-        const messagesColRef = collection(firestore, 'matches', matchId, 'messages');
-        await addDoc(messagesColRef, {
-            senderId: BEMATCH_SYSTEM_ID,
-            text: t('report.systemMessage'),
-            timestamp: serverTimestamp(),
-            isRead: false,
-        });
-
-    } catch (error) {
-        console.error("Error sending system message:", error);
-    }
-  };
 
   const handleBlockUser = async () => {
     if (!user || !firestore || !reportedUserId) return;
@@ -137,7 +93,7 @@ export default function ReportPage() {
       toast({ variant: 'destructive', title: t('report.reasonRequired') });
       return;
     }
-    if (!user) {
+    if (!user || !firestore) {
       toast({ variant: 'destructive', title: t('report.loginRequired') });
       return;
     }
@@ -159,14 +115,6 @@ export default function ReportPage() {
 
       await addDoc(collection(firestore, 'reports'), reportData);
       
-      // Background task simulation
-      sendSystemMessage(user.uid).then(() => {
-          toast({
-            title: t('report.systemMessageTitle'),
-            description: t('report.systemMessageDescription')
-          });
-      });
-
       toast({
         title: t('report.successTitle'),
         description: t('report.successDescription'),

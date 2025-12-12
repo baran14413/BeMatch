@@ -4,12 +4,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // BEMATCH_SYSTEM_ID is a special account that can create matches with any user.
-    // This is used for sending system messages like post-report thank you notes.
-    function isBeMatchSystem() {
-      return request.auth.uid == 'bematch_system_account';
-    }
-
     // Any authenticated user can read public user profiles
     match /users/{userId} {
       allow read: if request.auth != null;
@@ -32,12 +26,11 @@ service cloud.firestore {
     // A user can read/write a match document if they are a participant
     match /matches/{matchId} {
       allow read, update, delete: if request.auth != null && request.auth.uid in resource.data.users;
-      // Allow creation if the user is a participant OR if it's the system account creating it.
-      allow create: if request.auth != null && (request.auth.uid in request.resource.data.users || isBeMatchSystem());
+      allow create: if request.auth != null && request.auth.uid in request.resource.data.users;
 
       // Messages can be read/written by participants of the parent match
       match /messages/{messageId} {
-        allow read, write: if request.auth != null && (get(/databases/$(database)/documents/matches/$(matchId)).data.users.hasAny([request.auth.uid]) || isBeMatchSystem());
+        allow read, write: if request.auth != null && get(/databases/$(database)/documents/matches/$(matchId)).data.users.hasAny([request.auth.uid]);
       }
     }
 
