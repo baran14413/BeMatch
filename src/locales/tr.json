@@ -86,7 +86,7 @@
             "hideProfile": "Profil Gizleme (Gizli Mod)",
             "superLikesWeekly": "Haftalık Süper Beğeniler",
             "superLikesWeeklyGold": "Haftalık Daha Fazla Süper Beğeni",
-            "boostMonthly": "Aylık Ücretsiz Öne Çıkarma",
+            "boostMonthly": "Aylık Ücretsiz Profil Öne Çıkarma",
             "passport": "Konum Değiştirme (Pasaport)",
             "allGold": "Tüm GOLD özellikleri",
             "priorityLikes": "Öncelikli Beğeniler (İlk sen görün)",
@@ -512,6 +512,7 @@
         "submitButton": "Raporu Gönder",
         "successTitle": "Rapor Gönderildi",
         "successDescription": "Geri bildiriminiz için teşekkür ederiz. Ekibimiz durumu en kısa sürede inceleyecektir.",
+        "systemMessage": "Şikayetiniz bize ulaştı. Topluluğumuzu güvende tutmamıza yardımcı olduğunuz için teşekkür ederiz.",
         "errorTitle": "Hata",
         "errorDescription": "Rapor gönderilirken bir sorun oluştu. Lütfen tekrar deneyin.",
         "reasonRequired": "Lütfen bir neden belirtin.",
@@ -526,5 +527,3 @@
         }
     }
 }
-
-    

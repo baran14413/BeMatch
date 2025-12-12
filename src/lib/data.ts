@@ -61,6 +61,7 @@ export interface UserProfile {
   distance?: number;
   lastSeen?: any;
   passwordLastUpdatedAt?: any;
+  isSystemAccount?: boolean;
   // User Preferences
   interestedIn?: 'man' | 'woman' | 'everyone';
   globalMode?: boolean;
@@ -81,6 +82,9 @@ export type Match = {
     users: string[];
     timestamp: any;
     lastMessage: string;
+    isBlocked?: boolean;
+    blockedBy?: string;
+    typing?: { [userId: string]: boolean };
 };
 
 

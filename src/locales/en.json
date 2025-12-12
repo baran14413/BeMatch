@@ -512,6 +512,7 @@
         "submitButton": "Submit Report",
         "successTitle": "Report Sent",
         "successDescription": "Thank you for your feedback. Our team will review the situation as soon as possible.",
+        "systemMessage": "Your report has been received. Thank you for helping us keep our community safe.",
         "errorTitle": "Error",
         "errorDescription": "An error occurred while sending the report. Please try again.",
         "reasonRequired": "Please specify a reason.",
@@ -526,5 +527,3 @@
         }
     }
 }
-
-    

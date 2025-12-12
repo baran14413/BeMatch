@@ -7,15 +7,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ArrowLeft, Camera, Loader2, Send } from 'lucide-react';
+import { ArrowLeft, Camera, Loader2, Send, X } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/context/language-context';
 import { useToast } from '@/hooks/use-toast';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, doc, setDoc, getDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadString } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import Image from 'next/image';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+
+const BEMATCH_SYSTEM_ID = 'bematch_system_account';
 
 const reportReasons = [
   { id: 'inappropriate_photos', label: 'Uygunsuz Fotoğraflar' },
@@ -37,7 +40,7 @@ export default function ReportPage() {
   const { toast } = useToast();
 
   const reportedUserId = params.userId as string;
-  const matchId = searchParams.get('matchId');
+  const matchIdParam = searchParams.get('matchId');
 
   const [reason, setReason] = useState('');
   const [description, setDescription] = useState('');
@@ -56,13 +59,60 @@ export default function ReportPage() {
     }
   };
 
+  const sendSystemMessage = async (currentUserId: string) => {
+    if (!firestore) return;
+    
+    const matchId = [currentUserId, BEMATCH_SYSTEM_ID].sort().join('_');
+    const matchRef = doc(firestore, 'matches', matchId);
+    
+    try {
+        const matchSnap = await getDoc(matchRef);
+        if (!matchSnap.exists()) {
+            const bematchLogo = PlaceHolderImages.find(p => p.id === 'bematch-logo')?.imageUrl;
+            
+            // Create BeMatch system user doc if it doesn't exist
+            const bematchUserRef = doc(firestore, 'users', BEMATCH_SYSTEM_ID);
+            const bematchUserSnap = await getDoc(bematchUserRef);
+            if (!bematchUserSnap.exists()) {
+                await setDoc(bematchUserRef, {
+                    id: BEMATCH_SYSTEM_ID,
+                    name: 'BeMatch',
+                    avatarUrl: bematchLogo || '',
+                    isSystemAccount: true,
+                });
+            }
+
+            // Create the match
+            await setDoc(matchRef, {
+                users: [currentUserId, BEMATCH_SYSTEM_ID],
+                timestamp: serverTimestamp(),
+                lastMessage: t('report.systemMessage'),
+            });
+        }
+        
+        // Add the message
+        const messagesColRef = collection(firestore, 'matches', matchId, 'messages');
+        await addDoc(messagesColRef, {
+            senderId: BEMATCH_SYSTEM_ID,
+            text: t('report.systemMessage'),
+            timestamp: serverTimestamp(),
+            isRead: false,
+        });
+
+    } catch (error) {
+        console.error("Error sending system message:", error);
+        // We can fail silently here, as it's a non-critical confirmation message.
+    }
+  };
+
+
   const handleSubmit = async () => {
     if (!reason) {
-      toast({ variant: 'destructive', title: 'Lütfen bir neden belirtin.' });
+      toast({ variant: 'destructive', title: t('report.reasonRequired') });
       return;
     }
     if (!user) {
-      toast({ variant: 'destructive', title: 'Giriş yapmanız gerekli.' });
+      toast({ variant: 'destructive', title: t('report.loginRequired') });
       return;
     }
 
@@ -77,22 +127,26 @@ export default function ReportPage() {
         screenshotUrl = await getDownloadURL(storageRef);
       }
 
-      const reportData = {
+      const reportData: any = {
         reporterId: user.uid,
         reportedUserId,
-        matchId,
         reason,
         description,
         screenshotUrl,
         timestamp: serverTimestamp(),
         status: 'pending',
       };
+      if (matchIdParam) {
+        reportData.matchId = matchIdParam;
+      }
 
       await addDoc(collection(firestore, 'reports'), reportData);
+      await sendSystemMessage(user.uid);
+
 
       toast({
-        title: 'Rapor Gönderildi',
-        description: 'Geri bildiriminiz için teşekkür ederiz. Ekibimiz durumu en kısa sürede inceleyecektir.',
+        title: t('report.successTitle'),
+        description: t('report.successDescription'),
       });
 
       router.back();
@@ -100,8 +154,8 @@ export default function ReportPage() {
       console.error('Rapor gönderme hatası:', error);
       toast({
         variant: 'destructive',
-        title: 'Hata',
-        description: 'Rapor gönderilirken bir sorun oluştu. Lütfen tekrar deneyin.',
+        title: t('report.errorTitle'),
+        description: t('report.errorDescription'),
       });
     } finally {
       setIsSubmitting(false);
@@ -115,16 +169,16 @@ export default function ReportPage() {
           <ArrowLeft className="w-6 h-6" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold text-primary">Kullanıcıyı Şikayet Et</h1>
-          <p className="text-muted-foreground">Topluluğumuzu güvende tutmamıza yardımcı olun.</p>
+          <h1 className="text-3xl font-bold text-primary">{t('report.title')}</h1>
+          <p className="text-muted-foreground">{t('report.description')}</p>
         </div>
       </header>
 
       <div className="p-4 md:p-8 md:pt-0 space-y-8 max-w-2xl mx-auto">
         <Card>
           <CardHeader>
-            <CardTitle>Şikayet Nedeni</CardTitle>
-            <CardDescription>Lütfen şikayetiniz için en uygun nedeni seçin.</CardDescription>
+            <CardTitle>{t('report.reasonTitle')}</CardTitle>
+            <CardDescription>{t('report.reasonDescription')}</CardDescription>
           </CardHeader>
           <CardContent>
             <RadioGroup value={reason} onValueChange={setReason} className="space-y-2">
@@ -140,14 +194,14 @@ export default function ReportPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Açıklama (İsteğe Bağlı)</CardTitle>
+            <CardTitle>{t('report.descriptionTitle')}</CardTitle>
             <CardDescription>Lütfen olay hakkında daha fazla bilgi verin.</CardDescription>
           </CardHeader>
           <CardContent>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Neler olduğunu anlatın..."
+              placeholder={t('report.descriptionPlaceholder')}
               rows={4}
             />
           </CardContent>
@@ -155,8 +209,8 @@ export default function ReportPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Kanıt Ekle (İsteğe Bağlı)</CardTitle>
-            <CardDescription>Sohbetin ekran görüntüsünü veya ilgili bir kanıtı yükleyin.</CardDescription>
+            <CardTitle>{t('report.evidenceTitle')}</CardTitle>
+            <CardDescription>{t('report.evidenceDescription')}</CardDescription>
           </CardHeader>
           <CardContent>
             <input
@@ -176,7 +230,7 @@ export default function ReportPage() {
             ) : (
               <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
                 <Camera className="mr-2 h-4 w-4" />
-                Ekran Görüntüsü Yükle
+                {t('report.uploadButton')}
               </Button>
             )}
           </CardContent>
@@ -188,11 +242,9 @@ export default function ReportPage() {
           ) : (
             <Send className="mr-2 h-4 w-4" />
           )}
-          Raporu Gönder
+          {t('report.submitButton')}
         </Button>
       </div>
     </div>
   );
 }
-
-    

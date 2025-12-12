@@ -22,7 +22,7 @@ import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import type { UserProfile, Message, Match } from '@/lib/data';
 import { useUserStatus } from '@/hooks/use-user-status';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, Plus, Mic, Send, CheckCheck, MoreHorizontal, Pencil, Trash2, CornerUpLeft, Bot, Loader2, StopCircle, X, CircleDot, Camera, ShieldBan } from 'lucide-react';
+import { ArrowLeft, Plus, Mic, Send, CheckCheck, MoreHorizontal, Pencil, Trash2, CornerUpLeft, Bot, Loader2, StopCircle, X, CircleDot, Camera, ShieldBan, BadgeCheck } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,6 +51,8 @@ import VoiceMessagePlayer from '@/components/chat/voice-message-player';
 import { v4 as uuidv4 } from 'uuid';
 import { useLanguage } from '@/context/language-context';
 import TypingIndicator from '@/components/chat/typing-indicator';
+
+const BEMATCH_SYSTEM_ID = 'bematch_system_account';
 
 const ChatLoader = () => (
   <div className="flex flex-col h-screen overflow-hidden bg-black">
@@ -124,11 +126,16 @@ function MessageActions({
     onReply: () => void;
     onEdit: () => void; 
     onDelete: () => void; 
-    onReaction: (emoji: string) => void;
+    onReaction: (emoji: string) => void; 
     isMyMessage: boolean;
 }) {
   const { t } = useLanguage();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // System messages from BeMatch should not be interactive
+  if (message.senderId === BEMATCH_SYSTEM_ID) {
+    return null;
+  }
 
   return (
     <Popover open={isMenuOpen} onOpenChange={setIsMenuOpen}>
@@ -244,6 +251,7 @@ export default function ChatPage() {
   const isOverLimit = newMessage.length > CHARACTER_LIMIT;
   const isBlockedByMe = matchData?.isBlocked && matchData.blockedBy === user?.uid;
   const isBlockedByOther = matchData?.isBlocked && matchData.blockedBy !== user?.uid;
+  const isBeMatchChat = matchProfile?.id === BEMATCH_SYSTEM_ID;
   const userStatus = useUserStatus(matchProfile?.id);
 
   const messagesQuery = useMemoFirebase(() => {
@@ -254,7 +262,7 @@ export default function ChatPage() {
   const { data: messages, isLoading: isLoadingMessages } = useCollection<Message>(messagesQuery);
 
   const updateTypingStatus = (isTyping: boolean) => {
-    if (!user || !chatId || !firestore) return;
+    if (!user || !chatId || !firestore || isBeMatchChat) return;
     const matchRef = doc(firestore, 'matches', chatId);
     const typingUpdate = {
         [`typing.${user.uid}`]: isTyping
@@ -370,7 +378,7 @@ export default function ChatPage() {
 
 
   useEffect(() => {
-      if (messages && user && firestore) {
+      if (messages && user && firestore && !isBeMatchChat) {
           const unreadMessages = messages.filter(message => message.senderId !== user.uid && !message.isRead);
           if (unreadMessages.length > 0) {
               const batch = writeBatch(firestore);
@@ -388,7 +396,7 @@ export default function ChatPage() {
               });
           }
       }
-  }, [messages, user, firestore, chatId]);
+  }, [messages, user, firestore, chatId, isBeMatchChat]);
   
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -400,7 +408,7 @@ export default function ChatPage() {
     if(typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     
     const text = newMessage.trim();
-    if (!text || !user || !firestore || !chatId || isOverLimit || isBlockedByMe || isBlockedByOther) return;
+    if (!text || !user || !firestore || !chatId || isOverLimit || isBlockedByMe || isBlockedByOther || isBeMatchChat) return;
     
     const matchDocRef = doc(firestore, 'matches', chatId);
 
@@ -507,7 +515,7 @@ export default function ChatPage() {
   };
   
   const handleReaction = async (message: Message, emoji: string) => {
-      if (!user) return;
+      if (!user || isBeMatchChat) return;
       const messageRef = doc(firestore, 'matches', chatId, 'messages', message.id);
 
       try {
@@ -562,7 +570,7 @@ export default function ChatPage() {
   };
 
    const sendVoiceMessage = useCallback(async (audioBlob: Blob) => {
-    if (!user || !storage || !firestore || !chatId) return;
+    if (!user || !storage || !firestore || !chatId || isBeMatchChat) return;
 
     const getDuration = (blob: Blob): Promise<number> => {
         return new Promise(resolve => {
@@ -615,10 +623,10 @@ export default function ChatPage() {
             title: t('chat.toasts.voiceSendError')
         });
     }
-  }, [user, storage, firestore, chatId, toast, t]);
+  }, [user, storage, firestore, chatId, toast, t, isBeMatchChat]);
 
    const startRecording = useCallback(async () => {
-    if (isRecording || !user || isBlockedByMe || isBlockedByOther) return;
+    if (isRecording || !user || isBlockedByMe || isBlockedByOther || isBeMatchChat) return;
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const options = {
@@ -657,7 +665,7 @@ export default function ChatPage() {
             description: t('chat.toasts.recordStartErrorDescription')
         });
     }
-  }, [isRecording, user, toast, isBlockedByMe, isBlockedByOther, sendVoiceMessage, t]);
+  }, [isRecording, user, toast, isBlockedByMe, isBlockedByOther, sendVoiceMessage, t, isBeMatchChat]);
 
 
   const stopRecording = useCallback(() => {
@@ -679,7 +687,7 @@ export default function ChatPage() {
   };
 
   const handleSendImage = async () => {
-    if (!imageToSend || !user || isSendingImage || !storage || !firestore || !imageInputRef.current) return;
+    if (!imageToSend || !user || isSendingImage || !storage || !firestore || !imageInputRef.current || isBeMatchChat) return;
 
     setIsSendingImage(true);
     try {
@@ -728,7 +736,7 @@ export default function ChatPage() {
   };
 
     const handleViewOnceImage = (message: Message) => {
-        if (!user || !firestore) return;
+        if (!user || !firestore || isBeMatchChat) return;
         
         const hasOpened = message.isOpenedBy?.includes(user.uid);
         if (hasOpened) return; // Don't open if already viewed
@@ -746,11 +754,12 @@ export default function ChatPage() {
 
   const getRepliedMessageSenderName = (message: Message) => {
     if (!message.replyTo) return '';
+    if (message.replyTo.senderId === BEMATCH_SYSTEM_ID) return 'BeMatch';
     return message.replyTo.senderId === user?.uid ? t('chat.you') : matchProfile?.name || '...';
   };
 
   const handleBlockUser = async () => {
-    if (!user || !firestore || !chatId) return;
+    if (!user || !firestore || !chatId || isBeMatchChat) return;
     const matchRef = doc(firestore, 'matches', chatId);
     try {
       await updateDoc(matchRef, {
@@ -770,7 +779,7 @@ export default function ChatPage() {
   };
 
   const handleUnblockUser = async () => {
-    if (!user || !firestore || !chatId) return;
+    if (!user || !firestore || !chatId || isBeMatchChat) return;
     const matchRef = doc(firestore, 'matches', chatId);
     try {
       await updateDoc(matchRef, {
@@ -790,7 +799,7 @@ export default function ChatPage() {
   };
 
   const handleReportUser = () => {
-    if (!matchProfile) return;
+    if (!matchProfile || isBeMatchChat) return;
     router.push(`/report/${matchProfile.id}?matchId=${chatId}`);
   };
 
@@ -826,24 +835,29 @@ export default function ChatPage() {
               <AvatarFallback>{matchProfile.name.charAt(0)}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <h2 className="text-lg font-bold text-foreground">{matchProfile.name}</h2>
-              <p className="text-sm text-muted-foreground">{formatUserStatus(userStatus, t, locale)}</p>
+                <div className="flex items-center gap-1.5">
+                    <h2 className="text-lg font-bold text-foreground">{matchProfile.name}</h2>
+                    {isBeMatchChat && <BadgeCheck className="w-5 h-5 text-blue-500 fill-current" />}
+                </div>
+              <p className="text-sm text-muted-foreground">{isBeMatchChat ? 'Official Account' : formatUserStatus(userStatus, t, locale)}</p>
             </div>
           </>
         )}
-        <div className="flex items-center gap-1">
-          <Popover>
-            <PopoverTrigger asChild>
-               <Button variant="ghost" size="icon" className="text-foreground/80 hover:text-foreground">
-                <MoreHorizontal className="w-5 h-5" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-48 p-1">
-                <Button variant="ghost" className="w-full justify-start" onClick={handleBlockUser}>{t('chat.actions.block')}</Button>
-                <Button variant="ghost" className="w-full justify-start text-destructive" onClick={handleReportUser}>{t('chat.actions.report')}</Button>
-            </PopoverContent>
-          </Popover>
-        </div>
+        {!isBeMatchChat && (
+            <div className="flex items-center gap-1">
+            <Popover>
+                <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-foreground/80 hover:text-foreground">
+                    <MoreHorizontal className="w-5 h-5" />
+                </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-1">
+                    <Button variant="ghost" className="w-full justify-start" onClick={handleBlockUser}>{t('chat.actions.block')}</Button>
+                    <Button variant="ghost" className="w-full justify-start text-destructive" onClick={handleReportUser}>{t('chat.actions.report')}</Button>
+                </PopoverContent>
+            </Popover>
+            </div>
+        )}
       </header>
 
       <div 
@@ -958,7 +972,7 @@ export default function ChatPage() {
                             )}>
                                 {message.isEdited && <span>{t('chat.edited')}</span>}
                                 <span>{formatMessageTimestamp(message.timestamp, locale)}</span>
-                                {isMe && (
+                                {isMe && message.senderId !== BEMATCH_SYSTEM_ID && (
                                     <CheckCheck className={cn("w-4 h-4", message.isRead ? "text-blue-400" : "opacity-50")} />
                                 )}
                             </div>
@@ -1019,6 +1033,10 @@ export default function ChatPage() {
           <div className="text-center text-muted-foreground text-sm p-3">
             <p>{t('chat.blockedByOther')}</p>
           </div>
+        ) : isBeMatchChat ? (
+            <div className="text-center text-muted-foreground text-sm p-3">
+                <p>{t('chat.systemChatDisabled')}</p>
+            </div>
         ) : isRecording ? (
             <div className="flex items-center gap-3 w-full">
                 <Button size="icon" variant="ghost" className="rounded-full text-red-500 animate-pulse">
@@ -1199,5 +1217,3 @@ export default function ChatPage() {
     </>
   );
 }
-
-    
