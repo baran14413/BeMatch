@@ -3,32 +3,32 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     
-    // Kullanıcıların kendi profil fotoğraflarını yönetmesine izin ver
-    // Herkes profil fotoğraflarını okuyabilir (genel okuma)
+    // 1. Profil Fotoğrafları
     match /users/{userId}/photos/{photoId} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Sohbet içindeki resimlere erişim
-    // Sadece eşleşmenin parçası olan kullanıcılar okuyabilir ve yazabilir
+    // 2. Sohbet Resimleri
     match /chats/{matchId}/images/{imageId} {
-       allow read, write: if request.auth != null && exists(/databases/$(database)/documents/matches/$(matchId)) && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.users;
+       allow read, write: if request.auth != null 
+                          && exists(/databases/$(database)/documents/matches/$(matchId)) 
+                          && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.users;
     }
 
-    // Sohbet içindeki sesli mesajlara erişim
+    // 3. Sohbet Ses Kayıtları
     match /chats/{matchId}/voice_messages/{audioId} {
-       allow read, write: if request.auth != null && exists(/databases/$(database)/documents/matches/$(matchId)) && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.users;
+       allow read, write: if request.auth != null 
+                          && exists(/databases/$(database)/documents/matches/$(matchId)) 
+                          && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.users;
     }
 
-   match /reports/{userId}/{screenshotId} {
-  // Yazma izni: Sadece kendi klasörüne
-  allow write: if request.auth != null && request.auth.uid == userId;
-  
-  // OKUMA İZNİ (GÜNCELLENDİ):
-  // Kullanıcı kendi yüklediği dosyanın linkini alabilsin diye burayı açıyoruz.
-  allow read: if request.auth != null && request.auth.uid == userId;
-   }
-   
+    // 4. ŞİKAYET / RAPORLAR (GÜNCELLENDİ - KESİN ÇÖZÜM)
+    // "allPaths=**" diyerek klasör derinliği sorununu ortadan kaldırdık.
+    // Reports altına ne gelirse gelsin, üye olan herkes yazıp okuyabilir.
+    match /reports/{allPaths=**} {
+       allow read, write: if request.auth != null;
+    }
+    
   }
 }

@@ -65,7 +65,7 @@ export default function ProfileDetails({ profile }: ProfileDetailsProps) {
                     <MapPin className="w-4 h-4" />
                     <p>{profile.location}</p>
                 </div>
-                 {profile.distance && (
+                 {profile.distance && profile.distance > 0 && (
                     <p className="text-sm mt-1 text-muted-foreground">{t('discover.distanceAway', { distance: profile.distance })}</p>
                 )}
             </div>
