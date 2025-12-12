@@ -1,0 +1,501 @@
+'use client';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { motion, useMotionValue, useTransform, PanInfo, AnimatePresence, animate } from 'framer-motion';
+import { X, Star, Heart, Rewind } from 'lucide-react';
+import { useLanguage } from '@/context/language-context';
+import { useIsMobile } from '@/hooks/use-mobile';
+import ProfileCard from '@/components/discover/profile-card';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { Skeleton } from '@/components/ui/skeleton';
+import { collection, query, where, doc, writeBatch, getDoc, serverTimestamp, getDocs, updateDoc, Timestamp } from 'firebase/firestore';
+import type { UserProfile } from '@/lib/data';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import ProfileDetails from '@/components/discover/profile-details';
+import TutorialOverlay from '@/components/discover/tutorial-overlay';
+import { useToast } from '@/hooks/use-toast';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import { isToday, isFuture } from 'date-fns';
+
+type SwipeDirection = 'left' | 'right' | 'up';
+type SwipeType = 'like' | 'nope' | 'superlike';
+
+const MAX_VISIBLE_CARDS = 3;
+const DAILY_REWIND_LIMIT = 3;
+
+// Haversine formula to calculate distance between two lat/lon points
+const getDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  if (lat1 === undefined || lon1 === undefined || lat2 === undefined || lon2 === undefined) {
+    return undefined;
+  }
+  const R = 6371; // Radius of the Earth in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c;
+  return Math.round(distance);
+};
+
+
+const SwipeableCard = ({
+  profile,
+  onSwipe,
+  onShowDetails,
+  isTop,
+}: {
+  profile: UserProfile;
+  onSwipe: (direction: SwipeDirection) => void;
+  onShowDetails: () => void;
+  isTop: boolean;
+}) => {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const rotate = useTransform(x, [-200, 200], [-25, 25]);
+  const likeOpacity = useTransform(x, [10, 100], [0, 1]);
+  const nopeOpacity = useTransform(x, [-100, -10], [1, 0]);
+  const superlikeOpacity = useTransform(y, [-100, -10], [1, 0]);
+
+  const handleDragEnd = (e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    const { offset, velocity } = info;
+    const swipeThreshold = 100;
+    const swipePower = (offset: number, velocity: number) => {
+        return Math.abs(offset) * velocity;
+    };
+    
+    if (Math.abs(offset.y) > Math.abs(offset.x) && offset.y < -swipeThreshold * 1.5) {
+        animate(y, -500, { duration: 0.4, onComplete: () => {
+             onSwipe('up');
+             y.set(0);
+             x.set(0);
+        } });
+        return;
+    }
+
+    if (offset.x > swipeThreshold || swipePower(offset.x, velocity.x) > 10000) {
+      animate(x, 300, { duration: 0.3, onComplete: () => {
+        onSwipe('right');
+        x.set(0);
+        y.set(0);
+      }});
+    } else if (offset.x < -swipeThreshold || swipePower(offset.x, velocity.x) < -10000) {
+      animate(x, -300, { duration: 0.3, onComplete: () => {
+        onSwipe('left');
+        x.set(0);
+        y.set(0);
+      }});
+    }
+  };
+
+  return (
+    <motion.div
+      className="absolute w-full h-full"
+      drag={isTop ? true : false}
+      dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+      dragElastic={0.35}
+      onDragEnd={handleDragEnd}
+      style={{ x, y, rotate, cursor: isTop ? 'grab' : 'auto' }}
+      whileDrag={{ cursor: 'grabbing' }}
+    >
+      <motion.div
+        style={{ opacity: likeOpacity }}
+        className="absolute top-12 left-6 z-10 p-4 bg-black/30 rounded-full"
+      >
+        <Heart className="w-12 h-12 text-green-400" fill="currentColor" />
+      </motion.div>
+
+      <motion.div
+        style={{ opacity: nopeOpacity }}
+        className="absolute top-12 right-6 z-10 p-4 bg-black/30 rounded-full"
+      >
+        <X className="w-12 h-12 text-red-500" strokeWidth={3} />
+      </motion.div>
+      
+       <motion.div
+        style={{ opacity: superlikeOpacity }}
+        className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10 p-4 bg-black/30 rounded-full"
+      >
+        <Star className="w-12 h-12 text-blue-400" fill="currentColor" />
+      </motion.div>
+
+      <ProfileCard profile={profile} onShowDetails={onShowDetails} isTopCard={isTop}/>
+    </motion.div>
+  );
+};
+
+const DesktopProfileSkeleton = () => (
+    <div className="w-full max-w-md space-y-4">
+        <Skeleton className="h-[500px] w-full rounded-2xl" />
+        <div className="space-y-2">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+        </div>
+    </div>
+)
+
+const NoMoreProfiles = ({ onReset }: { onReset: () => void }) => {
+    const { t } = useLanguage();
+    return (
+        <div className="text-center">
+            <p className="text-muted-foreground">{t('discover.noMoreProfiles')}</p>
+            <Button onClick={onReset} className="mt-4">
+                {t('common.tryAgain')}
+            </Button>
+        </div>
+    );
+};
+
+
+export default function DiscoverPage() {
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+  const { t } = useLanguage();
+  const isMobile = useIsMobile();
+  const { toast } = useToast();
+  const router = useRouter();
+  
+  const [detailsProfile, setDetailsProfile] = useState<UserProfile | null>(null);
+
+  const [profileIndex, setProfileIndex] = useState(0);
+  const [visibleStack, setVisibleStack] = useState<UserProfile[]>([]);
+  const [history, setHistory] = useState<{profile: UserProfile, type: SwipeType}[]>([]);
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  // Fetch current user's profile to get their coordinates and preferences
+  const currentUserDocRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+  const { data: currentUserProfile } = useDoc<UserProfile>(currentUserDocRef);
+
+  const usersQuery = useMemoFirebase(() => {
+    if (!firestore || !user) {
+        return null;
+    }
+    // A basic query to get all users except the current one.
+    return query(collection(firestore, 'users'));
+  }, [firestore, user]);
+
+
+  const { data: profiles, isLoading: isLoadingProfiles } = useCollection<UserProfile>(usersQuery);
+
+  const filteredAndSortedProfiles = useMemo(() => {
+    if (!profiles || !currentUserProfile) return [];
+
+    const {
+        ageRange = [18, 55],
+        globalMode = false,
+        maxDistance = 150,
+        interestedIn,
+        latitude: currentLat,
+        longitude: currentLon,
+    } = currentUserProfile;
+
+    const [minAge, maxAge] = ageRange;
+    
+    return profiles
+      .filter(p => {
+        // Exclude self, apply age range, and gender preference filter
+        const isNotSelf = p.id !== user?.uid;
+        const isInAgeRange = p.age >= minAge && p.age <= maxAge;
+        
+        let interestMatch = true;
+        if (interestedIn && interestedIn !== 'everyone') {
+            interestMatch = p.gender === interestedIn;
+        }
+
+        return isNotSelf && isInAgeRange && interestMatch;
+      })
+      .map(p => {
+        const distance = getDistanceInKm(currentLat!, currentLon!, p.latitude!, p.longitude!);
+        const isBoosted = p.boostExpiresAt && isFuture((p.boostExpiresAt as Timestamp).toDate());
+        return { ...p, distance, isBoosted };
+      })
+      .filter(p => {
+          // Apply distance filter only if global mode is off
+          if (globalMode || p.distance === undefined) {
+              return true;
+          }
+          return p.distance <= maxDistance;
+      })
+      .sort((a, b) => {
+        // Sort boosted profiles to the top, then by distance
+        if (a.isBoosted && !b.isBoosted) return -1;
+        if (!a.isBoosted && b.isBoosted) return 1;
+        if (a.distance === undefined && b.distance === undefined) return 0;
+        if (a.distance === undefined) return 1;
+        if (b.distance === undefined) return -1;
+        return a.distance - b.distance;
+      });
+  }, [profiles, currentUserProfile, user]);
+
+  
+  useEffect(() => {
+    if (filteredAndSortedProfiles.length > 0) {
+      const initialStack = filteredAndSortedProfiles.slice(profileIndex, profileIndex + MAX_VISIBLE_CARDS).reverse();
+      setVisibleStack(initialStack);
+    } else {
+      setVisibleStack([]);
+    }
+  }, [filteredAndSortedProfiles, profileIndex]);
+
+  useEffect(() => {
+    // Show tutorial only on mobile, once, when profiles are loaded
+    if (isMobile && profiles && profiles.length > 0) {
+      const hasSeenTutorial = localStorage.getItem('hasSeenSwipeTutorial');
+      if (!hasSeenTutorial) {
+        setShowTutorial(true);
+        const timer = setTimeout(() => {
+          setShowTutorial(false);
+          localStorage.setItem('hasSeenSwipeTutorial', 'true');
+        }, 4000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isMobile, profiles]);
+  
+  const handleReset = () => {
+    setProfileIndex(0);
+    setHistory([]);
+  };
+
+  const handleRewind = async () => {
+    if (history.length === 0 || !currentUserProfile || !currentUserDocRef) return;
+
+    const isPremium = !!currentUserProfile.premiumTier;
+    
+    // Check if the last rewind was today. If not, the count is 0.
+    const lastRewindDate = currentUserProfile.lastRewindAt?.toDate();
+    const rewindsToday = (lastRewindDate && isToday(lastRewindDate)) ? (currentUserProfile.rewindCount || 0) : 0;
+
+    if (!isPremium && rewindsToday >= DAILY_REWIND_LIMIT) {
+        toast({
+            title: "Günlük Geri Alma Hakkı Doldu",
+            description: "Sınırsız geri alma için Gold'a yükselt!",
+            action: <Button onClick={() => router.push('/settings/subscriptions')}>Yükselt</Button>
+        });
+        return;
+    }
+
+    const lastAction = history[0];
+    setHistory(prev => prev.slice(1));
+    setProfileIndex(prev => prev - 1);
+
+    if (!isPremium) {
+        const newRewindCount = rewindsToday + 1;
+        // Always set the timestamp to now when a rewind is used.
+        await updateDoc(currentUserDocRef, {
+            rewindCount: newRewindCount,
+            lastRewindAt: serverTimestamp(),
+        });
+    }
+
+    toast({
+        title: "Geri Alındı!",
+        description: `${lastAction.profile.name} profiline geri döndün.`
+    })
+
+  };
+
+  const handleSwipe = useCallback(async (direction: SwipeDirection) => {
+    if (visibleStack.length === 0 || !user || !firestore || !currentUserProfile) return;
+
+    if (direction === 'up' && !currentUserProfile.premiumTier) {
+        toast({
+            title: "Süper Beğeni İçin Yükselt!",
+            description: "Süper Beğeni göndermek ve daha fazla dikkat çekmek için Gold'a yükselt.",
+            action: <Button onClick={() => router.push('/settings/subscriptions')}>Yükselt</Button>
+        });
+        return;
+    }
+
+    const swipedProfile = visibleStack[visibleStack.length - 1];
+    const swipeType: SwipeType = direction === 'right' ? 'like' : direction === 'up' ? 'superlike' : 'nope';
+
+    // 1. Move to the next profile in the UI
+    setHistory(prev => [{profile: swipedProfile, type: swipeType}, ...prev]);
+    setProfileIndex(prev => prev + 1);
+
+
+    if (swipeType === 'nope') return; // Don't do any DB operations for a 'nope'
+
+    // 2. Record the like/superlike in the swiped user's 'likedBy' subcollection
+    const swipeData = {
+        type: swipeType,
+        timestamp: serverTimestamp()
+    };
+    
+    const targetUserLikedByRef = doc(firestore, 'users', swipedProfile.id, 'likedBy', user.uid);
+    
+    // 3. Check for a match by seeing if the other user has already liked us
+    const swipedUserLikeRef = doc(firestore, 'users', user.uid, 'likedBy', swipedProfile.id);
+    
+    getDoc(swipedUserLikeRef)
+      .then(async (swipedUserLikeDoc) => {
+        const batch = writeBatch(firestore);
+        
+        // Always record our like on their profile
+        batch.set(targetUserLikedByRef, swipeData);
+        
+        if (swipedUserLikeDoc.exists()) {
+            // It's a MATCH!
+            const matchId = [user.uid, swipedProfile.id].sort().join('_');
+            const matchRef = doc(firestore, 'matches', matchId);
+            
+            const matchData = {
+                users: [user.uid, swipedProfile.id],
+                timestamp: serverTimestamp(),
+                lastMessage: t('discover.newMatch'),
+            };
+            batch.set(matchRef, matchData);
+
+            toast({
+                title: t('discover.matchToastTitle'),
+                description: t('discover.matchToastDescription', { name: swipedProfile.name }),
+            });
+        }
+
+        // Commit all DB changes
+        batch.commit().catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: targetUserLikedByRef.path, // The most likely failure path in the batch
+                operation: 'create',
+                requestResourceData: swipeData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        });
+
+      })
+      .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: swipedUserLikeRef.path,
+            operation: 'get',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
+    
+  }, [visibleStack, profileIndex, filteredAndSortedProfiles, user, firestore, currentUserProfile, toast, t, router]);
+
+  if (isMobile === undefined) {
+    return null; // or a loading skeleton
+  }
+
+  const isLoading = isUserLoading || isLoadingProfiles;
+
+  if (isLoading) {
+     return (
+         <div className="h-full w-full flex justify-center bg-gray-50 dark:bg-black md:p-8">
+            {isMobile ? 
+                <div className="w-full max-w-sm h-full relative flex items-center justify-center">
+                     <Skeleton className="w-full h-full rounded-2xl" />
+                </div>
+                : 
+                <div className='flex flex-col gap-8'>
+                    <DesktopProfileSkeleton />
+                </div>
+            }
+         </div>
+     )
+  }
+
+  if (!isMobile) {
+    return (
+      <div className="w-full flex flex-col items-center p-4 md:p-8 space-y-8">
+          <div className="w-full max-w-md space-y-8">
+          {filteredAndSortedProfiles.length > profileIndex ? filteredAndSortedProfiles.slice(profileIndex).map((profile) => (
+              <ProfileCard key={profile.id} profile={profile} onShowDetails={() => setDetailsProfile(profile)} isTopCard={false}/>
+          )) : <NoMoreProfiles onReset={handleReset} />}
+           <Sheet open={!!detailsProfile} onOpenChange={(isOpen) => !isOpen && setDetailsProfile(null)}>
+                <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">
+                    <SheetHeader>
+                        <SheetTitle className="sr-only">{t('discover.profileDetailsTitle')}</SheetTitle>
+                    </SheetHeader>
+                   {detailsProfile && <ProfileDetails profile={detailsProfile} />}
+                </SheetContent>
+            </Sheet>
+          </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full w-full flex flex-col bg-gray-50 dark:bg-black overflow-hidden">
+      <div className="flex-1 flex flex-col items-center justify-start pt-2 px-1.5">
+        <div className="w-full max-w-sm h-[80vh] max-h-[700px] relative flex items-center justify-center">
+          <AnimatePresence>
+            {visibleStack.length > 0 ? (
+              <>
+                {visibleStack.map((profile, index) => {
+                  const isTop = index === visibleStack.length - 1;
+                  const stackIndex = visibleStack.length - 1 - index;
+                  return (
+                    <motion.div
+                      key={profile.id}
+                      initial={{
+                        y: 0,
+                        scale: 1 - stackIndex * 0.05,
+                        opacity: index === visibleStack.length - 1 ? 1 : 0
+                      }}
+                      animate={{
+                        y: stackIndex * -10,
+                        scale: 1 - stackIndex * 0.05,
+                        opacity: stackIndex < MAX_VISIBLE_CARDS -1 ? 1 : (isTop ? 1 : 0),
+                      }}
+                      exit={{
+                        opacity: 0,
+                        transition: { duration: 0.3 }
+                      }}
+                      style={{
+                        position: 'absolute',
+                        width: '100%',
+                        height: '100%',
+                        zIndex: index,
+                      }}
+                    >
+                      <SwipeableCard
+                        profile={profile}
+                        onSwipe={(direction) => handleSwipe(direction)}
+                        onShowDetails={() => setDetailsProfile(profile)}
+                        isTop={isTop}
+                      />
+                    </motion.div>
+                  );
+                })}
+                {showTutorial && <TutorialOverlay />}
+              </>
+            ) : (
+              <NoMoreProfiles onReset={handleReset} />
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+       <div className="flex justify-center items-center p-4 gap-4">
+        <Button onClick={handleRewind} variant="outline" size="icon" className="w-16 h-16 rounded-full border-2 border-yellow-500 text-yellow-500" disabled={history.length === 0}>
+            <Rewind className="w-8 h-8" />
+        </Button>
+        <Button onClick={() => handleSwipe('left')} variant="outline" size="icon" className="w-16 h-16 rounded-full border-2 border-red-500 text-red-500">
+            <X className="w-8 h-8" />
+        </Button>
+        <Button onClick={() => handleSwipe('up')} variant="outline" size="icon" className="w-16 h-16 rounded-full border-2 border-blue-500 text-blue-500">
+            <Star className="w-8 h-8" />
+        </Button>
+        <Button onClick={() => handleSwipe('right')} variant="outline" size="icon" className="w-16 h-16 rounded-full border-2 border-green-500 text-green-500">
+            <Heart className="w-8 h-8" />
+        </Button>
+      </div>
+      <Sheet open={!!detailsProfile} onOpenChange={(isOpen) => !isOpen && setDetailsProfile(null)}>
+        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl flex flex-col">
+            <SheetHeader>
+                <SheetTitle className="sr-only">{t('discover.profileDetailsTitle')}</SheetTitle>
+            </SheetHeader>
+            {detailsProfile && <ProfileDetails profile={detailsProfile} />}
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}

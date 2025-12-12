@@ -1,0 +1,89 @@
+const handleRegister = async () => {
+  setIsLoading(true);
+
+  try {
+    // 1. Create user in Firebase Auth
+    const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+    const user = userCredential.user;
+
+    const userDocRef = doc(firestore, 'users', user.uid);
+    
+    // 2. Create the user profile document in Firestore WITHOUT photo URLs first
+    const initialProfileData = {
+        id: user.uid,
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        name: `${formData.firstName} ${formData.lastName}`,
+        age: formData.age,
+        dateOfBirth: formData.dateOfBirth ? Timestamp.fromDate(formData.dateOfBirth) : null,
+        gender: formData.gender,
+        interestedIn: formData.interestedIn,
+        bio: formData.bio,
+        location: formData.location,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
+        interests: formData.interests,
+        goal: formData.goal,
+        avatarUrl: '',
+        imageUrls: [],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        prompts: [],
+        zodiac: '',
+        videoUrl: '',
+        videoDescription: '',
+        voiceNoteUrl: '',
+        globalMode: true,
+        maxDistance: formData.maxDistance,
+        ageRange: [18, 55]
+    };
+    
+    await setDoc(userDocRef, initialProfileData);
+
+    // 3. Upload helper WITH auth refresh fix
+    const uploadPhotos = async (userId: string, photos: string[]): Promise<string[]> => {
+      // ---- EKLENMESİ GEREKEN SATIR (auth'ı tamamen aktif hale getirir) ----
+      await auth.currentUser?.getIdToken(true);
+      // ---------------------------------------------------------------------
+
+      const photoURLs: string[] = [];
+      for (const photo of photos) {
+        const photoId = uuidv4();
+        const storageRef = ref(storage, `users/${userId}/photos/${photoId}.jpg`);
+        const uploadResult = await uploadString(storageRef, photo, 'data_url');
+        const downloadURL = await getDownloadURL(uploadResult.ref);
+        photoURLs.push(downloadURL);
+      }
+      return photoURLs;
+    };
+
+    // 4. Upload images
+    const photoURLs = await uploadPhotos(user.uid, formData.photos);
+
+    // 5. Update Firestore with photo URLs
+    if (photoURLs.length > 0) {
+      await updateDoc(userDocRef, {
+          avatarUrl: photoURLs[0],
+          imageUrls: photoURLs
+      });
+    }
+
+    toast({
+      title: t('onboarding.toasts.successTitle'),
+      description: t('onboarding.toasts.successDescription'),
+    });
+
+    router.push('/discover');
+
+  } catch (error: any) {
+    console.error('Registration error:', error);
+    toast({
+      variant: 'destructive',
+      title: t('onboarding.toasts.errorTitle'),
+      description: error.message || t('onboarding.toasts.errorDescription'),
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
