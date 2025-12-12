@@ -789,6 +789,11 @@ export default function ChatPage() {
     }
   };
 
+  const handleReportUser = () => {
+    if (!matchProfile) return;
+    router.push(`/report/${matchProfile.id}?matchId=${chatId}`);
+  };
+
   if (isLoading || !user) {
     return <ChatLoader />;
   }
@@ -835,7 +840,7 @@ export default function ChatPage() {
             </PopoverTrigger>
             <PopoverContent className="w-48 p-1">
                 <Button variant="ghost" className="w-full justify-start" onClick={handleBlockUser}>{t('chat.actions.block')}</Button>
-                <Button variant="ghost" className="w-full justify-start text-destructive" onClick={() => toast({title: t('chat.toasts.userReported')})}>{t('chat.actions.report')}</Button>
+                <Button variant="ghost" className="w-full justify-start text-destructive" onClick={handleReportUser}>{t('chat.actions.report')}</Button>
             </PopoverContent>
           </Popover>
         </div>
@@ -1194,3 +1199,5 @@ export default function ChatPage() {
     </>
   );
 }
+
+    

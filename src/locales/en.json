@@ -84,13 +84,13 @@
             "unlimitedRewind": "Unlimited Rewinds",
             "allPlus": "All PLUS features",
             "hideProfile": "Hide Profile (Incognito Mode)",
-            "superLikesWeekly": "5 Super Likes per week",
-            "superLikesWeeklyGold": "10 Super Likes per week",
-            "boostMonthly": "1 Free Profile Boost / month",
+            "superLikesWeekly": "Super Likes per week",
+            "superLikesWeeklyGold": "More Super Likes per week",
+            "boostMonthly": "Free Profile Boost / month",
             "passport": "Change Location (Passport)",
             "allGold": "All GOLD features",
             "priorityLikes": "Priority Likes (Seen first)",
-            "superLikesWeeklyVip": "15 Super Likes per week"
+            "superLikesWeeklyVip": "VIP Super Likes per week"
         }
     },
     "galleryPage": {
@@ -498,5 +498,33 @@
         "description": "You and {name} liked each other.",
         "sendMessage": "Send Message",
         "keepSwiping": "Keep Swiping"
+    },
+    "report": {
+        "title": "Report User",
+        "description": "Help us keep our community safe.",
+        "reasonTitle": "Reason for Report",
+        "reasonDescription": "Please select the most appropriate reason for your report.",
+        "descriptionTitle": "Description (Optional)",
+        "descriptionPlaceholder": "Tell us what happened...",
+        "evidenceTitle": "Add Evidence (Optional)",
+        "evidenceDescription": "Upload a screenshot of the conversation or any relevant evidence.",
+        "uploadButton": "Upload Screenshot",
+        "submitButton": "Submit Report",
+        "successTitle": "Report Sent",
+        "successDescription": "Thank you for your feedback. Our team will review the situation as soon as possible.",
+        "errorTitle": "Error",
+        "errorDescription": "An error occurred while sending the report. Please try again.",
+        "reasonRequired": "Please specify a reason.",
+        "loginRequired": "You must be logged in.",
+        "reasons": {
+            "inappropriate_photos": "Inappropriate Photos",
+            "spam_or_scam": "Spam or Scam",
+            "harassment": "Harassment or Bullying",
+            "fake_profile": "Fake Profile",
+            "underage": "Underage User",
+            "other": "Other"
+        }
     }
 }
+
+    

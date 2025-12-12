@@ -498,5 +498,33 @@
         "description": "Sen ve {name} birbirinizi beğendiniz.",
         "sendMessage": "Mesaj Gönder",
         "keepSwiping": "Keşfetmeye Devam Et"
+    },
+    "report": {
+        "title": "Kullanıcıyı Şikayet Et",
+        "description": "Topluluğumuzu güvende tutmamıza yardımcı olun.",
+        "reasonTitle": "Şikayet Nedeni",
+        "reasonDescription": "Lütfen şikayetiniz için en uygun nedeni seçin.",
+        "descriptionTitle": "Açıklama (İsteğe Bağlı)",
+        "descriptionPlaceholder": "Neler olduğunu anlatın...",
+        "evidenceTitle": "Kanıt Ekle (İsteğe Bağlı)",
+        "evidenceDescription": "Sohbetin ekran görüntüsünü veya ilgili bir kanıtı yükleyin.",
+        "uploadButton": "Ekran Görüntüsü Yükle",
+        "submitButton": "Raporu Gönder",
+        "successTitle": "Rapor Gönderildi",
+        "successDescription": "Geri bildiriminiz için teşekkür ederiz. Ekibimiz durumu en kısa sürede inceleyecektir.",
+        "errorTitle": "Hata",
+        "errorDescription": "Rapor gönderilirken bir sorun oluştu. Lütfen tekrar deneyin.",
+        "reasonRequired": "Lütfen bir neden belirtin.",
+        "loginRequired": "Giriş yapmanız gerekli.",
+        "reasons": {
+            "inappropriate_photos": "Uygunsuz Fotoğraflar",
+            "spam_or_scam": "Spam veya Dolandırıcılık",
+            "harassment": "Taciz veya Zorbalık",
+            "fake_profile": "Sahte Profil",
+            "underage": "Yaşı Küçük Kullanıcı",
+            "other": "Diğer"
+        }
     }
 }
+
+    

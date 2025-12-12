@@ -38,9 +38,18 @@ service cloud.firestore {
       }
     }
 
+    // Reports can be created by any authenticated user
+    match /reports/{reportId} {
+      allow create: if request.auth != null && request.resource.data.reporterId == request.auth.uid;
+      // Admins and moderators can read/update reports
+      allow read, update: if request.auth != null && request.auth.token.role in ['admin', 'moderator'];
+    }
+
     // Deleted users collection is admin-only (or no-one for client-side rules)
     match /deletedUsers/{userId} {
       allow read, write: if false; // No client access
     }
   }
 }
+
+    
