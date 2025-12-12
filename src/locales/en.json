@@ -89,8 +89,7 @@
             "boostMonthly": "Free Profile Boost / month",
             "passport": "Change Location (Passport)",
             "allGold": "All GOLD features",
-            "priorityLikes": "Priority Likes (Seen first)",
-            "superLikesWeeklyVip": "VIP Super Likes per week"
+            "priorityLikes": "Priority Likes (Seen first)"
         }
     },
     "galleryPage": {
@@ -505,18 +504,24 @@
         "reasonTitle": "Reason for Report",
         "reasonDescription": "Please select the most appropriate reason for your report.",
         "descriptionTitle": "Description (Optional)",
+        "descriptionInfo": "Please provide more details about the incident.",
         "descriptionPlaceholder": "Tell us what happened...",
-        "evidenceTitle": "Add Evidence (Optional)",
-        "evidenceDescription": "Upload a screenshot of the conversation or any relevant evidence.",
-        "uploadButton": "Upload Screenshot",
         "submitButton": "Submit Report",
         "successTitle": "Report Sent",
         "successDescription": "Thank you for your feedback. Our team will review the situation as soon as possible.",
         "systemMessage": "Your report has been received. Thank you for helping us keep our community safe.",
+        "systemMessageTitle": "You have a new message",
+        "systemMessageDescription": "Please check your message list.",
         "errorTitle": "Error",
         "errorDescription": "An error occurred while sending the report. Please try again.",
         "reasonRequired": "Please specify a reason.",
         "loginRequired": "You must be logged in.",
+        "blockConfirmTitle": "Block User?",
+        "blockConfirmDescription": "Would you like to block this user and remove your match? You will no longer see each other.",
+        "yesBlock": "Yes, Block",
+        "noThanks": "No, Thanks",
+        "blockSuccessTitle": "User blocked and match removed.",
+        "blockErrorDescription": "An error occurred while blocking the user. Please try again.",
         "reasons": {
             "inappropriate_photos": "Inappropriate Photos",
             "spam_or_scam": "Spam or Scam",

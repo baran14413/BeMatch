@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useUser, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,19 +11,20 @@ import { ArrowLeft, Loader2, Send } from 'lucide-react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/context/language-context';
 import { useToast } from '@/hooks/use-toast';
-import { addDoc, collection, serverTimestamp, doc, setDoc, getDoc } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, doc, setDoc, getDoc, deleteDoc, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const BEMATCH_SYSTEM_ID = 'bematch_system_account';
-
-const reportReasons = [
-  { id: 'inappropriate_photos', label: 'Uygunsuz Fotoğraflar' },
-  { id: 'spam_or_scam', label: 'Spam veya Dolandırıcılık' },
-  { id: 'harassment', label: 'Taciz veya Zorbalık' },
-  { id: 'fake_profile', label: 'Sahte Profil' },
-  { id: 'underage', label: 'Yaşı Küçük Kullanıcı' },
-  { id: 'other', label: 'Diğer' },
-];
 
 export default function ReportPage() {
   const { user } = useUser();
@@ -40,6 +41,16 @@ export default function ReportPage() {
   const [reason, setReason] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+
+  const reportReasons = [
+    { id: 'inappropriate_photos', label: t('report.reasons.inappropriate_photos') },
+    { id: 'spam_or_scam', label: t('report.reasons.spam_or_scam') },
+    { id: 'harassment', label: t('report.reasons.harassment') },
+    { id: 'fake_profile', label: t('report.reasons.fake_profile') },
+    { id: 'underage', label: t('report.reasons.underage') },
+    { id: 'other', label: t('report.reasons.other') },
+  ];
 
   const sendSystemMessage = async (currentUserId: string) => {
     if (!firestore) return;
@@ -83,6 +94,43 @@ export default function ReportPage() {
     }
   };
 
+  const handleBlockUser = async () => {
+    if (!user || !firestore || !reportedUserId) return;
+
+    try {
+        const matchesRef = collection(firestore, 'matches');
+        const q = query(matchesRef, 
+            where('users', 'array-contains', user.uid)
+        );
+        const querySnapshot = await getDocs(q);
+
+        const batch = writeBatch(firestore);
+
+        querySnapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.users.includes(reportedUserId)) {
+                batch.delete(doc.ref);
+            }
+        });
+        
+        await batch.commit();
+
+        toast({
+            title: t('report.blockSuccessTitle'),
+        });
+
+    } catch (error) {
+        console.error("Error blocking user and deleting match:", error);
+        toast({
+            variant: "destructive",
+            title: t('common.error'),
+            description: t('report.blockErrorDescription'),
+        });
+    } finally {
+        router.back();
+    }
+  };
+
 
   const handleSubmit = async () => {
     if (!reason) {
@@ -110,15 +158,22 @@ export default function ReportPage() {
       }
 
       await addDoc(collection(firestore, 'reports'), reportData);
-      await sendSystemMessage(user.uid);
-
+      
+      // Background task simulation
+      sendSystemMessage(user.uid).then(() => {
+          toast({
+            title: t('report.systemMessageTitle'),
+            description: t('report.systemMessageDescription')
+          });
+      });
 
       toast({
         title: t('report.successTitle'),
         description: t('report.successDescription'),
       });
+      
+      setShowBlockConfirm(true);
 
-      router.back();
     } catch (error) {
       console.error('Rapor gönderme hatası:', error);
       toast({
@@ -132,6 +187,7 @@ export default function ReportPage() {
   };
 
   return (
+    <>
     <div className="h-full bg-gray-50 dark:bg-black">
       <header className="p-4 py-6 md:p-8 flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
@@ -164,7 +220,7 @@ export default function ReportPage() {
         <Card>
           <CardHeader>
             <CardTitle>{t('report.descriptionTitle')}</CardTitle>
-            <CardDescription>Lütfen olay hakkında daha fazla bilgi verin.</CardDescription>
+            <CardDescription>{t('report.descriptionInfo')}</CardDescription>
           </CardHeader>
           <CardContent>
             <Textarea
@@ -186,5 +242,22 @@ export default function ReportPage() {
         </Button>
       </div>
     </div>
+    <AlertDialog open={showBlockConfirm} onOpenChange={setShowBlockConfirm}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>{t('report.blockConfirmTitle')}</AlertDialogTitle>
+                <AlertDialogDescription>
+                   {t('report.blockConfirmDescription')}
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => router.back()}>{t('report.noThanks')}</AlertDialogCancel>
+                <AlertDialogAction onClick={handleBlockUser}>
+                    {t('report.yesBlock')}
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
