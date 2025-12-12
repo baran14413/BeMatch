@@ -11,7 +11,7 @@ import { ArrowLeft, Loader2, Send } from 'lucide-react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/context/language-context';
 import { useToast } from '@/hooks/use-toast';
-import { addDoc, collection, serverTimestamp, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, query, where, getDocs, writeBatch, doc, updateDoc } from 'firebase/firestore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,32 +51,21 @@ export default function ReportPage() {
   ];
 
   const handleBlockUser = async () => {
-    if (!user || !firestore || !reportedUserId) return;
+    if (!user || !firestore || !reportedUserId || !matchIdParam) return;
 
     try {
-        const matchesRef = collection(firestore, 'matches');
-        const q = query(matchesRef, 
-            where('users', 'array-contains', user.uid)
-        );
-        const querySnapshot = await getDocs(q);
-
-        const batch = writeBatch(firestore);
-
-        querySnapshot.forEach(doc => {
-            const data = doc.data();
-            if (data.users.includes(reportedUserId)) {
-                batch.delete(doc.ref);
-            }
+        const matchRef = doc(firestore, 'matches', matchIdParam);
+        await updateDoc(matchRef, {
+            isBlocked: true,
+            blockedBy: user.uid,
         });
-        
-        await batch.commit();
 
         toast({
             title: t('report.blockSuccessTitle'),
         });
 
     } catch (error) {
-        console.error("Error blocking user and deleting match:", error);
+        console.error("Error blocking user:", error);
         toast({
             variant: "destructive",
             title: t('common.error'),

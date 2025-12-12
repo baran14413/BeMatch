@@ -70,6 +70,15 @@
           "format": "date-time",
           "description": "The last time the user's password was updated."
         },
+        "lastRewindAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The last time the user used the rewind feature."
+        },
+        "rewindCount": {
+            "type": "number",
+            "description": "The number of rewinds a user has used today."
+        },
         "bio": {
           "type": "string",
           "description": "User's biography or 'about me' section."
@@ -176,6 +185,14 @@
           "type": "string",
           "description": "Timestamp of the last message sent.",
           "format": "date-time"
+        },
+        "isBlocked": {
+            "type": "boolean",
+            "description": "Indicates if the match is blocked by one of the users."
+        },
+        "blockedBy": {
+            "type": "string",
+            "description": "The UID of the user who initiated the block."
         }
       },
       "required": [
@@ -348,6 +365,23 @@
       "required": [
         "id"
       ]
+    },
+    "Report": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Report",
+      "type": "object",
+      "description": "Represents a user-submitted report against another user.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique ID for the report." },
+        "reporterId": { "type": "string", "description": "The UID of the user who submitted the report." },
+        "reportedUserId": { "type": "string", "description": "The UID of the user being reported." },
+        "matchId": { "type": "string", "description": "The ID of the match where the report originated, if any." },
+        "reason": { "type": "string", "description": "The category/reason for the report." },
+        "description": { "type": "string", "description": "A detailed description of the incident." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "When the report was submitted." },
+        "status": { "type": "string", "enum": ["pending", "reviewed", "resolved"], "description": "The current status of the report." }
+      },
+      "required": ["id", "reporterId", "reportedUserId", "reason", "timestamp", "status"]
     }
   },
   "auth": {
@@ -485,6 +519,17 @@
               "name": "compatibilityRadarChartId",
               "description": "The unique identifier of the compatibility radar chart."
             }
+          ]
+        }
+      },
+       {
+        "path": "/reports/{reportId}",
+        "definition": {
+          "entityName": "Report",
+          "schema": { "$ref": "#/backend/entities/Report" },
+          "description": "Stores user-submitted reports for moderation.",
+          "params": [
+            { "name": "reportId", "description": "The unique ID of the report." }
           ]
         }
       }

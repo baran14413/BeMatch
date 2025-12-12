@@ -1024,8 +1024,9 @@ export default function ChatPage() {
 
       <footer className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background p-3 pb-[calc(env(safe-area-inset-bottom,0rem)+0.75rem)]">
         {isBlockedByMe ? (
-          <div className="text-center">
-            <Button variant="link" onClick={handleUnblockUser}>
+          <div className="text-center p-3">
+            <p className='text-muted-foreground text-sm'>{t('chat.blockedUser', {name: matchProfile?.name})}</p>
+            <Button variant="link" onClick={handleUnblockUser} className="text-destructive">
               {t('chat.unblockPrompt')}
             </Button>
           </div>
