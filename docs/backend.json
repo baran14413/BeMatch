@@ -370,7 +370,6 @@
         "matchId": { "type": "string", "description": "The ID of the match where the report originated, if any." },
         "reason": { "type": "string", "description": "The category/reason for the report." },
         "description": { "type": "string", "description": "A detailed description of the incident." },
-        "screenshotUrl": { "type": "string", "format": "uri", "description": "URL to an uploaded screenshot as evidence." },
         "timestamp": { "type": "string", "format": "date-time", "description": "When the report was submitted." },
         "status": { "type": "string", "enum": ["pending", "reviewed", "resolved"], "description": "The current status of the report." }
       },
@@ -530,5 +529,3 @@
     "reasoning": "This Firestore structure is designed to support the Nexus dating app's core features while adhering to the principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). It prioritizes security, scalability, and debuggability.\\n\\n**Authorization Independence via Denormalization:**\\n*   User profiles are stored under `/users/{userId}`. Data needing authorization context from the user profile is denormalized to avoid `get()` calls in security rules. For example, prompt answers created by a user are stored in a subcollection `/users/{userId}/promptAnswers/{promptAnswerId}`. The prompt answer documents do not require any authorization data copied because access is solely based on path and `request.auth.uid`.\\n*   Matches between users are stored in a top-level `/matches/{matchId}` collection, which contains an array of `users`. Messages sent within a match are stored in a subcollection `/matches/{matchId}/messages/{messageId}`.  The message documents do not require any authorization data copied because access is solely based on path and `request.auth.uid`.\\n\\n**Structural Segregation (Homogeneous Security Posture):**\\n*   Private user data (profiles, prompt answers, matches, and messages) is kept separate from potentially public data. This separation ensures that each collection has a clear and consistent security posture, avoiding the need for complex logic within security rules.\\n\\n**Access Modeling (Standardization and Consistency):**\\n*   **Private Data:** User profiles and their associated data (prompt answers, swipes) utilize the path-based ownership pattern `/users/{userId}/*`. This approach allows straightforward security rules based on `request.auth.uid == userId`.\\n*   **Collaborative Data:** Matches and messages are secured using the `users` array in the parent match document."
   }
 }
-
-    

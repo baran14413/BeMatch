@@ -1,21 +1,17 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { useUser, useFirestore, useStorage } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ArrowLeft, Camera, Loader2, Send, X } from 'lucide-react';
-import Link from 'next/link';
+import { ArrowLeft, Loader2, Send } from 'lucide-react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/context/language-context';
 import { useToast } from '@/hooks/use-toast';
 import { addDoc, collection, serverTimestamp, doc, setDoc, getDoc } from 'firebase/firestore';
-import { getDownloadURL, ref, uploadString } from 'firebase/storage';
-import { v4 as uuidv4 } from 'uuid';
-import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const BEMATCH_SYSTEM_ID = 'bematch_system_account';
@@ -32,7 +28,6 @@ const reportReasons = [
 export default function ReportPage() {
   const { user } = useUser();
   const firestore = useFirestore();
-  const storage = useStorage();
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
@@ -44,20 +39,7 @@ export default function ReportPage() {
 
   const [reason, setReason] = useState('');
   const [description, setDescription] = useState('');
-  const [screenshot, setScreenshot] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setScreenshot(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const sendSystemMessage = async (currentUserId: string) => {
     if (!firestore) return;
@@ -70,7 +52,6 @@ export default function ReportPage() {
         if (!matchSnap.exists()) {
             const bematchLogo = PlaceHolderImages.find(p => p.id === 'bematch-logo')?.imageUrl;
             
-            // Create BeMatch system user doc if it doesn't exist
             const bematchUserRef = doc(firestore, 'users', BEMATCH_SYSTEM_ID);
             const bematchUserSnap = await getDoc(bematchUserRef);
             if (!bematchUserSnap.exists()) {
@@ -82,7 +63,6 @@ export default function ReportPage() {
                 });
             }
 
-            // Create the match
             await setDoc(matchRef, {
                 users: [currentUserId, BEMATCH_SYSTEM_ID],
                 timestamp: serverTimestamp(),
@@ -90,7 +70,6 @@ export default function ReportPage() {
             });
         }
         
-        // Add the message
         const messagesColRef = collection(firestore, 'matches', matchId, 'messages');
         await addDoc(messagesColRef, {
             senderId: BEMATCH_SYSTEM_ID,
@@ -101,7 +80,6 @@ export default function ReportPage() {
 
     } catch (error) {
         console.error("Error sending system message:", error);
-        // We can fail silently here, as it's a non-critical confirmation message.
     }
   };
 
@@ -119,21 +97,11 @@ export default function ReportPage() {
     setIsSubmitting(true);
 
     try {
-      let screenshotUrl = '';
-      if (screenshot) {
-        const screenshotId = uuidv4();
-        // **FIX:** Use the current user's UID (the reporter) for the path.
-        const storageRef = ref(storage, `reports/${user.uid}/${screenshotId}.jpg`);
-        await uploadString(storageRef, screenshot, 'data_url');
-        screenshotUrl = await getDownloadURL(storageRef);
-      }
-
       const reportData: any = {
         reporterId: user.uid,
         reportedUserId,
         reason,
         description,
-        screenshotUrl,
         timestamp: serverTimestamp(),
         status: 'pending',
       };
@@ -205,35 +173,6 @@ export default function ReportPage() {
               placeholder={t('report.descriptionPlaceholder')}
               rows={4}
             />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('report.evidenceTitle')}</CardTitle>
-            <CardDescription>{t('report.evidenceDescription')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              className="hidden"
-              accept="image/*"
-            />
-            {screenshot ? (
-              <div className="relative w-full aspect-video rounded-md overflow-hidden">
-                <Image src={screenshot} alt="Ekran görüntüsü önizlemesi" layout="fill" className="object-contain" />
-                 <Button variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => setScreenshot(null)}>
-                    <X className="h-4 w-4" />
-                 </Button>
-              </div>
-            ) : (
-              <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
-                <Camera className="mr-2 h-4 w-4" />
-                {t('report.uploadButton')}
-              </Button>
-            )}
           </CardContent>
         </Card>
 
