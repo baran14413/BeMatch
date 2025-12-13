@@ -186,7 +186,8 @@ export function UserTable() {
 
     const handleGhostMode = (userId: string) => {
         localStorage.setItem('ghostModeUser', userId);
-        router.push('/discover');
+        // Full page reload to ensure Firebase provider re-initializes with the new user context
+        window.location.href = '/discover';
     };
 
 
