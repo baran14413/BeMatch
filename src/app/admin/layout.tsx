@@ -62,7 +62,8 @@ export default function AdminLayout({
     const { user, isUserLoading } = useUser();
     const router = useRouter();
     const [authStatus, setAuthStatus] = useState<'checking' | 'authorized' | 'unauthorized'>('checking');
-    
+    const [userRole, setUserRole] = useState<string | null>(null);
+
     const allNavItems = [
         { href: '/admin', icon: Home, label: 'Genel Bakış' },
         { href: '/admin/users', icon: Users, label: 'Kullanıcı Yönetimi' },
@@ -73,8 +74,6 @@ export default function AdminLayout({
         { href: '/admin/audit-logs', icon: History, label: 'Denetim Kayıtları' },
     ];
     
-    const [userRole, setUserRole] = useState<string | null>(null);
-
     useEffect(() => {
         if (isUserLoading) {
             setAuthStatus('checking');
@@ -83,29 +82,43 @@ export default function AdminLayout({
 
         if (!user) {
             setAuthStatus('unauthorized');
-            router.replace('/?auth=required');
             return;
         }
 
         user.getIdTokenResult(true)
             .then((idTokenResult) => {
                 const claims = idTokenResult.claims;
-                const role = claims.role as keyof (typeof backend.auth.roles) | undefined;
+                const role = claims.role as keyof typeof backend.auth.roles | undefined;
 
-                if (role && backend.auth.roles[role]) {
+                if (role && (role === 'admin' || role === 'moderator' || role === 'support')) {
                     setUserRole(role);
                     setAuthStatus('authorized');
                 } else {
                     setAuthStatus('unauthorized');
-                    router.replace('/?auth=unauthorized');
                 }
             })
             .catch(() => {
                 setAuthStatus('unauthorized');
-                router.replace('/?auth=error');
             });
 
-    }, [user, isUserLoading, router]);
+    }, [user, isUserLoading]);
+    
+    if (authStatus === 'checking') {
+        return (
+            <div className="flex h-screen w-full items-center justify-center bg-muted/40">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-muted-foreground">Yetkiniz kontrol ediliyor...</p>
+                </div>
+            </div>
+        );
+    }
+    
+    if (authStatus === 'unauthorized') {
+        router.replace('/?auth=unauthorized');
+        return null;
+    }
+
 
     const SidebarContent = () => (
         <div className="flex h-full max-h-screen flex-col gap-2">
@@ -123,22 +136,6 @@ export default function AdminLayout({
             </div>
         </div>
     );
-    
-    if (authStatus === 'checking') {
-        return (
-            <div className="flex h-screen w-full items-center justify-center bg-muted/40">
-                <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-muted-foreground">Yetkiniz kontrol ediliyor...</p>
-                </div>
-            </div>
-        );
-    }
-    
-    if (authStatus === 'unauthorized') {
-        return null;
-    }
-
 
   return (
       <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
@@ -179,7 +176,7 @@ export default function AdminLayout({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{userRole ? backend.auth.roles[userRole as keyof typeof backend.auth.roles].name : 'Admin'}</DropdownMenuLabel>
+                <DropdownMenuLabel>{userRole ? (backend.auth.roles as any)[userRole]?.name : 'Admin'}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>Ayarlar</DropdownMenuItem>
                 <DropdownMenuItem>Destek</DropdownMenuItem>
