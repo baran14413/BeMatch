@@ -1,7 +1,7 @@
+'use server';
+
 // Force-load environment variables from .env.local
 import 'dotenv/config';
-
-'use server';
 
 import { revalidatePath } from 'next/cache';
 import { adminAuth } from '@/lib/firebaseAdmin';
