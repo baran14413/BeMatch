@@ -111,41 +111,49 @@ export default function SecurityPage() {
 
     const handleDeleteAccount = async () => {
         if (!user || !user.email) return;
+    
         setIsDeleting(true);
         try {
-            const credential = EmailAuthProvider.credential(user.email, deleteConfirmPassword);
-            await reauthenticateWithCredential(user, credential);
-
-            const deletionLogRef = doc(firestore, 'deletedUsers', user.uid);
-            await setDoc(deletionLogRef, {
-                email: user.email,
-                reason: selectedReason,
-                deletedAt: serverTimestamp()
-            });
-
-            const userDocRef = doc(firestore, 'users', user.uid);
+          const credential = EmailAuthProvider.credential(user.email, deleteConfirmPassword);
+          await reauthenticateWithCredential(user, credential);
+          
+          const deletionLogRef = doc(firestore, 'deletedUsers', user.uid);
+          await setDoc(deletionLogRef, {
+            email: user.email,
+            reason: selectedReason,
+            deletedAt: serverTimestamp(),
+          });
+    
+          // Önce Firestore belgesini sil
+          if (userDocRef) {
             await deleteDoc(userDocRef);
-            
-            await deleteUser(user);
-
-            toast({ title: "Hesap Silindi", description: "Hesabınız kalıcı olarak silindi. Sizi tekrar aramızda görmeyi umuyoruz." });
-            router.push('/');
-
+          }
+          
+          // Sonra Auth kullanıcısını sil
+          await deleteUser(user);
+    
+          toast({
+            title: 'Hesap Silindi',
+            description: 'Hesabınız kalıcı olarak silindi. Sizi tekrar aramızda görmeyi umuyoruz.',
+          });
+          router.push('/');
         } catch (error: any) {
-            console.error(error);
-            let description = "İşlem sırasında bir hata oluştu. Lütfen şifrenizi kontrol edip tekrar deneyin.";
-            if (error.code === 'auth/invalid-credential') {
-                description = "Girilen şifre yanlış. Lütfen hesabınızın şifresini doğru girdiğinizden emin olun.";
-            }
-            toast({ 
-                variant: 'destructive', 
-                title: "Hesap Silinemedi", 
-                description: description 
-            });
+          console.error('Hesap silme hatası:', error);
+          let description =
+            'İşlem sırasında bir hata oluştu. Lütfen şifrenizi kontrol edip tekrar deneyin.';
+          if (error.code === 'auth/invalid-credential') {
+            description =
+              'Girilen şifre yanlış. Lütfen hesabınızın şifresini doğru girdiğinizden emin olun.';
+          }
+          toast({
+            variant: 'destructive',
+            title: 'Hesap Silinemedi',
+            description: description,
+          });
         } finally {
-            setIsDeleting(false);
+          setIsDeleting(false);
         }
-    }
+      };
 
     const resetDeleteFlow = () => {
         setDeleteStep(0);
