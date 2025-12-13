@@ -55,7 +55,7 @@ import { subscriptionPackages } from '@/config/subscriptions';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/context/language-context';
 import backend from '@/docs/backend.json';
-import { setRole, deleteUser } from '@/app/admin/actions';
+import { setUserRoleAction, deleteUserAction } from '@/actions/user-actions';
 
 
 const UserTableRowSkeleton = () => (
@@ -91,7 +91,6 @@ type RoleAssignState = {
 
 type DeleteUserState = {
     user: UserProfile | null;
-    isDeleting: boolean;
 }
 
 export function UserTable() {
@@ -110,7 +109,7 @@ export function UserTable() {
     const [grantModalState, setGrantModalState] = useState<PremiumGrantState>({ user: null, selectedTier: null, selectedDuration: null });
     const [userToRevoke, setUserToRevoke] = useState<UserProfile | null>(null);
     const [roleModalState, setRoleModalState] = useState<RoleAssignState>({ user: null, selectedRole: null });
-    const [deleteModalState, setDeleteModalState] = useState<DeleteUserState>({ user: null, isDeleting: false });
+    const [deleteModalState, setDeleteModalState] = useState<DeleteUserState>({ user: null });
 
 
     const durationOptions = [
@@ -125,7 +124,7 @@ export function UserTable() {
         if (!rolesConfig) return [];
         return Object.entries(rolesConfig).map(([key, value]) => ({ 
             id: key, 
-            name: value.name 
+            name: (value as { name: string }).name 
         }));
     }, []);
 
@@ -214,7 +213,7 @@ export function UserTable() {
         const { user, selectedRole } = roleModalState;
 
         startTransition(async () => {
-            const result = await setRole(user.id, selectedRole);
+            const result = await setUserRoleAction(user.id, selectedRole);
             if (result.success) {
                 toast({
                     title: 'Rol Atandı',
@@ -237,7 +236,7 @@ export function UserTable() {
         const userToDelete = deleteModalState.user;
 
         startTransition(async () => {
-            const result = await deleteUser(userToDelete.id);
+            const result = await deleteUserAction(userToDelete.id);
              if (result.success) {
                 toast({
                     title: 'Kullanıcı Silindi',
@@ -250,7 +249,7 @@ export function UserTable() {
                     description: result.error || 'Bilinmeyen bir hata oluştu.',
                 });
             }
-            setDeleteModalState({ user: null, isDeleting: false });
+            setDeleteModalState({ user: null });
         });
     };
 
@@ -353,7 +352,7 @@ export function UserTable() {
                                 <Link href={`/admin/users/${user.id}`}>Detayları Görüntüle</Link>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onSelect={() => setRoleModalState({ user, selectedRole: user.role || 'user' })}>
+                            <DropdownMenuItem onSelect={() => setRoleModalState({ user, selectedRole: (user as any).role || 'user' })}>
                                 <UserCog className="mr-2 h-4 w-4" />
                                 <span>Rol Ata</span>
                             </DropdownMenuItem>
@@ -376,7 +375,7 @@ export function UserTable() {
                                 <UserX className="mr-2 h-4 w-4" />
                                 Kullanıcıyı Yasakla
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => setDeleteModalState({ user, isDeleting: false })} className="text-destructive focus:text-destructive">
+                            <DropdownMenuItem onSelect={() => setDeleteModalState({ user })} className="text-destructive focus:text-destructive">
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Hesabı Sil
                             </DropdownMenuItem>
@@ -506,7 +505,7 @@ export function UserTable() {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-        <AlertDialog open={!!deleteModalState.user} onOpenChange={(isOpen) => !isOpen && setDeleteModalState({ user: null, isDeleting: false })}>
+        <AlertDialog open={!!deleteModalState.user} onOpenChange={(isOpen) => !isOpen && setDeleteModalState({ user: null })}>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Kullanıcıyı Sil: {deleteModalState.user?.name}</AlertDialogTitle>
