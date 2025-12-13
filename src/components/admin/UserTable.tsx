@@ -214,22 +214,12 @@ export function UserTable() {
 
         startTransition(async () => {
             const userDocRef = doc(firestore, 'users', user.id);
-
-            // 1. Update Firestore document first for immediate UI feedback
             try {
                 await updateDoc(userDocRef, { role: selectedRole });
             } catch (firestoreError) {
-                console.error("Firestore rol güncelleme hatası:", firestoreError);
-                toast({
-                    variant: 'destructive',
-                    title: 'Veritabanı Hatası',
-                    description: 'Kullanıcı rolü veritabanında güncellenemedi.',
-                });
-                setRoleModalState({ user: null, selectedRole: null });
-                return;
+                 console.error("Firestore rol güncelleme hatası:", firestoreError);
             }
             
-            // 2. Call the server action to set the custom claim
             const result = await setUserRoleAction(user.id, selectedRole);
 
             if (result.success) {
@@ -243,7 +233,6 @@ export function UserTable() {
                     title: 'Yetki Atanamadı',
                     description: result.error || 'Sunucu tarafında yetki (claim) atanamadı.',
                 });
-                // Optional: Revert the change in Firestore if claim fails
                 await updateDoc(userDocRef, { role: user.role || 'user' });
             }
             setRoleModalState({ user: null, selectedRole: null });
@@ -257,9 +246,6 @@ export function UserTable() {
 
         startTransition(async () => {
             const userDocRef = doc(firestore, 'users', userToDelete.id);
-
-            // 1. Delete user from Firestore first. The `useCollection` hook will
-            // automatically update the UI in real-time.
             try {
                 await deleteDoc(userDocRef);
             } catch(firestoreError) {
@@ -273,9 +259,6 @@ export function UserTable() {
                 return;
             }
 
-            // 2. Once the document is deleted from Firestore and the UI has updated,
-            // call the server action to delete the user from Firebase Auth.
-            // This is the sensitive operation that requires the admin SDK.
             const result = await deleteUserAction(userToDelete.id);
             
              if (result.success) {
@@ -289,8 +272,6 @@ export function UserTable() {
                     title: 'Authentication Hatası',
                     description: result.error || 'Kullanıcı kimlik doğrulama sisteminden silinemedi.',
                 });
-                // Note: At this point, the user is deleted from the UI but might still exist in Auth.
-                // This would require manual cleanup in the Firebase console in this rare error case.
             }
             setDeleteModalState({ user: null });
         });
