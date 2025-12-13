@@ -185,7 +185,7 @@ export default function DiscoverPage() {
   const { data: profiles, isLoading: isLoadingProfiles } = useCollection<UserProfile>(usersQuery);
 
   const filteredAndSortedProfiles = useMemo(() => {
-    if (!profiles || !currentUserProfile) return [];
+    if (!profiles || !currentUserProfile || !user) return [];
 
     const {
         ageRange = [18, 55],
