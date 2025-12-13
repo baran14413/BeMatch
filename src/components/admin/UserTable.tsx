@@ -117,7 +117,8 @@ export function UserTable() {
         { label: '1 Yıl', days: 365 },
     ];
     
-    const availableRoles = Object.entries(backend.auth.roles).map(([key, value]) => ({ id: key, name: value.name }));
+    const rolesConfig = backend.auth.roles;
+    const availableRoles = rolesConfig ? Object.entries(rolesConfig).map(([key, value]) => ({ id: key, name: value.name })) : [];
 
     const filteredUsers = useMemo(() => {
         if (!users) return [];
