@@ -156,8 +156,8 @@ export default function AdminLayout({
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="flex flex-col p-0">
-                 <SheetHeader className="sr-only">
-                    <SheetTitle>Admin Navigation</SheetTitle>
+                 <SheetHeader>
+                    <SheetTitle className="sr-only">Admin Navigation</SheetTitle>
                  </SheetHeader>
                 <SidebarContent />
               </SheetContent>
@@ -176,7 +176,7 @@ export default function AdminLayout({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{userRole ? (backend.auth.roles as any)[userRole]?.name : 'Admin'}</DropdownMenuLabel>
+                <DropdownMenuLabel>{userRole && backend.auth.roles && (backend.auth.roles as any)[userRole] ? (backend.auth.roles as any)[userRole].name : (userRole || 'Admin')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>Ayarlar</DropdownMenuItem>
                 <DropdownMenuItem>Destek</DropdownMenuItem>
