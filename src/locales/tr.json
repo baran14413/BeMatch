@@ -337,7 +337,7 @@
             "button": "Sıfırlama E-postası Gönder",
             "emailRequired": "Lütfen bir e-posta adresi girin.",
             "successTitle": "E-posta Gönderildi!",
-            "successDescription": "Şifre sıfırlama talimatları için lütfen e-postanı kontrol et.",
+            "successDescription": "Şifre sıfırlama talimatları için lütfen gelen kutunu (ve spam klasörünü!) kontrol et.",
             "errorTitle": "Hata",
             "userNotFound": "Bu e-posta adresi ile kayıtlı bir kullanıcı bulunamadı."
         }

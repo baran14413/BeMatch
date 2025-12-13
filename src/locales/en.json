@@ -337,7 +337,7 @@
             "button": "Send Reset Email",
             "emailRequired": "Please enter an email address.",
             "successTitle": "Email Sent!",
-            "successDescription": "Please check your email for password reset instructions.",
+            "successDescription": "Please check your inbox (and spam folder!) for password reset instructions.",
             "errorTitle": "Error",
             "userNotFound": "No user was found with this email address."
         }
