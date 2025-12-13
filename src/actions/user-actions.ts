@@ -1,10 +1,9 @@
 'use server';
-
 // Force-load environment variables from .env.local
 import 'dotenv/config';
 
 import { revalidatePath } from 'next/cache';
-import { adminAuth } from '@/lib/firebaseAdmin';
+import { adminAuth, adminDb } from '@/lib/firebaseAdmin';
 
 /**
  * Sets a custom role for a Firebase user.
@@ -26,21 +25,25 @@ export async function setUserRoleAction(uid: string, role: string) {
 }
 
 /**
- * Deletes a Firebase user and all their associated data.
+ * Deletes a Firebase user and all their associated data from Auth and Firestore.
  * This is a server-only function.
  * @param uid The user's ID to delete.
  * @returns An object with success status and an optional error message.
  */
 export async function deleteUserAction(uid: string) {
   try {
-    // Note: Deleting user data from Firestore and Storage should be handled
-    // via Firebase Extension "Delete User Data" or Cloud Functions for robustness.
-    // This action will only delete the Firebase Auth user.
+    // 1. Delete the user from Firebase Authentication
     await adminAuth.deleteUser(uid);
-    
-    // Revalidate the users path to update the list in the admin panel
+
+    // 2. Delete the user's profile document from Firestore
+    const userDocRef = adminDb.collection('users').doc(uid);
+    await userDocRef.delete();
+
+    // 3. Revalidate the users path to update the list in the admin panel
+    // Although onSnapshot should handle this, revalidation is good practice.
     revalidatePath('/admin/users');
-    return { success: true, message: `User ${uid} deleted successfully.` };
+    
+    return { success: true, message: `User ${uid} deleted successfully from Auth and Firestore.` };
   } catch (error: any) {
     console.error(`Failed to delete user ${uid}:`, error);
     return { success: false, error: error.message || 'An unknown error occurred.' };
