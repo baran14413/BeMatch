@@ -22,10 +22,10 @@ import {
 import { MoreHorizontal, ShieldCheck, UserX, Trash2, Crown, Loader2, Ban, UserCog } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, doc, updateDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/data';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -96,6 +96,7 @@ export function UserTable() {
     const { data: users, isLoading } = useCollection<UserProfile>(usersQuery);
     const { toast } = useToast();
     const { t } = useLanguage();
+    const { user: adminUser } = useUser();
 
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -117,8 +118,14 @@ export function UserTable() {
         { label: '1 Yıl', days: 365 },
     ];
     
-    const rolesConfig = backend.auth.roles;
-    const availableRoles = rolesConfig ? Object.entries(rolesConfig).map(([key, value]) => ({ id: key, name: value.name })) : [];
+    const rolesConfig = backend.auth?.roles;
+    const availableRoles = useMemo(() => {
+        if (!rolesConfig) return [];
+        return Object.entries(rolesConfig).map(([key, value]) => ({ 
+            id: key, 
+            name: (value as any).name 
+        }));
+    }, [rolesConfig]);
 
     const filteredUsers = useMemo(() => {
         if (!users) return [];
@@ -201,8 +208,6 @@ export function UserTable() {
              return;
         }
         setIsAssigningRole(true);
-        // NOTE: This is a simulation. In a real app, this would trigger a backend function.
-        // We are showing the command that the admin needs to run.
         const command = `node scripts/set-role.js ${roleModalState.user.email} ${roleModalState.selectedRole}`;
         
         setTimeout(() => {
@@ -452,6 +457,7 @@ export function UserTable() {
                      <RadioGroup
                         value={roleModalState.selectedRole || ''}
                         onValueChange={(val) => setRoleModalState(prev => ({ ...prev, selectedRole: val }))}
+                        className="space-y-2"
                      >
                         {availableRoles.map(role => (
                             <Label key={role.id} className={cn("border rounded-md p-4 flex items-center justify-between cursor-pointer", roleModalState.selectedRole === role.id && "border-primary ring-2 ring-primary")}>
