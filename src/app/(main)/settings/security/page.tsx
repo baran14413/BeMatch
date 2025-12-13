@@ -117,6 +117,7 @@ export default function SecurityPage() {
           const credential = EmailAuthProvider.credential(user.email, deleteConfirmPassword);
           await reauthenticateWithCredential(user, credential);
           
+          // 1. Log deletion reason
           const deletionLogRef = doc(firestore, 'deletedUsers', user.uid);
           await setDoc(deletionLogRef, {
             email: user.email,
@@ -124,12 +125,12 @@ export default function SecurityPage() {
             deletedAt: serverTimestamp(),
           });
     
-          // Önce Firestore belgesini sil
+          // 2. Delete user's profile document from Firestore
           if (userDocRef) {
             await deleteDoc(userDocRef);
           }
           
-          // Sonra Auth kullanıcısını sil
+          // 3. Delete the user from Firebase Authentication
           await deleteUser(user);
     
           toast({
@@ -144,6 +145,10 @@ export default function SecurityPage() {
           if (error.code === 'auth/invalid-credential') {
             description =
               'Girilen şifre yanlış. Lütfen hesabınızın şifresini doğru girdiğinizden emin olun.';
+          }
+           if (error.code === 'permission-denied') {
+             description =
+              'Hesap silme işlemi için yetkiniz yok veya bir kural ihlali oluştu. Lütfen destek ile iletişime geçin.';
           }
           toast({
             variant: 'destructive',
