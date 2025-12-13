@@ -1,17 +1,15 @@
 'use client';
 import {
-  Bell,
   Home,
   Users,
   ShieldCheck,
   CreditCard,
   Settings,
   Menu,
-  BrainCircuit, // New Icon
-  History,      // New Icon
-  Ghost,        // New Icon
-  Loader2,
+  BrainCircuit,
+  History,
   LayoutDashboard,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -33,7 +31,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { useUser } from '@/firebase';
-import backend from '@/docs/backend.json';
 
 const NavItem = ({ href, icon: Icon, label }: { href: string; icon: React.ElementType; label: string; }) => {
   const pathname = usePathname();
@@ -61,8 +58,8 @@ export default function AdminLayout({
 }) {
     const { user, isUserLoading } = useUser();
     const router = useRouter();
+    const [authStatus, setAuthStatus] = useState<'checking' | 'authorized' | 'unauthorized'>('checking');
     const [userRole, setUserRole] = useState<string | null>(null);
-    const [isChecking, setIsChecking] = useState(true);
 
     const allNavItems = [
         { href: '/admin', icon: Home, label: 'Genel Bakış' },
@@ -73,71 +70,72 @@ export default function AdminLayout({
         { href: '/admin/app-settings', icon: Settings, label: 'Uygulama Ayarları' },
         { href: '/admin/audit-logs', icon: History, label: 'Denetim Kayıtları' },
     ];
-    
-    const { roles } = backend.auth;
 
     useEffect(() => {
         if (isUserLoading) {
-            return; // Wait until user object is available
+            setAuthStatus('checking');
+            return;
         }
 
         if (!user) {
-            router.replace('/?auth=required'); // Redirect if not logged in
+            router.replace('/?auth=required');
+            setAuthStatus('unauthorized');
             return;
         }
 
         user.getIdTokenResult(true)
             .then((idTokenResult) => {
                 const claims = idTokenResult.claims;
-                const role = claims.role as keyof typeof roles | 'user' | undefined;
-                
-                if (role && role !== 'user' && roles[role]) {
+                const role = claims.role as string | undefined;
+
+                if (role && ['admin', 'moderator', 'support'].includes(role)) {
                     setUserRole(role);
-                    // If the user has a valid admin-like role, allow access.
-                    // The specific accessible items are now determined by the existence of the link in the sidebar,
-                    // but the core access grant is just having a valid role.
+                    setAuthStatus('authorized');
                 } else {
-                    // If no specific admin/mod/support role, or role is 'user', deny access.
+                    setAuthStatus('unauthorized');
                     router.replace('/?auth=unauthorized');
                 }
             })
             .catch(() => {
-                router.replace('/?auth=error'); // Redirect on error
-            })
-            .finally(() => {
-                setIsChecking(false);
+                setAuthStatus('unauthorized');
+                router.replace('/?auth=error');
             });
 
     }, [user, isUserLoading, router]);
 
-
     const SidebarContent = () => (
         <div className="flex h-full max-h-screen flex-col gap-2">
-        <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-            <Link href="/admin" className="flex items-center gap-2 font-semibold">
-            <span className="">BeMatch Komuta Merkezi</span>
-            </Link>
-        </div>
-        <div className="flex-1">
-            <nav className="grid items-start gap-1 px-2 text-sm font-medium lg:px-4">
-            {allNavItems.map((item) => (
-                <NavItem key={item.href} {...item} />
-            ))}
-            </nav>
-        </div>
+            <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+                <Link href="/admin" className="flex items-center gap-2 font-semibold">
+                    <span className="">BeMatch Komuta Merkezi</span>
+                </Link>
+            </div>
+            <div className="flex-1">
+                <nav className="grid items-start gap-1 px-2 text-sm font-medium lg:px-4">
+                    {allNavItems.map((item) => (
+                        <NavItem key={item.href} {...item} />
+                    ))}
+                </nav>
+            </div>
         </div>
     );
     
-    if (isChecking || !userRole) {
+    if (authStatus === 'checking') {
         return (
-        <div className="flex h-screen w-full items-center justify-center bg-muted/40">
-            <div className="flex flex-col items-center gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">Yetkiniz kontrol ediliyor...</p>
+            <div className="flex h-screen w-full items-center justify-center bg-muted/40">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-muted-foreground">Yetkiniz kontrol ediliyor...</p>
+                </div>
             </div>
-        </div>
         );
     }
+    
+    if (authStatus === 'unauthorized') {
+        // Redirection is handled in useEffect, this is a fallback.
+        return null;
+    }
+
 
   return (
       <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
@@ -175,7 +173,7 @@ export default function AdminLayout({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{userRole && roles[userRole as keyof typeof roles] ? roles[userRole as keyof typeof roles].name : 'Admin'}</DropdownMenuLabel>
+                <DropdownMenuLabel>{userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : 'Admin'}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>Ayarlar</DropdownMenuItem>
                 <DropdownMenuItem>Destek</DropdownMenuItem>
