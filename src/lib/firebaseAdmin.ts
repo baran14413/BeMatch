@@ -1,37 +1,57 @@
+import 'server-only';
 import * as admin from 'firebase-admin';
 
-// Ensure the private key is correctly formatted.
-// When copying from a .json file, the `\n` characters are often escaped as `\\n`.
-// When using environment variables, they must be un-escaped.
-const privateKey = process.env.FIREBASE_PRIVATE_KEY
-  ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
-  : undefined;
+interface FirebaseAdminApp {
+  auth: admin.auth.Auth;
+  db: admin.firestore.Firestore;
+}
 
-const serviceAccount: admin.ServiceAccount = {
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-  privateKey: privateKey,
-};
+let app: admin.app.App | undefined;
 
-// Singleton pattern to initialize Firebase Admin SDK only once.
-if (!admin.apps.length) {
+function getFirebaseAdmin(): FirebaseAdminApp {
+  if (app) {
+    return {
+      auth: admin.auth(app),
+      db: admin.firestore(app),
+    };
+  }
+
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+
+  if (!privateKey || !clientEmail || !projectId) {
+    throw new Error(
+      'Missing Firebase Admin SDK environment variables. Ensure FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL, and FIREBASE_PROJECT_ID are set.'
+    );
+  }
+
   try {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
+    app = admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId,
+        clientEmail,
+        privateKey: privateKey.replace(/\\n/g, '\n'),
+      }),
     });
     console.log('Firebase Admin SDK initialized successfully.');
   } catch (error: any) {
-    // Provide a more descriptive error if initialization fails due to missing env vars.
-    if (error.code === 'app/invalid-credential') {
-      console.error(
-        'Firebase Admin SDK initialization failed. ' +
-        'Ensure FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY environment variables are set correctly.'
-      );
+    if (error.code === 'app/duplicate-app') {
+      // This can happen in development with hot-reloading.
+      // Get the already initialized app.
+      app = admin.app();
     } else {
-        console.error('Firebase Admin SDK initialization failed:', error);
+      console.error('Firebase Admin SDK initialization failed:', error);
+      throw error; // Re-throw the error to fail fast during setup
     }
   }
+
+  return {
+    auth: admin.auth(app),
+    db: admin.firestore(app),
+  };
 }
 
-export const adminAuth = admin.auth();
-export const adminDb = admin.firestore();
+// Export getter functions instead of direct service objects
+export const adminAuth = (): admin.auth.Auth => getFirebaseAdmin().auth;
+export const adminDb = (): admin.firestore.Firestore => getFirebaseAdmin().db;
