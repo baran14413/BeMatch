@@ -16,6 +16,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Sheet,
   SheetContent,
+  SheetHeader,
+  SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -31,6 +33,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { useUser } from '@/firebase';
+import backend from '@/docs/backend.json';
 
 const NavItem = ({ href, icon: Icon, label }: { href: string; icon: React.ElementType; label: string; }) => {
   const pathname = usePathname();
@@ -59,8 +62,7 @@ export default function AdminLayout({
     const { user, isUserLoading } = useUser();
     const router = useRouter();
     const [authStatus, setAuthStatus] = useState<'checking' | 'authorized' | 'unauthorized'>('checking');
-    const [userRole, setUserRole] = useState<string | null>(null);
-
+    
     const allNavItems = [
         { href: '/admin', icon: Home, label: 'Genel Bakış' },
         { href: '/admin/users', icon: Users, label: 'Kullanıcı Yönetimi' },
@@ -70,6 +72,8 @@ export default function AdminLayout({
         { href: '/admin/app-settings', icon: Settings, label: 'Uygulama Ayarları' },
         { href: '/admin/audit-logs', icon: History, label: 'Denetim Kayıtları' },
     ];
+    
+    const [userRole, setUserRole] = useState<string | null>(null);
 
     useEffect(() => {
         if (isUserLoading) {
@@ -78,17 +82,17 @@ export default function AdminLayout({
         }
 
         if (!user) {
-            router.replace('/?auth=required');
             setAuthStatus('unauthorized');
+            router.replace('/?auth=required');
             return;
         }
 
         user.getIdTokenResult(true)
             .then((idTokenResult) => {
                 const claims = idTokenResult.claims;
-                const role = claims.role as string | undefined;
+                const role = claims.role as keyof (typeof backend.auth.roles) | undefined;
 
-                if (role && ['admin', 'moderator', 'support'].includes(role)) {
+                if (role && backend.auth.roles[role]) {
                     setUserRole(role);
                     setAuthStatus('authorized');
                 } else {
@@ -132,7 +136,6 @@ export default function AdminLayout({
     }
     
     if (authStatus === 'unauthorized') {
-        // Redirection is handled in useEffect, this is a fallback.
         return null;
     }
 
@@ -156,6 +159,9 @@ export default function AdminLayout({
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="flex flex-col p-0">
+                 <SheetHeader className="sr-only">
+                    <SheetTitle>Admin Navigation</SheetTitle>
+                 </SheetHeader>
                 <SidebarContent />
               </SheetContent>
             </Sheet>
@@ -173,7 +179,7 @@ export default function AdminLayout({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : 'Admin'}</DropdownMenuLabel>
+                <DropdownMenuLabel>{userRole ? backend.auth.roles[userRole as keyof typeof backend.auth.roles].name : 'Admin'}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>Ayarlar</DropdownMenuItem>
                 <DropdownMenuItem>Destek</DropdownMenuItem>
