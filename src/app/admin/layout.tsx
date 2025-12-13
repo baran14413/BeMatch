@@ -74,7 +74,6 @@ export default function AdminLayout({
         { href: '/admin/audit-logs', icon: History, label: 'Denetim Kayıtları' },
     ];
     
-    const [accessibleNavItems, setAccessibleNavItems] = useState<typeof allNavItems>([]);
     const { roles } = backend.auth;
 
     useEffect(() => {
@@ -94,17 +93,9 @@ export default function AdminLayout({
                 
                 if (role && role !== 'user' && roles[role]) {
                     setUserRole(role);
-                    const roleConfig = roles[role];
-                    const userPermissions = roleConfig.permissions || [];
-
-                    if (userPermissions.includes('*')) {
-                        setAccessibleNavItems(allNavItems);
-                    } else {
-                       const filteredNavItems = allNavItems.filter(item => 
-                           userPermissions.some(p => p.startsWith(item.href)) || item.href === '/admin'
-                       );
-                       setAccessibleNavItems(filteredNavItems);
-                    }
+                    // If the user has a valid admin-like role, allow access.
+                    // The specific accessible items are now determined by the existence of the link in the sidebar,
+                    // but the core access grant is just having a valid role.
                 } else {
                     // If no specific admin/mod/support role, or role is 'user', deny access.
                     router.replace('/?auth=unauthorized');
@@ -129,7 +120,7 @@ export default function AdminLayout({
         </div>
         <div className="flex-1">
             <nav className="grid items-start gap-1 px-2 text-sm font-medium lg:px-4">
-            {accessibleNavItems.map((item) => (
+            {allNavItems.map((item) => (
                 <NavItem key={item.href} {...item} />
             ))}
             </nav>
