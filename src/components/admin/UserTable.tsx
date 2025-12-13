@@ -28,6 +28,7 @@ import type { UserProfile } from '@/lib/data';
 import { useState, useMemo } from 'react';
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { add } from 'date-fns';
 import { 
@@ -85,6 +86,7 @@ type PremiumGrantState = {
 
 export function UserTable() {
     const firestore = useFirestore();
+    const router = useRouter();
     const usersQuery = useMemoFirebase(() => query(collection(firestore, 'users')), [firestore]);
     const { data: users, isLoading } = useCollection<UserProfile>(usersQuery);
     const { toast } = useToast();
@@ -180,6 +182,11 @@ export function UserTable() {
         setIsRevoking(false);
         setUserToRevoke(null);
       }
+    };
+
+    const handleGhostMode = (userId: string) => {
+        localStorage.setItem('ghostModeUser', userId);
+        router.push('/discover');
     };
 
 
@@ -280,7 +287,7 @@ export function UserTable() {
                              <DropdownMenuItem asChild>
                                 <Link href={`/admin/users/${user.id}`}>Detayları Görüntüle</Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleGhostMode(user.id)}>
                                 <Ghost className="mr-2 h-4 w-4" />
                                 Hayalet Mod (Giriş Yap)
                             </DropdownMenuItem>

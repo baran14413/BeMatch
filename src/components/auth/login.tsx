@@ -6,10 +6,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Heart, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/context/language-context';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { useAuth } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type AuthView = 'login' | 'register';
 
@@ -23,6 +34,10 @@ export default function Login({ onSwitchView, onLoginSuccess }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+
   const { t } = useLanguage();
   const auth = useAuth();
   const { toast } = useToast();
@@ -37,7 +52,6 @@ export default function Login({ onSwitchView, onLoginSuccess }: LoginProps) {
       });
       onLoginSuccess();
     } catch (error: any) {
-      // The console.error is removed as the toast provides user feedback.
       toast({
         variant: "destructive",
         title: t('login.errorTitle'),
@@ -45,6 +59,37 @@ export default function Login({ onSwitchView, onLoginSuccess }: LoginProps) {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!resetEmail) {
+        toast({
+            variant: "destructive",
+            title: t('login.errorTitle'),
+            description: t('login.forgotPassword.emailRequired'),
+        });
+        return;
+    }
+    setIsResetting(true);
+    try {
+        await sendPasswordResetEmail(auth, resetEmail);
+        toast({
+            title: t('login.forgotPassword.successTitle'),
+            description: t('login.forgotPassword.successDescription'),
+        });
+        setIsResetDialogOpen(false);
+        setResetEmail('');
+    } catch (error: any) {
+         toast({
+            variant: "destructive",
+            title: t('login.forgotPassword.errorTitle'),
+            description: error.code === 'auth/user-not-found' 
+                ? t('login.forgotPassword.userNotFound') 
+                : error.message,
+        });
+    } finally {
+        setIsResetting(false);
     }
   };
 
@@ -64,18 +109,54 @@ export default function Login({ onSwitchView, onLoginSuccess }: LoginProps) {
                 <Label htmlFor="email">{t('login.email')}</Label>
                 <Input id="email" type="email" placeholder={t('login.emailPlaceholder')} className="h-14 text-lg" value={email} onChange={(e) => setEmail(e.target.value)} />
                 </div>
-                <div className="space-y-2 relative">
-                <Label htmlFor="password">{t('login.password')}</Label>
-                <Input id="password" type={showPassword ? 'text' : 'password'} placeholder={t('login.passwordPlaceholder')} className="h-14 text-lg" value={password} onChange={(e) => setPassword(e.target.value)} />
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-2.5 top-8 h-9 w-9 text-muted-foreground"
-                    onClick={() => setShowPassword(!showPassword)}
-                >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </Button>
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                        <Label htmlFor="password">{t('login.password')}</Label>
+                        <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+                            <AlertDialogTrigger asChild>
+                                 <button className="text-xs font-medium text-primary hover:underline">
+                                    {t('login.forgotPassword.trigger')}
+                                </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>{t('login.forgotPassword.title')}</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        {t('login.forgotPassword.description')}
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <div className="py-4">
+                                     <Label htmlFor="reset-email" className="sr-only">Email</Label>
+                                     <Input
+                                        id="reset-email"
+                                        type="email"
+                                        placeholder={t('login.emailPlaceholder')}
+                                        value={resetEmail}
+                                        onChange={(e) => setResetEmail(e.target.value)}
+                                    />
+                                </div>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handlePasswordReset} disabled={isResetting}>
+                                        {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        {t('login.forgotPassword.button')}
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
+                    <div className="relative">
+                        <Input id="password" type={showPassword ? 'text' : 'password'} placeholder={t('login.passwordPlaceholder')} className="h-14 text-lg" value={password} onChange={(e) => setPassword(e.target.value)} />
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 h-9 w-9 text-muted-foreground"
+                            onClick={() => setShowPassword(!showPassword)}
+                        >
+                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </Button>
+                    </div>
                 </div>
             </div>
             

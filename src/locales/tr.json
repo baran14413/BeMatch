@@ -329,7 +329,18 @@
         "successTitle": "Giriş başarılı!",
         "successDescription": "Tekrar hoş geldin.",
         "errorTitle": "Giriş yapılamadı",
-        "errorDescription": "E-posta veya şifreniz yanlış."
+        "errorDescription": "E-posta veya şifreniz yanlış.",
+        "forgotPassword": {
+            "trigger": "Şifreni mi unuttun?",
+            "title": "Şifreni Sıfırla",
+            "description": "Hesabına kayıtlı e-posta adresini gir. Şifreni sıfırlaman için sana bir bağlantı göndereceğiz.",
+            "button": "Sıfırlama E-postası Gönder",
+            "emailRequired": "Lütfen bir e-posta adresi girin.",
+            "successTitle": "E-posta Gönderildi!",
+            "successDescription": "Şifre sıfırlama talimatları için lütfen e-postanı kontrol et.",
+            "errorTitle": "Hata",
+            "userNotFound": "Bu e-posta adresi ile kayıtlı bir kullanıcı bulunamadı."
+        }
     },
     "passwordStrength": {
         "weak": "Zayıf",

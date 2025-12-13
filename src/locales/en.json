@@ -329,7 +329,18 @@
         "successTitle": "Login successful!",
         "successDescription": "Welcome back.",
         "errorTitle": "Login failed",
-        "errorDescription": "Your email or password is a wrong."
+        "errorDescription": "Your email or password is a wrong.",
+        "forgotPassword": {
+            "trigger": "Forgot your password?",
+            "title": "Reset Your Password",
+            "description": "Enter the email address associated with your account, and we'll send you a link to reset your password.",
+            "button": "Send Reset Email",
+            "emailRequired": "Please enter an email address.",
+            "successTitle": "Email Sent!",
+            "successDescription": "Please check your email for password reset instructions.",
+            "errorTitle": "Error",
+            "userNotFound": "No user was found with this email address."
+        }
     },
     "passwordStrength": {
         "weak": "Weak",
