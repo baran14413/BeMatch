@@ -257,10 +257,10 @@ export function UserTable() {
         startTransition(async () => {
             const userDocRef = doc(firestore, 'users', userToDelete.id);
             try {
-                // Delete from Firestore first to update UI instantly
+                // Delete from Firestore first to update UI instantly via onSnapshot
                 await deleteDoc(userDocRef);
 
-                // Then, delete from Auth in the background
+                // Then, delete from Auth in the background via Server Action
                 const result = await deleteUserAction(userToDelete.id);
             
                 if (result.success) {
@@ -566,5 +566,3 @@ export function UserTable() {
         </div>
     );
 }
-
-    
