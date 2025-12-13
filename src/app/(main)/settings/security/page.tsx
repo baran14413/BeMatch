@@ -131,9 +131,17 @@ export default function SecurityPage() {
             toast({ title: "Hesap Silindi", description: "Hesabınız kalıcı olarak silindi. Sizi tekrar aramızda görmeyi umuyoruz." });
             router.push('/');
 
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            toast({ variant: 'destructive', title: "Hesap Silinemedi", description: "İşlem sırasında bir hata oluştu. Lütfen şifrenizi kontrol edip tekrar deneyin." });
+            let description = "İşlem sırasında bir hata oluştu. Lütfen şifrenizi kontrol edip tekrar deneyin.";
+            if (error.code === 'auth/invalid-credential') {
+                description = "Girilen şifre yanlış. Lütfen hesabınızın şifresini doğru girdiğinizden emin olun.";
+            }
+            toast({ 
+                variant: 'destructive', 
+                title: "Hesap Silinemedi", 
+                description: description 
+            });
         } finally {
             setIsDeleting(false);
         }
