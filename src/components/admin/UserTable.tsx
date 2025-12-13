@@ -85,7 +85,7 @@ type PremiumGrantState = {
 
 type RoleAssignState = {
     user: UserProfile | null;
-    selectedRole: keyof typeof backend.auth.roles | null;
+    selectedRole: string | null;
 };
 
 
@@ -451,7 +451,7 @@ export function UserTable() {
                 <div className="py-4">
                      <RadioGroup
                         value={roleModalState.selectedRole || ''}
-                        onValueChange={(val) => setRoleModalState(prev => ({...prev, selectedRole: val as keyof typeof backend.auth.roles}))}
+                        onValueChange={(val) => setRoleModalState(prev => ({ ...prev, selectedRole: val }))}
                      >
                         {availableRoles.map(role => (
                             <Label key={role.id} className={cn("border rounded-md p-4 flex items-center justify-between cursor-pointer", roleModalState.selectedRole === role.id && "border-primary ring-2 ring-primary")}>
