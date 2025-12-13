@@ -185,6 +185,14 @@
           "type": "string",
           "description": "Timestamp of the last message sent.",
           "format": "date-time"
+        },
+        "isBlocked": {
+            "type": "boolean",
+            "description": "Indicates if the match is blocked by one of the users."
+        },
+        "blockedBy": {
+            "type": "string",
+            "description": "The UID of the user who initiated the block."
         }
       },
       "required": [
@@ -408,6 +416,11 @@
         "permissions": [
           "/admin/users"
         ]
+      },
+      "user": {
+        "name": "User",
+        "description": "Standard user with no admin panel access.",
+        "permissions": []
       }
     }
   },
