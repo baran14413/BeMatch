@@ -11,6 +11,7 @@ import {
   History,      // New Icon
   Ghost,        // New Icon
   Loader2,
+  LayoutDashboard,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -91,19 +92,20 @@ export default function AdminLayout({
                 const claims = idTokenResult.claims;
                 const role = claims.role as keyof typeof roles | 'user' | undefined;
                 
-                if (role && role !== 'user' && role in roles) {
+                if (role && role !== 'user' && roles[role as keyof typeof roles]) {
                     setUserRole(role);
-                    const roleConfig = roles[role];
+                    const roleConfig = roles[role as keyof typeof roles];
                     if (roleConfig) {
                         const userPermissions = roleConfig.permissions;
                         if(userPermissions.includes('*')) {
                             setAccessibleNavItems(allNavItems);
                         } else {
-                           const filteredNavItems = allNavItems.filter(item => userPermissions.includes(item.requiredPermission));
+                           const filteredNavItems = allNavItems.filter(item => 
+                               userPermissions.includes(item.requiredPermission) || item.requiredPermission === '/admin'
+                           );
                            setAccessibleNavItems(filteredNavItems);
                         }
                     } else {
-                        // Role from token doesn't exist in our config, treat as no access
                          router.replace('/?auth=unauthorized');
                     }
                 } else {
@@ -184,7 +186,7 @@ export default function AdminLayout({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{userRole && userRole in roles ? roles[userRole as keyof typeof roles].name : 'Admin'}</DropdownMenuLabel>
+                <DropdownMenuLabel>{userRole && roles[userRole as keyof typeof roles] ? roles[userRole as keyof typeof roles].name : 'Admin'}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>Ayarlar</DropdownMenuItem>
                 <DropdownMenuItem>Destek</DropdownMenuItem>
