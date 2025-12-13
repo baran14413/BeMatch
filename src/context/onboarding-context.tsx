@@ -127,6 +127,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
           longitude: formData.longitude,
           interests: formData.interests,
           goal: formData.goal,
+          role: 'user', // Default role
           avatarUrl: '', // Initially empty
           imageUrls: [], // Initially empty
           createdAt: serverTimestamp(),

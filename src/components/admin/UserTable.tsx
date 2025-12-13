@@ -204,38 +204,47 @@ export function UserTable() {
       });
     };
     
-    const handleAssignRole = async () => {
+   const handleAssignRole = async () => {
         if (!roleModalState.user || !roleModalState.selectedRole) {
-             toast({ variant: 'destructive', title: 'Hata', description: 'Lütfen bir rol seçin.' });
-             return;
+            toast({ variant: 'destructive', title: 'Hata', description: 'Lütfen bir rol seçin.' });
+            return;
         }
         
         const { user, selectedRole } = roleModalState;
+        const oldRole = user.role || 'user';
 
         startTransition(async () => {
             const userDocRef = doc(firestore, 'users', user.id);
             try {
+                // Optimistically update Firestore
                 await updateDoc(userDocRef, { role: selectedRole });
-            } catch (firestoreError) {
-                 console.error("Firestore rol güncelleme hatası:", firestoreError);
-            }
-            
-            const result = await setUserRoleAction(user.id, selectedRole);
 
-            if (result.success) {
+                // Call server action for custom claim
+                const result = await setUserRoleAction(user.id, selectedRole);
+
+                if (result.success) {
+                    toast({
+                        title: 'Rol Atandı',
+                        description: `${user.name} kullanıcısına "${selectedRole}" rolü başarıyla atandı.`,
+                    });
+                } else {
+                    // Revert on failure
+                    toast({
+                        variant: 'destructive',
+                        title: 'Yetki Atanamadı',
+                        description: result.error || 'Sunucu tarafında yetki (claim) atanamadı.',
+                    });
+                    await updateDoc(userDocRef, { role: oldRole });
+                }
+            } catch (error) {
                 toast({
-                    title: 'Rol Atandı',
-                    description: `${user.name} kullanıcısına "${selectedRole}" rolü başarıyla atandı.`,
-                });
-            } else {
-                 toast({
                     variant: 'destructive',
-                    title: 'Yetki Atanamadı',
-                    description: result.error || 'Sunucu tarafında yetki (claim) atanamadı.',
+                    title: 'Firestore Hatası',
+                    description: 'Rol güncellenirken bir veritabanı hatası oluştu.',
                 });
-                await updateDoc(userDocRef, { role: user.role || 'user' });
+            } finally {
+                 setRoleModalState({ user: null, selectedRole: null });
             }
-            setRoleModalState({ user: null, selectedRole: null });
         });
     };
 
@@ -247,33 +256,36 @@ export function UserTable() {
         startTransition(async () => {
             const userDocRef = doc(firestore, 'users', userToDelete.id);
             try {
+                // Delete from Firestore first to update UI instantly
                 await deleteDoc(userDocRef);
-            } catch(firestoreError) {
+
+                // Then, delete from Auth in the background
+                const result = await deleteUserAction(userToDelete.id);
+            
+                if (result.success) {
+                    toast({
+                        title: 'Kullanıcı Silindi',
+                        description: `${userToDelete.name} kullanıcısı başarıyla sistemden kaldırıldı.`,
+                    });
+                } else {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Authentication Hatası',
+                        description: result.error || 'Kullanıcı kimlik doğrulama sisteminden silinemedi.',
+                    });
+                    // Note: In a real app, you might want to handle this failure case,
+                    // e.g., by logging it or trying to re-create the Firestore doc.
+                }
+            } catch (firestoreError) {
                 console.error("Firestore kullanıcı silme hatası:", firestoreError);
                 toast({
                     variant: 'destructive',
                     title: 'Veritabanı Hatası',
                     description: 'Kullanıcı veritabanından silinemedi.',
                 });
+            } finally {
                 setDeleteModalState({ user: null });
-                return;
             }
-
-            const result = await deleteUserAction(userToDelete.id);
-            
-             if (result.success) {
-                toast({
-                    title: 'Kullanıcı Silindi',
-                    description: `${userToDelete.name} kullanıcısı ve tüm verileri kalıcı olarak silindi.`,
-                });
-            } else {
-                 toast({
-                    variant: 'destructive',
-                    title: 'Authentication Hatası',
-                    description: result.error || 'Kullanıcı kimlik doğrulama sisteminden silinemedi.',
-                });
-            }
-            setDeleteModalState({ user: null });
         });
     };
 
