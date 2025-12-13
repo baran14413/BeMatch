@@ -25,10 +25,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, doc, updateDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/data';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { add } from 'date-fns';
 import { 
@@ -88,10 +87,14 @@ type RoleAssignState = {
     selectedRole: string | null;
 };
 
+type DeleteUserState = {
+    user: UserProfile | null;
+    confirmationPassword: string;
+    isDeleting: boolean;
+}
 
 export function UserTable() {
     const firestore = useFirestore();
-    const router = useRouter();
     const usersQuery = useMemoFirebase(() => query(collection(firestore, 'users')), [firestore]);
     const { data: users, isLoading } = useCollection<UserProfile>(usersQuery);
     const { toast } = useToast();
@@ -110,6 +113,9 @@ export function UserTable() {
     
     const [roleModalState, setRoleModalState] = useState<RoleAssignState>({ user: null, selectedRole: null });
     const [isAssigningRole, setIsAssigningRole] = useState(false);
+    
+    const [deleteModalState, setDeleteModalState] = useState<DeleteUserState>({ user: null, confirmationPassword: '', isDeleting: false });
+
 
     const durationOptions = [
         { label: '7 Gün', days: 7 },
@@ -229,6 +235,34 @@ export function UserTable() {
         }, 1000);
     };
 
+    const handleDeleteUser = async () => {
+        if (!deleteModalState.user || !adminUser) {
+            toast({ variant: 'destructive', title: 'Hata', description: 'Kullanıcı bilgisi bulunamadı.' });
+            return;
+        }
+        setDeleteModalState(prev => ({ ...prev, isDeleting: true }));
+
+        const command = `node scripts/delete-user.js ${deleteModalState.user.id}`;
+        
+        setTimeout(() => {
+            toast({
+                title: 'Kullanıcı Silme Komutu',
+                duration: 20000,
+                description: (
+                    <div className="space-y-2">
+                        <p>Kullanıcıyı ve tüm verilerini kalıcı olarak silmek için projenizin terminalinde aşağıdaki komutu çalıştırın:</p>
+                        <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold text-foreground">
+                            {command}
+                        </code>
+                        <p className="text-xs text-destructive pt-2">DİKKAT: Bu işlem geri alınamaz ve kullanıcının tüm verilerini (profil, fotoğraflar, sohbetler) silecektir.</p>
+                    </div>
+                ),
+            });
+            setDeleteModalState({ user: null, confirmationPassword: '', isDeleting: false });
+        }, 1000);
+    };
+
+
     return (
         <div className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-4">
@@ -327,7 +361,7 @@ export function UserTable() {
                                 <Link href={`/admin/users/${user.id}`}>Detayları Görüntüle</Link>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onSelect={() => setRoleModalState({ user, selectedRole: null })}>
+                            <DropdownMenuItem onSelect={() => setRoleModalState({ user, selectedRole: user.role || 'user' })}>
                                 <UserCog className="mr-2 h-4 w-4" />
                                 <span>Rol Ata</span>
                             </DropdownMenuItem>
@@ -350,7 +384,7 @@ export function UserTable() {
                                 <UserX className="mr-2 h-4 w-4" />
                                 Kullanıcıyı Yasakla
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
+                            <DropdownMenuItem onSelect={() => setDeleteModalState(prev => ({...prev, user}))} className="text-destructive focus:text-destructive">
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Hesabı Sil
                             </DropdownMenuItem>
@@ -455,7 +489,7 @@ export function UserTable() {
                 </DialogHeader>
                 <div className="py-4">
                      <RadioGroup
-                        value={roleModalState.selectedRole || ''}
+                        value={roleModalState.selectedRole || 'user'}
                         onValueChange={(val) => setRoleModalState(prev => ({ ...prev, selectedRole: val }))}
                         className="space-y-2"
                      >
@@ -480,6 +514,27 @@ export function UserTable() {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+        <AlertDialog open={!!deleteModalState.user} onOpenChange={(isOpen) => !isOpen && setDeleteModalState({ user: null, confirmationPassword: '', isDeleting: false })}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Kullanıcıyı Sil: {deleteModalState.user?.name}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Bu işlem geri alınamaz. Kullanıcıyı, tüm verilerini (profil, fotoğraflar, sohbetler) ve aboneliklerini kalıcı olarak silmek istediğinizden emin misiniz?
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>İptal</AlertDialogCancel>
+                    <AlertDialogAction
+                        onClick={handleDeleteUser}
+                        disabled={deleteModalState.isDeleting}
+                        className="bg-destructive hover:bg-destructive/90"
+                    >
+                         {deleteModalState.isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Evet, Kullanıcıyı Kalıcı Olarak Sil
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
         </div>
     );
 }
