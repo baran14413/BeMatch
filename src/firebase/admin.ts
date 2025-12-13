@@ -11,7 +11,7 @@ import path from "path";
 const serviceAccountPath = path.resolve(process.cwd(), 'serviceAccountKey.json');
 
 let adminApp: App;
-let serviceAccount;
+let serviceAccount: any;
 
 try {
   // Use require for JSON files as it's simpler and synchronous.
@@ -20,8 +20,8 @@ try {
   // This catch block is important for DX. If the file is missing,
   // we want to provide a clear error message.
   if ((error as NodeJS.ErrnoException).code === 'MODULE_NOT_FOUND') {
-    console.error("CRITICAL ERROR: `serviceAccountKey.json` not found in the project root.");
-    console.error("Please download your service account key from the Firebase console (Project Settings > Service accounts > Generate new private key), rename it to `serviceAccountKey.json`, and place it in the root directory of your project.");
+    console.error("\n\nCRITICAL ERROR: `serviceAccountKey.json` not found in the project root.\n");
+    console.error("Please download your service account key from the Firebase console (Project Settings > Service accounts > Generate new private key), rename it to `serviceAccountKey.json`, and place it in the root directory of your project.\n\n");
     // We throw a more user-friendly error to be caught by the server.
     throw new Error("Firebase Admin SDK setup is incomplete. `serviceAccountKey.json` is missing.");
   }
