@@ -6,13 +6,12 @@ interface FirebaseAdminApp {
   db: admin.firestore.Firestore;
 }
 
-let app: admin.app.App | undefined;
-
 function getFirebaseAdmin(): FirebaseAdminApp {
-  if (app) {
+  if (admin.apps.length > 0) {
+    const defaultApp = admin.app();
     return {
-      auth: admin.auth(app),
-      db: admin.firestore(app),
+      auth: admin.auth(defaultApp),
+      db: admin.firestore(defaultApp),
     };
   }
 
@@ -22,29 +21,18 @@ function getFirebaseAdmin(): FirebaseAdminApp {
 
   if (!privateKey || !clientEmail || !projectId) {
     throw new Error(
-      'Missing Firebase Admin SDK environment variables. Ensure FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL, and FIREBASE_PROJECT_ID are set.'
+      'Missing Firebase Admin SDK environment variables. Ensure FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY are set in your .env.local file.'
     );
   }
 
-  try {
-    app = admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId,
-        clientEmail,
-        privateKey: privateKey.replace(/\\n/g, '\n'),
-      }),
-    });
-    console.log('Firebase Admin SDK initialized successfully.');
-  } catch (error: any) {
-    if (error.code === 'app/duplicate-app') {
-      // This can happen in development with hot-reloading.
-      // Get the already initialized app.
-      app = admin.app();
-    } else {
-      console.error('Firebase Admin SDK initialization failed:', error);
-      throw error; // Re-throw the error to fail fast during setup
-    }
-  }
+  const app = admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId,
+      clientEmail,
+      // Replace escaped newlines
+      privateKey: privateKey.replace(/\\n/g, '\n'),
+    }),
+  });
 
   return {
     auth: admin.auth(app),
@@ -52,6 +40,6 @@ function getFirebaseAdmin(): FirebaseAdminApp {
   };
 }
 
-// Export getter functions instead of direct service objects
-export const adminAuth = (): admin.auth.Auth => getFirebaseAdmin().auth;
-export const adminDb = (): admin.firestore.Firestore => getFirebaseAdmin().db;
+// Export functions that return the services to ensure initialization happens first.
+export const adminAuth = getFirebaseAdmin().auth;
+export const adminDb = getFirebaseAdmin().db;
