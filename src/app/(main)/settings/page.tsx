@@ -1,14 +1,15 @@
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronRight, Heart, LogOut, MapPin, ShieldCheck, SlidersHorizontal, Smartphone, User, Wallet, GalleryHorizontal, Crown } from "lucide-react";
+import { ChevronRight, Heart, LogOut, MapPin, ShieldCheck, SlidersHorizontal, Smartphone, User, Wallet, GalleryHorizontal, Crown, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/context/language-context";
-import { useAuth } from "@/firebase";
+import { useAuth, useUser } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState, useEffect } from "react";
 
 const SettingsSection = ({ title, children }: { title: string, children: React.ReactNode }) => (
     <div className="space-y-4">
@@ -50,8 +51,21 @@ const SettingsButton = ({ icon: Icon, label, onClick }: { icon: React.ElementTyp
 export default function SettingsPage() {
     const { t } = useLanguage();
     const auth = useAuth();
+    const { user } = useUser();
     const router = useRouter();
     const { toast } = useToast();
+    const [isAdmin, setIsAdmin] = useState(false);
+
+    useEffect(() => {
+        if (user) {
+            user.getIdTokenResult().then((idTokenResult) => {
+                const claims = idTokenResult.claims;
+                if (claims.role === 'admin') {
+                    setIsAdmin(true);
+                }
+            });
+        }
+    }, [user]);
 
     const handleLogout = async () => {
         try {
@@ -80,6 +94,12 @@ export default function SettingsPage() {
             </header>
 
             <div className="p-4 md:p-8 md:pt-0 space-y-8">
+                {isAdmin && (
+                    <SettingsSection title="Yönetim">
+                        <SettingsItem icon={LayoutDashboard} label="Admin Paneli" href="/admin" />
+                    </SettingsSection>
+                )}
+
                 <SettingsSection title={t('settings.account')}>
                     <SettingsItem icon={Crown} label={t('subscriptionsPage.title')} href="/settings/subscriptions" />
                     <SettingsItem icon={User} label={t('settings.personalInfo')} href="/settings/personal-info" />
