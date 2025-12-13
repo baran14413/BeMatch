@@ -41,6 +41,7 @@ export type Message = {
 export interface UserProfile {
   id: string;
   name: string;
+  email: string;
   firstName: string;
   lastName: string;
   age: number;
@@ -75,6 +76,9 @@ export interface UserProfile {
   // Usage tracking
   lastRewindAt?: any;
   rewindCount?: number;
+  // Admin
+  role?: 'admin' | 'moderator' | 'support' | 'user';
+  createdAt?: any;
 }
 
 export type Match = {

@@ -320,9 +320,13 @@ export function UserTable() {
                             <AvatarImage src={user.avatarUrl} />
                             <AvatarFallback>{user.name?.charAt(0)}</AvatarFallback>
                             </Avatar>
-                            <div className="flex items-center gap-2">
-                                <p className="font-medium">{user.name}</p>
-                                {user.premiumTier && <Crown className="w-4 h-4 text-yellow-500" />}
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <p className="font-medium">{user.name}</p>
+                                    {user.role === 'admin' && <UserCog className="w-4 h-4 text-primary" />}
+                                    {user.premiumTier && <Crown className="w-4 h-4 text-yellow-500" />}
+                                </div>
+                                <p className='text-xs text-muted-foreground'>{user.email}</p>
                             </div>
                         </div>
                         </TableCell>
