@@ -74,6 +74,7 @@ export default function AdminLayout({
     ];
     
     const [accessibleNavItems, setAccessibleNavItems] = useState<typeof allNavItems>([]);
+    const { roles } = backend.auth;
 
     useEffect(() => {
         if (isUserLoading) {
@@ -88,11 +89,11 @@ export default function AdminLayout({
         user.getIdTokenResult(true)
             .then((idTokenResult) => {
                 const claims = idTokenResult.claims;
-                const role = claims.role as keyof typeof backend.auth.roles | 'user' | undefined;
+                const role = claims.role as keyof typeof roles | 'user' | undefined;
                 
-                if (role && role !== 'user') {
+                if (role && role !== 'user' && role in roles) {
                     setUserRole(role);
-                    const roleConfig = backend.auth.roles[role];
+                    const roleConfig = roles[role];
                     if (roleConfig) {
                         const userPermissions = roleConfig.permissions;
                         if(userPermissions.includes('*')) {
@@ -116,7 +117,7 @@ export default function AdminLayout({
                 setIsChecking(false);
             });
 
-    }, [user, isUserLoading, router]);
+    }, [user, isUserLoading, router, roles]);
 
 
     const SidebarContent = () => (
@@ -183,7 +184,7 @@ export default function AdminLayout({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{userRole ? backend.auth.roles[userRole as keyof typeof backend.auth.roles].name : 'Admin'}</DropdownMenuLabel>
+                <DropdownMenuLabel>{userRole && userRole in roles ? roles[userRole as keyof typeof roles].name : 'Admin'}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>Ayarlar</DropdownMenuItem>
                 <DropdownMenuItem>Destek</DropdownMenuItem>
