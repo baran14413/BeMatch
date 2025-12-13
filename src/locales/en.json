@@ -240,6 +240,23 @@
             "met_someone": "I met someone.",
             "technical": "There are too many technical issues with the app.",
             "other": "Another reason."
+        },
+        "resetTitle": "Reset Password",
+        "resetDescription": "Create a new, strong password for your account.",
+        "verifyingCode": "Verifying your request...",
+        "resetButton": "Set New Password",
+        "resetError": {
+            "title": "Error",
+            "codeMissing": "Password reset code is missing or invalid.",
+            "weakPassword": "Password does not meet the security requirements.",
+            "generic": "An unknown error occurred. Please try again.",
+            "invalidTitle": "Invalid or Expired Link",
+            "invalidDescription": "The password reset link is either invalid or has expired. Please request a new one.",
+            "backToLogin": "Back to Login"
+        },
+        "resetSuccess": {
+            "title": "Password Changed!",
+            "description": "Your password has been successfully updated. You can now log in."
         }
     },
     "onboarding": {
@@ -527,18 +544,10 @@
         "reasonRequired": "Please specify a reason.",
         "loginRequired": "You must be logged in.",
         "blockConfirmTitle": "Block User?",
-        "blockConfirmDescription": "Blocking this user will prevent them from messaging you. Are you sure?",
+        "blockConfirmDescription": "This user will be blocked. Are you sure?",
         "yesBlock": "Yes, Block",
         "noThanks": "No, Thanks",
         "blockSuccessTitle": "User blocked.",
-        "blockErrorDescription": "An error occurred while blocking the user. Please try again.",
-        "reasons": {
-            "inappropriate_photos": "Inappropriate Photos",
-            "spam_or_scam": "Spam or Scam",
-            "harassment": "Harassment or Bullying",
-            "fake_profile": "Fake Profile",
-            "underage": "Underage User",
-            "other": "Other"
-        }
+        "blockErrorDescription": "An error occurred while blocking the user. Please try again."
     }
 }

@@ -240,6 +240,23 @@
             "met_someone": "Biriyle tanıştım.",
             "technical": "Uygulamada çok fazla teknik sorun var.",
             "other": "Başka bir neden."
+        },
+        "resetTitle": "Şifre Sıfırla",
+        "resetDescription": "Hesabın için yeni ve güçlü bir şifre oluştur.",
+        "verifyingCode": "İsteğiniz doğrulanıyor...",
+        "resetButton": "Yeni Şifreyi Ayarla",
+        "resetError": {
+            "title": "Hata",
+            "codeMissing": "Şifre sıfırlama kodu eksik veya geçersiz.",
+            "weakPassword": "Şifre güvenlik gereksinimlerini karşılamıyor.",
+            "generic": "Bilinmeyen bir hata oluştu. Lütfen tekrar deneyin.",
+            "invalidTitle": "Geçersiz veya Süresi Dolmuş Bağlantı",
+            "invalidDescription": "Şifre sıfırlama bağlantısı geçersiz veya süresi dolmuş. Lütfen yeni bir tane talep edin.",
+            "backToLogin": "Giriş Sayfasına Dön"
+        },
+        "resetSuccess": {
+            "title": "Şifre Değiştirildi!",
+            "description": "Şifren başarıyla güncellendi. Şimdi giriş yapabilirsin."
         }
     },
     "onboarding": {
@@ -527,18 +544,10 @@
         "reasonRequired": "Lütfen bir neden belirtin.",
         "loginRequired": "Giriş yapmanız gerekli.",
         "blockConfirmTitle": "Kullanıcıyı Engelle?",
-        "blockConfirmDescription": "Bu kullanıcıyı engellemek, onun size mesaj göndermesini engeller. Emin misiniz?",
-        "yesBlock": "Evet, Engelle",
+        "blockConfirmDescription": "Bu kullanıcıyı engellemek ve eşleşmeyi kaldırmak istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+        "yesBlock": "Evet, Engelle ve Kaldır",
         "noThanks": "Hayır, Teşekkürler",
-        "blockSuccessTitle": "Kullanıcı engellendi.",
-        "blockErrorDescription": "Kullanıcı engellenirken bir hata oluştu. Lütfen tekrar deneyin.",
-        "reasons": {
-            "inappropriate_photos": "Uygunsuz Fotoğraflar",
-            "spam_or_scam": "Spam veya Dolandırıcılık",
-            "harassment": "Taciz veya Zorbalık",
-            "fake_profile": "Sahte Profil",
-            "underage": "Yaşı Küçük Kullanıcı",
-            "other": "Diğer"
-        }
+        "blockSuccessTitle": "Kullanıcı engellendi ve sohbet kaldırıldı.",
+        "blockErrorDescription": "Kullanıcı engellenirken bir hata oluştu. Lütfen tekrar deneyin."
     }
 }
