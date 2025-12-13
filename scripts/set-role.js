@@ -4,6 +4,7 @@
 
 const admin = require('firebase-admin');
 const path = require('path');
+const fs = require('fs');
 
 // --- IMPORTANT ---
 // 1. Download your service account key JSON file from the Firebase console.
@@ -11,7 +12,10 @@ const path = require('path');
 // 2. Rename it to `serviceAccountKey.json` and place it in the root of this project.
 // 3. This file is already in .gitignore to prevent it from being committed.
 const serviceAccountPath = path.resolve(__dirname, '../serviceAccountKey.json');
+const backendConfigPath = path.resolve(__dirname, '../docs/backend.json');
+
 let serviceAccount;
+let backendConfig;
 
 try {
   serviceAccount = require(serviceAccountPath);
@@ -21,10 +25,19 @@ try {
   process.exit(1);
 }
 
+try {
+  const backendFile = fs.readFileSync(backendConfigPath, 'utf8');
+  backendConfig = JSON.parse(backendFile);
+} catch (e) {
+  console.error('\x1b[31m%s\x1b[0m', 'ERROR: Could not read or parse `docs/backend.json`.');
+  console.error(e);
+  process.exit(1);
+}
+
 // Get arguments from the command line
 const email = process.argv[2];
 const role = process.argv[3];
-const validRoles = ['admin', 'moderator', 'support', 'user'];
+const validRoles = Object.keys(backendConfig.auth.roles);
 
 if (!email || !role) {
   console.error('\x1b[31m%s\x1b[0m', 'ERROR: Please provide both user email and role as arguments.');
@@ -37,7 +50,6 @@ if (!validRoles.includes(role)) {
     process.exit(1);
 }
 
-
 // Initialize the Firebase Admin SDK
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
@@ -47,14 +59,20 @@ admin.initializeApp({
 (async () => {
   try {
     const user = await admin.auth().getUserByEmail(email);
-    const newClaims = { role: role === 'user' ? null : role }; // Set role to null to remove admin-like privileges
+    const rolePermissions = backendConfig.auth.roles[role].permissions;
+    
+    // Set role and permissions as custom claims
+    const newClaims = { 
+      role: role === 'user' ? null : role,
+      permissions: rolePermissions
+    }; 
     
     await admin.auth().setCustomUserClaims(user.uid, newClaims);
 
     if (role === 'user') {
         console.log('\x1b[32m%s\x1b[0m', `✅ Success! All special roles removed from ${email} (UID: ${user.uid}).`);
     } else {
-        console.log('\x1b[32m%s\x1b[0m', `✅ Success! Role "${role}" granted to ${email} (UID: ${user.uid}).`);
+        console.log('\x1b[32m%s\x1b[0m', `✅ Success! Role "${role}" with permissions [${rolePermissions.join(', ')}] granted to ${email} (UID: ${user.uid}).`);
     }
     
     console.log('It may take a few minutes for the claim to propagate. The user might need to log out and log back in for changes to take effect.');

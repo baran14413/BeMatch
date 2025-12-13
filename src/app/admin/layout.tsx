@@ -65,13 +65,13 @@ export default function AdminLayout({
     const [isChecking, setIsChecking] = useState(true);
 
     const allNavItems = [
-        { href: '/admin', icon: Home, label: 'Genel Bakış', requiredPermission: '/admin' },
-        { href: '/admin/users', icon: Users, label: 'Kullanıcı Yönetimi', requiredPermission: '/admin/users' },
-        { href: '/admin/safety', icon: ShieldCheck, label: 'Güvenlik & Denetim', requiredPermission: '/admin/safety' },
-        { href: '/admin/financials', icon: CreditCard, label: 'Finans & Abonelikler', requiredPermission: '/admin/financials' },
-        { href: '/admin/algorithm', icon: BrainCircuit, label: 'Algoritma Ayarları', requiredPermission: '/admin/algorithm' },
-        { href: '/admin/app-settings', icon: Settings, label: 'Uygulama Ayarları', requiredPermission: '/admin/app-settings' },
-        { href: '/admin/audit-logs', icon: History, label: 'Denetim Kayıtları', requiredPermission: '/admin/audit-logs' },
+        { href: '/admin', icon: Home, label: 'Genel Bakış' },
+        { href: '/admin/users', icon: Users, label: 'Kullanıcı Yönetimi' },
+        { href: '/admin/safety', icon: ShieldCheck, label: 'Güvenlik & Denetim' },
+        { href: '/admin/financials', icon: CreditCard, label: 'Finans & Abonelikler' },
+        { href: '/admin/algorithm', icon: BrainCircuit, label: 'Algoritma Ayarları' },
+        { href: '/admin/app-settings', icon: Settings, label: 'Uygulama Ayarları' },
+        { href: '/admin/audit-logs', icon: History, label: 'Denetim Kayıtları' },
     ];
     
     const [accessibleNavItems, setAccessibleNavItems] = useState<typeof allNavItems>([]);
@@ -92,24 +92,22 @@ export default function AdminLayout({
                 const claims = idTokenResult.claims;
                 const role = claims.role as keyof typeof roles | 'user' | undefined;
                 
-                if (role && role !== 'user' && roles[role as keyof typeof roles]) {
+                if (role && role !== 'user' && roles[role]) {
                     setUserRole(role);
-                    const roleConfig = roles[role as keyof typeof roles];
-                    if (roleConfig) {
-                        const userPermissions = roleConfig.permissions;
-                        if(userPermissions.includes('*')) {
-                            setAccessibleNavItems(allNavItems);
-                        } else {
-                           const filteredNavItems = allNavItems.filter(item => 
-                               userPermissions.includes(item.requiredPermission) || item.requiredPermission === '/admin'
-                           );
-                           setAccessibleNavItems(filteredNavItems);
-                        }
+                    const roleConfig = roles[role];
+                    const userPermissions = roleConfig.permissions || [];
+
+                    if (userPermissions.includes('*')) {
+                        setAccessibleNavItems(allNavItems);
                     } else {
-                         router.replace('/?auth=unauthorized');
+                       const filteredNavItems = allNavItems.filter(item => 
+                           userPermissions.some(p => p.startsWith(item.href)) || item.href === '/admin'
+                       );
+                       setAccessibleNavItems(filteredNavItems);
                     }
                 } else {
-                    router.replace('/?auth=unauthorized'); // Redirect if not an admin/mod/support
+                    // If no specific admin/mod/support role, or role is 'user', deny access.
+                    router.replace('/?auth=unauthorized');
                 }
             })
             .catch(() => {
@@ -119,7 +117,7 @@ export default function AdminLayout({
                 setIsChecking(false);
             });
 
-    }, [user, isUserLoading, router, roles]);
+    }, [user, isUserLoading, router]);
 
 
     const SidebarContent = () => (
