@@ -19,7 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, ShieldCheck, UserX, Trash2, Crown, Loader2, Ban, UserCog } from 'lucide-react';
+import { MoreHorizontal, UserX, Trash2, Crown, Loader2, Ban, UserCog } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
@@ -216,7 +216,7 @@ export function UserTable() {
         startTransition(async () => {
             const userDocRef = doc(firestore, 'users', user.id);
             try {
-                // Optimistically update Firestore
+                // Optimistically update Firestore to reflect in UI instantly
                 await updateDoc(userDocRef, { role: selectedRole });
 
                 // Call server action for custom claim
@@ -234,7 +234,7 @@ export function UserTable() {
                         title: 'Yetki Atanamadı',
                         description: result.error || 'Sunucu tarafında yetki (claim) atanamadı.',
                     });
-                    await updateDoc(userDocRef, { role: oldRole });
+                    await updateDoc(userDocRef, { role: oldRole }); // Revert Firestore change
                 }
             } catch (error) {
                 toast({
@@ -242,6 +242,7 @@ export function UserTable() {
                     title: 'Firestore Hatası',
                     description: 'Rol güncellenirken bir veritabanı hatası oluştu.',
                 });
+                 await updateDoc(userDocRef, { role: oldRole }); // Revert on any error
             } finally {
                  setRoleModalState({ user: null, selectedRole: null });
             }
@@ -408,10 +409,6 @@ export function UserTable() {
                               )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem>
-                                <ShieldCheck className="mr-2 h-4 w-4" />
-                                Profili Doğrula
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
                                 <UserX className="mr-2 h-4 w-4" />
                                 Kullanıcıyı Yasakla
                             </DropdownMenuItem>
@@ -569,3 +566,5 @@ export function UserTable() {
         </div>
     );
 }
+
+    
