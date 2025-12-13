@@ -23,7 +23,7 @@ import { MoreHorizontal, ShieldCheck, UserX, Trash2, Crown, Loader2, Ban, UserCo
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/data';
 import { useState, useMemo, useTransition } from 'react';
 import { Skeleton } from '../ui/skeleton';
@@ -213,7 +213,25 @@ export function UserTable() {
         const { user, selectedRole } = roleModalState;
 
         startTransition(async () => {
+            const userDocRef = doc(firestore, 'users', user.id);
+
+            // 1. Update Firestore document first for immediate UI feedback
+            try {
+                await updateDoc(userDocRef, { role: selectedRole });
+            } catch (firestoreError) {
+                console.error("Firestore rol güncelleme hatası:", firestoreError);
+                toast({
+                    variant: 'destructive',
+                    title: 'Veritabanı Hatası',
+                    description: 'Kullanıcı rolü veritabanında güncellenemedi.',
+                });
+                setRoleModalState({ user: null, selectedRole: null });
+                return;
+            }
+            
+            // 2. Call the server action to set the custom claim
             const result = await setUserRoleAction(user.id, selectedRole);
+
             if (result.success) {
                 toast({
                     title: 'Rol Atandı',
@@ -222,9 +240,11 @@ export function UserTable() {
             } else {
                  toast({
                     variant: 'destructive',
-                    title: 'Rol Atanamadı',
-                    description: result.error || 'Bilinmeyen bir hata oluştu.',
+                    title: 'Yetki Atanamadı',
+                    description: result.error || 'Sunucu tarafında yetki (claim) atanamadı.',
                 });
+                // Optional: Revert the change in Firestore if claim fails
+                await updateDoc(userDocRef, { role: user.role || 'user' });
             }
             setRoleModalState({ user: null, selectedRole: null });
         });
@@ -236,7 +256,28 @@ export function UserTable() {
         const userToDelete = deleteModalState.user;
 
         startTransition(async () => {
+            const userDocRef = doc(firestore, 'users', userToDelete.id);
+
+            // 1. Delete user from Firestore first. The `useCollection` hook will
+            // automatically update the UI in real-time.
+            try {
+                await deleteDoc(userDocRef);
+            } catch(firestoreError) {
+                console.error("Firestore kullanıcı silme hatası:", firestoreError);
+                toast({
+                    variant: 'destructive',
+                    title: 'Veritabanı Hatası',
+                    description: 'Kullanıcı veritabanından silinemedi.',
+                });
+                setDeleteModalState({ user: null });
+                return;
+            }
+
+            // 2. Once the document is deleted from Firestore and the UI has updated,
+            // call the server action to delete the user from Firebase Auth.
+            // This is the sensitive operation that requires the admin SDK.
             const result = await deleteUserAction(userToDelete.id);
+            
              if (result.success) {
                 toast({
                     title: 'Kullanıcı Silindi',
@@ -245,9 +286,11 @@ export function UserTable() {
             } else {
                  toast({
                     variant: 'destructive',
-                    title: 'Kullanıcı Silinemedi',
-                    description: result.error || 'Bilinmeyen bir hata oluştu.',
+                    title: 'Authentication Hatası',
+                    description: result.error || 'Kullanıcı kimlik doğrulama sisteminden silinemedi.',
                 });
+                // Note: At this point, the user is deleted from the UI but might still exist in Auth.
+                // This would require manual cleanup in the Firebase console in this rare error case.
             }
             setDeleteModalState({ user: null });
         });
@@ -356,7 +399,7 @@ export function UserTable() {
                                 <Link href={`/admin/users/${user.id}`}>Detayları Görüntüle</Link>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onSelect={() => setRoleModalState({ user, selectedRole: (user as any).role || 'user' })}>
+                            <DropdownMenuItem onSelect={() => setRoleModalState({ user, selectedRole: user.role || 'user' })}>
                                 <UserCog className="mr-2 h-4 w-4" />
                                 <span>Rol Ata</span>
                             </DropdownMenuItem>
