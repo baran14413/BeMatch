@@ -152,32 +152,47 @@ export const useFirebase = (): FirebaseServicesAndUser => {
 
 /** Hook to access Firebase Auth instance. */
 export const useAuth = (): Auth => {
-  const { auth } = useFirebase();
-  return auth;
+  const context = useContext(FirebaseContext);
+  if (context === undefined || !context.auth) {
+    throw new Error('useAuth must be used within a FirebaseProvider.');
+  }
+  return context.auth;
 };
 
 /** Hook to access Firestore instance. */
 export const useFirestore = (): Firestore => {
-  const { firestore } = useFirebase();
-  return firestore;
+  const context = useContext(FirebaseContext);
+  if (context === undefined || !context.firestore) {
+    throw new Error('useFirestore must be used within a FirebaseProvider.');
+  }
+  return context.firestore;
 };
 
 /** Hook to access Firebase Storage instance. */
 export const useStorage = (): FirebaseStorage => {
-  const { storage } = useFirebase();
-  return storage;
+   const context = useContext(FirebaseContext);
+  if (context === undefined || !context.storage) {
+    throw new Error('useStorage must be used within a FirebaseProvider.');
+  }
+  return context.storage;
 };
 
 /** Hook to access Realtime Database instance. */
 export const useDatabase = (): Database => {
-    const { database } = useFirebase();
-    return database;
+    const context = useContext(FirebaseContext);
+    if (context === undefined || !context.database) {
+        throw new Error('useDatabase must be used within a FirebaseProvider.');
+    }
+    return context.database;
 }
 
 /** Hook to access Firebase App instance. */
 export const useFirebaseApp = (): FirebaseApp => {
-  const { firebaseApp } = useFirebase();
-  return firebaseApp;
+  const context = useContext(FirebaseContext);
+  if (context === undefined || !context.firebaseApp) {
+    throw new Error('useFirebaseApp must be used within a FirebaseProvider.');
+  }
+  return context.firebaseApp;
 };
 
 type MemoFirebase <T> = T & {__memo?: boolean};
@@ -201,6 +216,10 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
  * @returns {UserHookResult} Object with user, isUserLoading, userError.
  */
 export const useUser = (): UserHookResult => {
-  const { user, isUserLoading, userError } = useFirebase(); // Leverages the main hook
+  const context = useContext(FirebaseContext);
+  if (context === undefined) {
+    throw new Error('useUser must be used within a FirebaseProvider.');
+  }
+  const { user, isUserLoading, userError } = context;
   return { user, isUserLoading, userError };
 };
