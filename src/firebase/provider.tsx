@@ -2,7 +2,7 @@
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore, doc, getDoc } from 'firebase/firestore';
+import { Firestore } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseStorage } from 'firebase/storage';
 import { Database } from 'firebase/database';
@@ -22,8 +22,6 @@ interface UserAuthState {
   user: User | null;
   isUserLoading: boolean;
   userError: Error | null;
-  ghostMode: boolean;
-  adminUser: User | null;
 }
 
 // Combined state for the Firebase context
@@ -38,8 +36,6 @@ export interface FirebaseContextState {
   user: User | null;
   isUserLoading: boolean; // True during initial auth check
   userError: Error | null; // Error from auth listener
-  ghostMode: boolean;
-  adminUser: User | null;
 }
 
 // Return type for useFirebase()
@@ -52,17 +48,13 @@ export interface FirebaseServicesAndUser {
   user: User | null;
   isUserLoading: boolean;
   userError: Error | null;
-  ghostMode: boolean;
-  adminUser: User | null;
 }
 
 // Return type for useUser() - specific to user auth state
-export interface UserHookResult { // Renamed from UserAuthHookResult for consistency if desired, or keep as UserAuthHookResult
+export interface UserHookResult { 
   user: User | null;
   isUserLoading: boolean;
   userError: Error | null;
-  ghostMode: boolean;
-  adminUser: User | null;
 }
 
 // React Context
@@ -83,14 +75,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     user: null,
     isUserLoading: true, // Start loading until first auth event
     userError: null,
-    ghostMode: false,
-    adminUser: null,
   });
 
   // Effect to subscribe to Firebase auth state changes
   useEffect(() => {
     if (!auth || !database || !firestore) {
-      setUserAuthState({ user: null, isUserLoading: false, userError: new Error("Auth, Database, or Firestore service not provided."), ghostMode: false, adminUser: null });
+      setUserAuthState({ user: null, isUserLoading: false, userError: new Error("Auth, Database, or Firestore service not provided.") });
       return;
     }
 
@@ -98,49 +88,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
     const unsubscribe = onAuthStateChanged(
       auth,
-      async (firebaseUser) => {
-        const ghostUserId = localStorage.getItem('ghostModeUser');
-
-        if (ghostUserId && firebaseUser) {
-            // We are in ghost mode. The `firebaseUser` is the admin.
-            const userDocRef = doc(firestore, 'users', ghostUserId);
-            const userDocSnap = await getDoc(userDocRef);
-
-            if (userDocSnap.exists()) {
-                // Create a "mock" user object that looks like the ghost user
-                const ghostUserData = userDocSnap.data();
-                const ghostUserObject = {
-                    ...ghostUserData,
-                    uid: ghostUserId,
-                    // Mimic a User object as much as needed for the app to work
-                    // This is a simplified example. You might need to add more properties
-                    // based on what your app uses from the Firebase User object.
-                    displayName: ghostUserData.name,
-                    email: ghostUserData.email,
-                    getIdTokenResult: async () => ({ claims: {} }), // Return empty claims for ghost user
-                } as User;
-
-                setUserAuthState({ 
-                    user: ghostUserObject, 
-                    isUserLoading: false, 
-                    userError: null,
-                    ghostMode: true,
-                    adminUser: firebaseUser, // Store the real admin user
-                });
-            } else {
-                 // Ghost user not found, clear ghost mode and use admin
-                localStorage.removeItem('ghostModeUser');
-                setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null, ghostMode: false, adminUser: null });
-            }
-
-        } else {
-            // Not in ghost mode, normal operation
-            setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null, ghostMode: false, adminUser: null });
-        }
+      (firebaseUser) => {
+        setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
       },
       (error) => {
         console.error("FirebaseProvider: onAuthStateChanged error:", error);
-        setUserAuthState({ user: null, isUserLoading: false, userError: error, ghostMode: false, adminUser: null });
+        setUserAuthState({ user: null, isUserLoading: false, userError: error });
       }
     );
     return () => unsubscribe();
@@ -159,8 +112,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       user: userAuthState.user,
       isUserLoading: userAuthState.isUserLoading,
       userError: userAuthState.userError,
-      ghostMode: userAuthState.ghostMode,
-      adminUser: userAuthState.adminUser,
     };
   }, [firebaseApp, firestore, auth, storage, database, userAuthState]);
 
@@ -196,8 +147,6 @@ export const useFirebase = (): FirebaseServicesAndUser => {
     user: context.user,
     isUserLoading: context.isUserLoading,
     userError: context.userError,
-    ghostMode: context.ghostMode,
-    adminUser: context.adminUser,
   };
 };
 
@@ -252,6 +201,6 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
  * @returns {UserHookResult} Object with user, isUserLoading, userError.
  */
 export const useUser = (): UserHookResult => {
-  const { user, isUserLoading, userError, ghostMode, adminUser } = useFirebase(); // Leverages the main hook
-  return { user, isUserLoading, userError, ghostMode, adminUser };
+  const { user, isUserLoading, userError } = useFirebase(); // Leverages the main hook
+  return { user, isUserLoading, userError };
 };

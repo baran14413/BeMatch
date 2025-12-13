@@ -19,7 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, ShieldCheck, UserX, Trash2, Ghost, Crown, Loader2, Ban } from 'lucide-react';
+import { MoreHorizontal, ShieldCheck, UserX, Trash2, Crown, Loader2, Ban } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
@@ -184,13 +184,6 @@ export function UserTable() {
       }
     };
 
-    const handleGhostMode = (userId: string) => {
-        localStorage.setItem('ghostModeUser', userId);
-        // Full page reload to ensure Firebase provider re-initializes with the new user context
-        window.location.href = '/discover';
-    };
-
-
     return (
         <div className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-4">
@@ -287,10 +280,6 @@ export function UserTable() {
                             <DropdownMenuLabel>İşlemler</DropdownMenuLabel>
                              <DropdownMenuItem asChild>
                                 <Link href={`/admin/users/${user.id}`}>Detayları Görüntüle</Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => handleGhostMode(user.id)}>
-                                <Ghost className="mr-2 h-4 w-4" />
-                                Hayalet Mod (Giriş Yap)
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                              <DropdownMenuItem onSelect={() => setGrantModalState({ user, selectedTier: null, selectedDuration: null })}>
