@@ -19,7 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, ShieldCheck, UserX, Trash2, Crown, Loader2, Ban } from 'lucide-react';
+import { MoreHorizontal, ShieldCheck, UserX, Trash2, Crown, Loader2, Ban, UserCog } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
@@ -42,7 +42,6 @@ import {
 } from '@/components/ui/dialog';
 import { 
     AlertDialog, 
-    AlertDialogTrigger, 
     AlertDialogContent, 
     AlertDialogHeader, 
     AlertDialogTitle, 
@@ -56,6 +55,7 @@ import { Label } from '@/components/ui/label';
 import { subscriptionPackages } from '@/config/subscriptions';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/context/language-context';
+import backend from '@/docs/backend.json';
 
 const UserTableRowSkeleton = () => (
     <TableRow>
@@ -83,6 +83,11 @@ type PremiumGrantState = {
   selectedDuration: number | null; // in days
 };
 
+type RoleAssignState = {
+    user: UserProfile | null;
+    selectedRole: keyof typeof backend.auth.roles | null;
+};
+
 
 export function UserTable() {
     const firestore = useFirestore();
@@ -102,12 +107,17 @@ export function UserTable() {
     const [userToRevoke, setUserToRevoke] = useState<UserProfile | null>(null);
     const [isRevoking, setIsRevoking] = useState(false);
     
+    const [roleModalState, setRoleModalState] = useState<RoleAssignState>({ user: null, selectedRole: null });
+    const [isAssigningRole, setIsAssigningRole] = useState(false);
+
     const durationOptions = [
         { label: '7 Gün', days: 7 },
         { label: '30 Gün', days: 30 },
         { label: '90 Gün', days: 90 },
         { label: '1 Yıl', days: 365 },
     ];
+    
+    const availableRoles = Object.entries(backend.auth.roles).map(([key, value]) => ({ id: key, name: value.name }));
 
     const filteredUsers = useMemo(() => {
         if (!users) return [];
@@ -182,6 +192,35 @@ export function UserTable() {
         setIsRevoking(false);
         setUserToRevoke(null);
       }
+    };
+    
+    const handleAssignRole = async () => {
+        if (!roleModalState.user || !roleModalState.selectedRole) {
+             toast({ variant: 'destructive', title: 'Hata', description: 'Lütfen bir rol seçin.' });
+             return;
+        }
+        setIsAssigningRole(true);
+        // NOTE: This is a simulation. In a real app, this would trigger a backend function.
+        // We are showing the command that the admin needs to run.
+        const command = `node scripts/set-role.js ${roleModalState.user.email} ${roleModalState.selectedRole}`;
+        
+        setTimeout(() => {
+            toast({
+                title: 'Rol Atama Komutu',
+                duration: 15000,
+                description: (
+                    <div className="space-y-2">
+                        <p>Rolü atamak için projenizin terminalinde aşağıdaki komutu çalıştırın:</p>
+                        <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold text-foreground">
+                            {command}
+                        </code>
+                        <p className="text-xs text-muted-foreground pt-2">Bu komut, kullanıcının yetkilerini güncelleyecektir. Değişikliğin geçerli olması için kullanıcının yeniden giriş yapması gerekebilir.</p>
+                    </div>
+                ),
+            });
+            setIsAssigningRole(false);
+            setRoleModalState({ user: null, selectedRole: null });
+        }, 1000);
     };
 
     return (
@@ -282,6 +321,10 @@ export function UserTable() {
                                 <Link href={`/admin/users/${user.id}`}>Detayları Görüntüle</Link>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
+                            <DropdownMenuItem onSelect={() => setRoleModalState({ user, selectedRole: null })}>
+                                <UserCog className="mr-2 h-4 w-4" />
+                                <span>Rol Ata</span>
+                            </DropdownMenuItem>
                              <DropdownMenuItem onSelect={() => setGrantModalState({ user, selectedTier: null, selectedDuration: null })}>
                                 <Crown className="mr-2 h-4 w-4" />
                                 <span>Premium Yetkisi Ver</span>
@@ -396,6 +439,40 @@ export function UserTable() {
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
+        <Dialog open={!!roleModalState.user} onOpenChange={(isOpen) => !isOpen && setRoleModalState({ user: null, selectedRole: null })}>
+            <DialogContent>
+                 <DialogHeader>
+                    <DialogTitle>Rol Ata: {roleModalState.user?.name}</DialogTitle>
+                    <DialogDescription>
+                        Kullanıcının yönetici panelindeki yetkilerini belirlemek için bir rol seçin.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                     <RadioGroup
+                        value={roleModalState.selectedRole || ''}
+                        onValueChange={(val) => setRoleModalState(prev => ({...prev, selectedRole: val as keyof typeof backend.auth.roles}))}
+                     >
+                        {availableRoles.map(role => (
+                            <Label key={role.id} className={cn("border rounded-md p-4 flex items-center justify-between cursor-pointer", roleModalState.selectedRole === role.id && "border-primary ring-2 ring-primary")}>
+                                <span className="font-semibold">{role.name}</span>
+                                <RadioGroupItem value={role.id} />
+                           </Label>
+                        ))}
+                     </RadioGroup>
+                </div>
+                 <DialogFooter>
+                    <DialogClose asChild>
+                        <Button type="button" variant="secondary">
+                            İptal
+                        </Button>
+                    </DialogClose>
+                    <Button onClick={handleAssignRole} disabled={!roleModalState.selectedRole || isAssigningRole}>
+                        {isAssigningRole && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Rolü Kaydet
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
         </div>
     );
 }

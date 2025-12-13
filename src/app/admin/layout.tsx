@@ -32,6 +32,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { useUser } from '@/firebase';
+import backend from '@/docs/backend.json';
 
 const NavItem = ({ href, icon: Icon, label }: { href: string; icon: React.ElementType; label: string; }) => {
   const pathname = usePathname();
@@ -59,8 +60,20 @@ export default function AdminLayout({
 }) {
     const { user, isUserLoading } = useUser();
     const router = useRouter();
-    const [isAuthorized, setIsAuthorized] = useState(false);
+    const [userRole, setUserRole] = useState<string | null>(null);
     const [isChecking, setIsChecking] = useState(true);
+
+    const allNavItems = [
+        { href: '/admin', icon: Home, label: 'Genel Bakış', requiredPermission: '/admin' },
+        { href: '/admin/users', icon: Users, label: 'Kullanıcı Yönetimi', requiredPermission: '/admin/users' },
+        { href: '/admin/safety', icon: ShieldCheck, label: 'Güvenlik & Denetim', requiredPermission: '/admin/safety' },
+        { href: '/admin/financials', icon: CreditCard, label: 'Finans & Abonelikler', requiredPermission: '/admin/financials' },
+        { href: '/admin/algorithm', icon: BrainCircuit, label: 'Algoritma Ayarları', requiredPermission: '/admin/algorithm' },
+        { href: '/admin/app-settings', icon: Settings, label: 'Uygulama Ayarları', requiredPermission: '/admin/app-settings' },
+        { href: '/admin/audit-logs', icon: History, label: 'Denetim Kayıtları', requiredPermission: '/admin/audit-logs' },
+    ];
+    
+    const [accessibleNavItems, setAccessibleNavItems] = useState<typeof allNavItems>([]);
 
     useEffect(() => {
         if (isUserLoading) {
@@ -72,14 +85,28 @@ export default function AdminLayout({
             return;
         }
 
-        // Check for admin custom claim
-        // The `true` parameter forces a token refresh to get the latest claims.
         user.getIdTokenResult(true)
             .then((idTokenResult) => {
-                if (idTokenResult.claims.role === 'admin') {
-                    setIsAuthorized(true);
+                const claims = idTokenResult.claims;
+                const role = claims.role as keyof typeof backend.auth.roles | 'user' | undefined;
+                
+                if (role && role !== 'user') {
+                    setUserRole(role);
+                    const roleConfig = backend.auth.roles[role];
+                    if (roleConfig) {
+                        const userPermissions = roleConfig.permissions;
+                        if(userPermissions.includes('*')) {
+                            setAccessibleNavItems(allNavItems);
+                        } else {
+                           const filteredNavItems = allNavItems.filter(item => userPermissions.includes(item.requiredPermission));
+                           setAccessibleNavItems(filteredNavItems);
+                        }
+                    } else {
+                        // Role from token doesn't exist in our config, treat as no access
+                         router.replace('/?auth=unauthorized');
+                    }
                 } else {
-                    router.replace('/?auth=unauthorized'); // Redirect if not an admin
+                    router.replace('/?auth=unauthorized'); // Redirect if not an admin/mod/support
                 }
             })
             .catch(() => {
@@ -91,15 +118,6 @@ export default function AdminLayout({
 
     }, [user, isUserLoading, router]);
 
-    const navItems = [
-        { href: '/admin', icon: Home, label: 'Genel Bakış' },
-        { href: '/admin/users', icon: Users, label: 'Kullanıcı Yönetimi' },
-        { href: '/admin/safety', icon: ShieldCheck, label: 'Güvenlik & Denetim' },
-        { href: '/admin/financials', icon: CreditCard, label: 'Finans & Abonelikler' },
-        { href: '/admin/algorithm', icon: BrainCircuit, label: 'Algoritma Ayarları' },
-        { href: '/admin/app-settings', icon: Settings, label: 'Uygulama Ayarları' },
-        { href: '/admin/audit-logs', icon: History, label: 'Denetim Kayıtları' },
-    ];
 
     const SidebarContent = () => (
         <div className="flex h-full max-h-screen flex-col gap-2">
@@ -110,7 +128,7 @@ export default function AdminLayout({
         </div>
         <div className="flex-1">
             <nav className="grid items-start gap-1 px-2 text-sm font-medium lg:px-4">
-            {navItems.map((item) => (
+            {accessibleNavItems.map((item) => (
                 <NavItem key={item.href} {...item} />
             ))}
             </nav>
@@ -118,7 +136,7 @@ export default function AdminLayout({
         </div>
     );
     
-    if (isChecking || !isAuthorized) {
+    if (isChecking || !userRole) {
         return (
         <div className="flex h-screen w-full items-center justify-center bg-muted/40">
             <div className="flex flex-col items-center gap-4">
@@ -158,14 +176,14 @@ export default function AdminLayout({
               <DropdownMenuTrigger asChild>
                 <Button variant="secondary" size="icon" className="rounded-full">
                   <Avatar>
-                    <AvatarImage src="https://i.pravatar.cc/150?u=superadmin" />
-                    <AvatarFallback>SA</AvatarFallback>
+                    <AvatarImage src={user?.photoURL || "https://i.pravatar.cc/150?u=superadmin"} />
+                    <AvatarFallback>{user?.displayName?.charAt(0) || 'A'}</AvatarFallback>
                   </Avatar>
                   <span className="sr-only">Kullanıcı menüsünü aç/kapat</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Süper Admin</DropdownMenuLabel>
+                <DropdownMenuLabel>{userRole ? backend.auth.roles[userRole as keyof typeof backend.auth.roles].name : 'Admin'}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>Ayarlar</DropdownMenuItem>
                 <DropdownMenuItem>Destek</DropdownMenuItem>

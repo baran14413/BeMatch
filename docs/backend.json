@@ -386,6 +386,29 @@
         "type": "string",
         "enum": ["admin", "moderator", "support", "user"]
       }
+    },
+    "roles": {
+      "admin": {
+        "name": "Administrator",
+        "description": "Has full access to all admin panel features.",
+        "permissions": ["*"]
+      },
+      "moderator": {
+        "name": "Moderator",
+        "description": "Can manage users and review reported content.",
+        "permissions": [
+          "/admin/users",
+          "/admin/safety",
+          "/admin/audit-logs"
+        ]
+      },
+      "support": {
+        "name": "Support",
+        "description": "Can view user information to assist with support tickets.",
+        "permissions": [
+          "/admin/users"
+        ]
+      }
     }
   },
   "firestore": {
