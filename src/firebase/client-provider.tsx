@@ -1,11 +1,34 @@
 'use client';
 
-import React, { useMemo, type ReactNode } from 'react';
+import React, { useMemo, type ReactNode, useEffect } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { initializeFirebase, useUser } from '@/firebase';
+import Cookies from 'js-cookie';
+
 
 function AuthAwareLayout({ children }: { children: React.ReactNode }) {
-  const { isUserLoading } = useUser();
+  const { user, isUserLoading } = useUser();
+
+  useEffect(() => {
+    // This effect runs when the user's auth state changes.
+    const handleTokenPersistence = async () => {
+      if (user) {
+        try {
+          const token = await user.getIdToken();
+          Cookies.set('idToken', token, { expires: 1, secure: process.env.NODE_ENV === 'production' });
+        } catch (error) {
+          console.error("Error getting user ID token:", error);
+          Cookies.remove('idToken');
+        }
+      } else {
+        // If user is null (logged out), remove the cookie.
+        Cookies.remove('idToken');
+      }
+    };
+
+    handleTokenPersistence();
+
+  }, [user]);
 
   // Don't render children until the auth state is resolved to prevent flashes
   if (isUserLoading) {

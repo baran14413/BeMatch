@@ -22,10 +22,10 @@ import {
 import { MoreHorizontal, ShieldCheck, UserX, Trash2, Crown, Loader2, Ban, UserCog } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, doc, updateDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/data';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition } from 'react';
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -55,6 +55,8 @@ import { subscriptionPackages } from '@/config/subscriptions';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/context/language-context';
 import backend from '@/docs/backend.json';
+import { setRole, deleteUser } from '@/app/admin/actions';
+
 
 const UserTableRowSkeleton = () => (
     <TableRow>
@@ -89,7 +91,6 @@ type RoleAssignState = {
 
 type DeleteUserState = {
     user: UserProfile | null;
-    confirmationPassword: string;
     isDeleting: boolean;
 }
 
@@ -99,22 +100,17 @@ export function UserTable() {
     const { data: users, isLoading } = useCollection<UserProfile>(usersQuery);
     const { toast } = useToast();
     const { t } = useLanguage();
-    const { user: adminUser } = useUser();
 
+    const [isPending, startTransition] = useTransition();
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [genderFilter, setGenderFilter] = useState('all');
     const [onlineFilter, setOnlineFilter] = useState('all');
 
     const [grantModalState, setGrantModalState] = useState<PremiumGrantState>({ user: null, selectedTier: null, selectedDuration: null });
-    const [isGranting, setIsGranting] = useState(false);
     const [userToRevoke, setUserToRevoke] = useState<UserProfile | null>(null);
-    const [isRevoking, setIsRevoking] = useState(false);
-    
     const [roleModalState, setRoleModalState] = useState<RoleAssignState>({ user: null, selectedRole: null });
-    const [isAssigningRole, setIsAssigningRole] = useState(false);
-    
-    const [deleteModalState, setDeleteModalState] = useState<DeleteUserState>({ user: null, confirmationPassword: '', isDeleting: false });
+    const [deleteModalState, setDeleteModalState] = useState<DeleteUserState>({ user: null, isDeleting: false });
 
 
     const durationOptions = [
@@ -154,58 +150,59 @@ export function UserTable() {
             return;
         }
         
-        setIsGranting(true);
         const { user, selectedTier, selectedDuration } = grantModalState;
-        const userDocRef = doc(firestore, 'users', user.id);
-        const expiresAt = add(new Date(), { days: selectedDuration });
+        
+        startTransition(async () => {
+            const userDocRef = doc(firestore, 'users', user.id);
+            const expiresAt = add(new Date(), { days: selectedDuration });
 
-        try {
-            await updateDoc(userDocRef, {
-                premiumTier: selectedTier,
-                premiumExpiresAt: expiresAt,
-            });
-            toast({
-                title: 'Premium Verildi',
-                description: `${user.name} kullanıcısına ${selectedTier.toUpperCase()} paketi ${selectedDuration} gün süreyle verildi.`,
-            });
-        } catch (error) {
-            console.error("Premium verme hatası:", error);
-            toast({
-                variant: 'destructive',
-                title: 'Hata',
-                description: 'Premium yetkisi verilirken bir sorun oluştu.',
-            });
-        } finally {
-            setIsGranting(false);
-            setGrantModalState({ user: null, selectedTier: null, selectedDuration: null });
-        }
+            try {
+                await updateDoc(userDocRef, {
+                    premiumTier: selectedTier,
+                    premiumExpiresAt: expiresAt,
+                });
+                toast({
+                    title: 'Premium Verildi',
+                    description: `${user.name} kullanıcısına ${selectedTier.toUpperCase()} paketi ${selectedDuration} gün süreyle verildi.`,
+                });
+            } catch (error) {
+                console.error("Premium verme hatası:", error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Hata',
+                    description: 'Premium yetkisi verilirken bir sorun oluştu.',
+                });
+            } finally {
+                setGrantModalState({ user: null, selectedTier: null, selectedDuration: null });
+            }
+        });
     };
     
     const handleRevokePremium = async () => {
       if (!userToRevoke) return;
 
-      setIsRevoking(true);
-      const userDocRef = doc(firestore, 'users', userToRevoke.id);
-      try {
-        await updateDoc(userDocRef, {
-          premiumTier: null,
-          premiumExpiresAt: null,
-        });
-        toast({
-          title: 'Premium Yetkisi Alındı',
-          description: `${userToRevoke.name} kullanıcısının premium yetkisi kaldırıldı.`,
-        });
-      } catch (error) {
-        console.error("Premium alma hatası:", error);
-        toast({
-          variant: 'destructive',
-          title: 'Hata',
-          description: 'Premium yetkisi alınırken bir hata oluştu.',
-        });
-      } finally {
-        setIsRevoking(false);
-        setUserToRevoke(null);
-      }
+      startTransition(async () => {
+          const userDocRef = doc(firestore, 'users', userToRevoke.id);
+          try {
+            await updateDoc(userDocRef, {
+              premiumTier: null,
+              premiumExpiresAt: null,
+            });
+            toast({
+              title: 'Premium Yetkisi Alındı',
+              description: `${userToRevoke.name} kullanıcısının premium yetkisi kaldırıldı.`,
+            });
+          } catch (error) {
+            console.error("Premium alma hatası:", error);
+            toast({
+              variant: 'destructive',
+              title: 'Hata',
+              description: 'Premium yetkisi alınırken bir hata oluştu.',
+            });
+          } finally {
+            setUserToRevoke(null);
+          }
+      });
     };
     
     const handleAssignRole = async () => {
@@ -213,53 +210,48 @@ export function UserTable() {
              toast({ variant: 'destructive', title: 'Hata', description: 'Lütfen bir rol seçin.' });
              return;
         }
-        setIsAssigningRole(true);
-        const command = `node scripts/set-role.js ${roleModalState.user.email} ${roleModalState.selectedRole}`;
         
-        setTimeout(() => {
-            toast({
-                title: 'Rol Atama Komutu',
-                duration: 15000,
-                description: (
-                    <div className="space-y-2">
-                        <p>Rolü atamak için projenizin terminalinde aşağıdaki komutu çalıştırın:</p>
-                        <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold text-foreground">
-                            {command}
-                        </code>
-                        <p className="text-xs text-muted-foreground pt-2">Bu komut, kullanıcının yetkilerini güncelleyecektir. Değişikliğin geçerli olması için kullanıcının yeniden giriş yapması gerekebilir.</p>
-                    </div>
-                ),
-            });
-            setIsAssigningRole(false);
+        const { user, selectedRole } = roleModalState;
+
+        startTransition(async () => {
+            const result = await setRole(user.id, selectedRole);
+            if (result.success) {
+                toast({
+                    title: 'Rol Atandı',
+                    description: `${user.name} kullanıcısına "${selectedRole}" rolü başarıyla atandı.`,
+                });
+            } else {
+                 toast({
+                    variant: 'destructive',
+                    title: 'Rol Atanamadı',
+                    description: result.error || 'Bilinmeyen bir hata oluştu.',
+                });
+            }
             setRoleModalState({ user: null, selectedRole: null });
-        }, 1000);
+        });
     };
 
     const handleDeleteUser = async () => {
-        if (!deleteModalState.user || !adminUser) {
-            toast({ variant: 'destructive', title: 'Hata', description: 'Kullanıcı bilgisi bulunamadı.' });
-            return;
-        }
-        setDeleteModalState(prev => ({ ...prev, isDeleting: true }));
-
-        const command = `node scripts/delete-user.js ${deleteModalState.user.id}`;
+        if (!deleteModalState.user) return;
         
-        setTimeout(() => {
-            toast({
-                title: 'Kullanıcı Silme Komutu',
-                duration: 20000,
-                description: (
-                    <div className="space-y-2">
-                        <p>Kullanıcıyı ve tüm verilerini kalıcı olarak silmek için projenizin terminalinde aşağıdaki komutu çalıştırın:</p>
-                        <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold text-foreground">
-                            {command}
-                        </code>
-                        <p className="text-xs text-destructive pt-2">DİKKAT: Bu işlem geri alınamaz ve kullanıcının tüm verilerini (profil, fotoğraflar, sohbetler) silecektir.</p>
-                    </div>
-                ),
-            });
-            setDeleteModalState({ user: null, confirmationPassword: '', isDeleting: false });
-        }, 1000);
+        const userToDelete = deleteModalState.user;
+
+        startTransition(async () => {
+            const result = await deleteUser(userToDelete.id);
+             if (result.success) {
+                toast({
+                    title: 'Kullanıcı Silindi',
+                    description: `${userToDelete.name} kullanıcısı ve tüm verileri kalıcı olarak silindi.`,
+                });
+            } else {
+                 toast({
+                    variant: 'destructive',
+                    title: 'Kullanıcı Silinemedi',
+                    description: result.error || 'Bilinmeyen bir hata oluştu.',
+                });
+            }
+            setDeleteModalState({ user: null, isDeleting: false });
+        });
     };
 
 
@@ -384,7 +376,7 @@ export function UserTable() {
                                 <UserX className="mr-2 h-4 w-4" />
                                 Kullanıcıyı Yasakla
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => setDeleteModalState(prev => ({...prev, user}))} className="text-destructive focus:text-destructive">
+                            <DropdownMenuItem onSelect={() => setDeleteModalState({ user, isDeleting: false })} className="text-destructive focus:text-destructive">
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Hesabı Sil
                             </DropdownMenuItem>
@@ -451,8 +443,8 @@ export function UserTable() {
                             İptal
                         </Button>
                     </DialogClose>
-                    <Button onClick={handleConfirmGrantPremium} disabled={!grantModalState.selectedTier || !grantModalState.selectedDuration || isGranting}>
-                        {isGranting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Button onClick={handleConfirmGrantPremium} disabled={!grantModalState.selectedTier || !grantModalState.selectedDuration || isPending}>
+                        {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Yetkiyi Onayla
                     </Button>
                 </DialogFooter>
@@ -470,10 +462,10 @@ export function UserTable() {
                     <AlertDialogCancel>İptal</AlertDialogCancel>
                     <AlertDialogAction
                         onClick={handleRevokePremium}
-                        disabled={isRevoking}
+                        disabled={isPending}
                         className="bg-destructive hover:bg-destructive/90"
                     >
-                         {isRevoking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                         {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Evet, Yetkiyi Al
                     </AlertDialogAction>
                 </AlertDialogFooter>
@@ -507,14 +499,14 @@ export function UserTable() {
                             İptal
                         </Button>
                     </DialogClose>
-                    <Button onClick={handleAssignRole} disabled={!roleModalState.selectedRole || isAssigningRole}>
-                        {isAssigningRole && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Button onClick={handleAssignRole} disabled={!roleModalState.selectedRole || isPending}>
+                        {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Rolü Kaydet
                     </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-        <AlertDialog open={!!deleteModalState.user} onOpenChange={(isOpen) => !isOpen && setDeleteModalState({ user: null, confirmationPassword: '', isDeleting: false })}>
+        <AlertDialog open={!!deleteModalState.user} onOpenChange={(isOpen) => !isOpen && setDeleteModalState({ user: null, isDeleting: false })}>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Kullanıcıyı Sil: {deleteModalState.user?.name}</AlertDialogTitle>
@@ -526,10 +518,10 @@ export function UserTable() {
                     <AlertDialogCancel>İptal</AlertDialogCancel>
                     <AlertDialogAction
                         onClick={handleDeleteUser}
-                        disabled={deleteModalState.isDeleting}
+                        disabled={isPending}
                         className="bg-destructive hover:bg-destructive/90"
                     >
-                         {deleteModalState.isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                         {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Evet, Kullanıcıyı Kalıcı Olarak Sil
                     </AlertDialogAction>
                 </AlertDialogFooter>
