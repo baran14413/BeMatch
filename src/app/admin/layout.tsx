@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useUser } from '@/firebase';
 import backend from '@/docs/backend.json';
 
@@ -73,6 +73,27 @@ export default function AdminLayout({
         { href: '/admin/app-settings', icon: Settings, label: 'Uygulama Ayarları' },
         { href: '/admin/audit-logs', icon: History, label: 'Denetim Kayıtları' },
     ];
+
+    const visibleNavItems = useMemo(() => {
+        if (!userRole) return [];
+        const rolesConfig = backend.auth.roles as Record<string, { permissions: string[] }>;
+        const userPermissions = rolesConfig[userRole]?.permissions;
+
+        if (!userPermissions) return [];
+        if (userPermissions.includes('*')) return allNavItems;
+        
+        // Always include the main dashboard link if they have any permissions
+        const dashboardItem = allNavItems.find(item => item.href === '/admin');
+        const accessibleItems = allNavItems.filter(item => userPermissions.includes(item.href));
+        
+        // Ensure dashboard item is included and not duplicated
+        if (dashboardItem && !accessibleItems.some(item => item.href === '/admin')) {
+             return [dashboardItem, ...accessibleItems];
+        }
+
+        return accessibleItems;
+
+    }, [userRole]);
     
     useEffect(() => {
         if (isUserLoading) {
@@ -82,6 +103,7 @@ export default function AdminLayout({
 
         if (!user) {
             setAuthStatus('unauthorized');
+            router.replace('/?auth=unauthorized');
             return;
         }
 
@@ -95,13 +117,15 @@ export default function AdminLayout({
                     setAuthStatus('authorized');
                 } else {
                     setAuthStatus('unauthorized');
+                    router.replace('/?auth=unauthorized');
                 }
             })
             .catch(() => {
                 setAuthStatus('unauthorized');
+                router.replace('/?auth=unauthorized');
             });
 
-    }, [user, isUserLoading]);
+    }, [user, isUserLoading, router]);
     
     if (authStatus === 'checking') {
         return (
@@ -114,13 +138,12 @@ export default function AdminLayout({
         );
     }
     
-    if (authStatus === 'unauthorized') {
-        router.replace('/?auth=unauthorized');
+    if (authStatus !== 'authorized') {
         return null;
     }
 
 
-    const SidebarContent = () => (
+    const SidebarContent = ({ navItems }: { navItems: typeof allNavItems }) => (
         <div className="flex h-full max-h-screen flex-col gap-2">
             <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
                 <Link href="/admin" className="flex items-center gap-2 font-semibold">
@@ -129,7 +152,7 @@ export default function AdminLayout({
             </div>
             <div className="flex-1">
                 <nav className="grid items-start gap-1 px-2 text-sm font-medium lg:px-4">
-                    {allNavItems.map((item) => (
+                    {navItems.map((item) => (
                         <NavItem key={item.href} {...item} />
                     ))}
                 </nav>
@@ -140,7 +163,7 @@ export default function AdminLayout({
   return (
       <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
         <div className="hidden border-r bg-muted/20 md:block">
-          <SidebarContent />
+          <SidebarContent navItems={visibleNavItems} />
         </div>
         <div className="flex flex-col">
           <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
@@ -159,7 +182,7 @@ export default function AdminLayout({
                  <SheetHeader>
                     <SheetTitle className="sr-only">Admin Navigation</SheetTitle>
                  </SheetHeader>
-                <SidebarContent />
+                <SidebarContent navItems={visibleNavItems} />
               </SheetContent>
             </Sheet>
             <div className="w-full flex-1">
