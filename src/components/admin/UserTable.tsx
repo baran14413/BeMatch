@@ -215,10 +215,10 @@ export function UserTable() {
         startTransition(async () => {
             const userDocRef = doc(firestore, 'users', user.id);
             try {
-                // Update Firestore first for instant UI feedback
+                // First, optimistically update the role in Firestore
                 await updateDoc(userDocRef, { role: selectedRole });
 
-                // Call server action for custom claim
+                // Then, call the server action to set the custom claim
                 const result = await setUserRoleAction(user.id, selectedRole);
 
                 if (result.success) {
@@ -227,7 +227,7 @@ export function UserTable() {
                         description: `${user.name} kullanıcısına "${selectedRole}" rolü başarıyla atandı.`,
                     });
                 } else {
-                    // Revert on failure
+                    // If the server action fails, revert the change in Firestore
                     toast({
                         variant: 'destructive',
                         title: 'Yetki Atanamadı',
@@ -236,12 +236,12 @@ export function UserTable() {
                      await updateDoc(userDocRef, { role: user.role || 'user' }); // Revert
                 }
             } catch (error) {
-                toast({
+                 toast({
                     variant: 'destructive',
                     title: 'Firestore Hatası',
                     description: 'Rol güncellenirken bir veritabanı hatası oluştu.',
                 });
-                await updateDoc(userDocRef, { role: user.role || 'user' }); // Revert
+                 await updateDoc(userDocRef, { role: user.role || 'user' }); // Revert
             } finally {
                  setRoleModalState({ user: null, selectedRole: null });
             }
@@ -566,4 +566,5 @@ export function UserTable() {
     );
 }
 
+    
     

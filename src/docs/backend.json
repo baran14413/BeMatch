@@ -154,6 +154,10 @@
         "superLikes": {
             "type": "number",
             "description": "The number of Super Likes a user has."
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role in the system (e.g., admin, user)."
         }
       },
       "required": [
@@ -397,13 +401,13 @@
     },
     "roles": {
       "admin": {
-        "name": "Administrator",
-        "description": "Has full access to all admin panel features.",
+        "name": "Yönetici",
+        "description": "Tüm yönetici paneli özelliklerine tam erişime sahiptir.",
         "permissions": ["*"]
       },
       "moderator": {
-        "name": "Moderator",
-        "description": "Can manage users and review reported content.",
+        "name": "Moderatör",
+        "description": "Kullanıcıları yönetebilir ve rapor edilen içerikleri inceleyebilir.",
         "permissions": [
           "/admin/users",
           "/admin/safety",
@@ -411,15 +415,15 @@
         ]
       },
       "support": {
-        "name": "Support",
-        "description": "Can view user information to assist with support tickets.",
+        "name": "Destek",
+        "description": "Destek biletlerine yardımcı olmak için kullanıcı bilgilerini görüntüleyebilir.",
         "permissions": [
           "/admin/users"
         ]
       },
       "user": {
-        "name": "User",
-        "description": "Standard user with no admin panel access.",
+        "name": "Kullanıcı",
+        "description": "Yönetici paneli erişimi olmayan standart kullanıcı.",
         "permissions": []
       }
     }
