@@ -211,12 +211,11 @@ export function UserTable() {
         }
         
         const { user, selectedRole } = roleModalState;
-        const oldRole = user.role || 'user';
-
+        
         startTransition(async () => {
             const userDocRef = doc(firestore, 'users', user.id);
             try {
-                // Optimistically update Firestore to reflect in UI instantly
+                // Update Firestore first for instant UI feedback
                 await updateDoc(userDocRef, { role: selectedRole });
 
                 // Call server action for custom claim
@@ -234,7 +233,7 @@ export function UserTable() {
                         title: 'Yetki Atanamadı',
                         description: result.error || 'Sunucu tarafında yetki (claim) atanamadı.',
                     });
-                    await updateDoc(userDocRef, { role: oldRole }); // Revert Firestore change
+                     await updateDoc(userDocRef, { role: user.role || 'user' }); // Revert
                 }
             } catch (error) {
                 toast({
@@ -242,7 +241,7 @@ export function UserTable() {
                     title: 'Firestore Hatası',
                     description: 'Rol güncellenirken bir veritabanı hatası oluştu.',
                 });
-                 await updateDoc(userDocRef, { role: oldRole }); // Revert on any error
+                await updateDoc(userDocRef, { role: user.role || 'user' }); // Revert
             } finally {
                  setRoleModalState({ user: null, selectedRole: null });
             }
@@ -257,7 +256,7 @@ export function UserTable() {
         startTransition(async () => {
             const userDocRef = doc(firestore, 'users', userToDelete.id);
             try {
-                // Delete from Firestore first to update UI instantly via onSnapshot
+                // Delete from Firestore first, useCollection will update the UI
                 await deleteDoc(userDocRef);
 
                 // Then, delete from Auth in the background via Server Action
@@ -274,8 +273,6 @@ export function UserTable() {
                         title: 'Authentication Hatası',
                         description: result.error || 'Kullanıcı kimlik doğrulama sisteminden silinemedi.',
                     });
-                    // Note: In a real app, you might want to handle this failure case,
-                    // e.g., by logging it or trying to re-create the Firestore doc.
                 }
             } catch (firestoreError) {
                 console.error("Firestore kullanıcı silme hatası:", firestoreError);
@@ -358,12 +355,14 @@ export function UserTable() {
                             <AvatarFallback>{user.name?.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div>
-                                <div className="flex items-center gap-2">
-                                    <p className="font-medium">{user.name}</p>
-                                    {user.role === 'admin' && <UserCog className="w-4 h-4 text-primary" />}
+                                <div className="font-medium flex items-center gap-2">
+                                    {user.name}
                                     {user.premiumTier && <Crown className="w-4 h-4 text-yellow-500" />}
                                 </div>
                                 <p className='text-xs text-muted-foreground'>{user.email}</p>
+                                {user.role === 'admin' && (
+                                    <Badge variant="destructive" className="mt-1">Admin</Badge>
+                                )}
                             </div>
                         </div>
                         </TableCell>
@@ -566,3 +565,5 @@ export function UserTable() {
         </div>
     );
 }
+
+    
