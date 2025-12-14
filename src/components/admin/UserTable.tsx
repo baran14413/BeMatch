@@ -287,6 +287,11 @@ export function UserTable() {
         });
     };
 
+    const getRoleName = (roleId: string) => {
+        const roles = backend.auth.roles as Record<string, { name: string }>;
+        return roles[roleId]?.name || roleId;
+    }
+
 
     return (
         <div className="space-y-4">
@@ -360,8 +365,10 @@ export function UserTable() {
                                     {user.premiumTier && <Crown className="w-4 h-4 text-yellow-500" />}
                                 </div>
                                 <p className='text-xs text-muted-foreground'>{user.email}</p>
-                                {user.role === 'admin' && (
-                                    <Badge variant="destructive" className="mt-1">Admin</Badge>
+                                {!!user.role && user.role !== 'user' && (
+                                    <Badge variant={user.role === 'admin' ? "destructive" : "secondary"} className="mt-1">
+                                        {getRoleName(user.role)}
+                                    </Badge>
                                 )}
                             </div>
                         </div>
@@ -566,5 +573,6 @@ export function UserTable() {
     );
 }
 
+    
     
     
