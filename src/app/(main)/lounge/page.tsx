@@ -49,7 +49,7 @@ export default function LoungePage() {
   const [isEditMode, setIsEditMode] = useState(false);
 
   const matchesQuery = useMemoFirebase(() => {
-    if (!user) return null;
+    if (!user || !firestore) return null;
     return query(collection(firestore, 'matches'), where('users', 'array-contains', user.uid));
   }, [user, firestore]);
 
