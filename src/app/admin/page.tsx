@@ -2,129 +2,100 @@
 
 import { Bar, BarChart, Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, UserCheck, UserX, FileText, DollarSign } from 'lucide-react';
+import { Users, UserCheck, UserX, FileText, DollarSign, Crown } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, limit, orderBy, query, where } from 'firebase/firestore';
+import type { UserProfile, Match, Report } from '@/lib/data';
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatDistanceToNow } from 'date-fns';
+import { tr, enUS } from 'date-fns/locale';
+import { useLanguage } from '@/context/language-context';
 
-
-const userGrowthData = [
-  { month: 'Oca', users: 120 },
-  { month: 'Şub', users: 240 },
-  { month: 'Mar', users: 180 },
-  { month: 'Nis', users: 350 },
-  { month: 'May', users: 420 },
-  { month: 'Haz', users: 580 },
-];
-
-const dailyActiveData = [
-    { day: 'Pzt', active: 22 },
-    { day: 'Sal', active: 35 },
-    { day: 'Çar', active: 40 },
-    { day: 'Per', active: 31 },
-    { day: 'Cum', active: 50 },
-    { day: 'Cmt', active: 65 },
-    { day: 'Paz', active: 60 },
-];
-
-const recentActivities = [
-  { id: 1, user: 'alex.d@email.com', avatar: 'https://i.pravatar.cc/150?u=alex', type: 'Kayıt Oldu', timestamp: '2 dakika önce' },
-  { id: 2, user: 'samantha.g@email.com', avatar: 'https://i.pravatar.cc/150?u=samantha', type: 'Abonelik', timestamp: '5 dakika önce', details: 'Gold Plan' },
-  { id: 3, user: 'mike_t@email.com', avatar: 'https://i.pravatar.cc/150?u=mike', type: 'Rapor', timestamp: '10 dakika önce', details: 'Spam Profil' },
-  { id: 4, user: 'jessica.w@email.com', avatar: 'https://i.pravatar.cc/150?u=jessica', type: 'Kayıt Oldu', timestamp: '12 dakika önce' },
-];
+const StatCard = ({ title, value, icon: Icon, description, isLoading }: { title: string, value: string | number, icon: React.ElementType, description?: string, isLoading: boolean }) => (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <>
+            <Skeleton className="h-8 w-16" />
+            {description && <Skeleton className="h-3 w-24 mt-1" />}
+          </>
+        ) : (
+          <>
+            <div className="text-2xl font-bold">{value}</div>
+            {description && <p className="text-xs text-muted-foreground">{description}</p>}
+          </>
+        )}
+      </CardContent>
+    </Card>
+);
 
 
 export default function AdminDashboardPage() {
+    const firestore = useFirestore();
+    const { t, locale } = useLanguage();
+
+    // Queries for statistics
+    const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+    const { data: users, isLoading: isLoadingUsers } = useCollection<UserProfile>(usersQuery);
+    
+    const premiumUsersQuery = useMemoFirebase(() => query(collection(firestore, 'users'), where('premiumTier', '!=', null)), [firestore]);
+    const { data: premiumUsers, isLoading: isLoadingPremium } = useCollection<UserProfile>(premiumUsersQuery);
+    
+    const matchesQuery = useMemoFirebase(() => collection(firestore, 'matches'), [firestore]);
+    const { data: matches, isLoading: isLoadingMatches } = useCollection<Match>(matchesQuery);
+
+    const pendingReportsQuery = useMemoFirebase(() => query(collection(firestore, 'reports'), where('status', '==', 'pending')), [firestore]);
+    const { data: pendingReports, isLoading: isLoadingReports } = useCollection<Report>(pendingReportsQuery);
+
+    // Queries for recent activities
+    const recentUsersQuery = useMemoFirebase(() => query(collection(firestore, 'users'), orderBy('createdAt', 'desc'), limit(5)), [firestore]);
+    const { data: recentUsers, isLoading: isLoadingRecentUsers } = useCollection<UserProfile>(recentUsersQuery);
+    
+    const recentReportsQuery = useMemoFirebase(() => query(collection(firestore, 'reports'), orderBy('timestamp', 'desc'), limit(5)), [firestore]);
+    const { data: recentReports, isLoading: isLoadingRecentReports } = useCollection<Report>(recentReportsQuery);
+
+    const recentActivities = [
+        ...(recentUsers || []).map(u => ({ type: 'Kayıt Oldu' as const, data: u, timestamp: u.createdAt?.toDate() })),
+        ...(recentReports || []).map(r => ({ type: 'Rapor' as const, data: r, timestamp: r.timestamp?.toDate() }))
+    ].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).slice(0, 5);
+    
+
   return (
     <div className="flex-1 space-y-4">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Toplam Kullanıcı</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">10,234</div>
-            <p className="text-xs text-muted-foreground">Geçen aydan +%5.2</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Aktif Kullanıcı (Şimdi)</CardTitle>
-            <UserCheck className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">573</div>
-            <p className="text-xs text-muted-foreground">Şu anda çevrimiçi</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Premium Gelir</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₺12,450</div>
-            <p className="text-xs text-muted-foreground">Geçen aydan +%12.1</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Toplam Eşleşme</CardTitle>
-            <UserX className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">2,350</div>
-             <p className="text-xs text-muted-foreground">Bu hafta +180</p>
-          </CardContent>
-        </Card>
-         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Bekleyen Raporlar</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">İnceleme gerektiriyor</p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Toplam Kullanıcı"
+          value={users?.length ?? 0}
+          icon={Users}
+          isLoading={isLoadingUsers}
+        />
+        <StatCard
+          title="Premium Kullanıcı"
+          value={premiumUsers?.length ?? 0}
+          icon={Crown}
+          isLoading={isLoadingPremium}
+        />
+        <StatCard
+          title="Toplam Eşleşme"
+          value={matches?.length ?? 0}
+          icon={UserCheck}
+          isLoading={isLoadingMatches}
+        />
+        <StatCard
+          title="Bekleyen Raporlar"
+          value={pendingReports?.length ?? 0}
+          icon={FileText}
+          isLoading={isLoadingReports}
+        />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Kullanıcı Büyümesi</CardTitle>
-          </CardHeader>
-          <CardContent className="pl-2">
-            <ResponsiveContainer width="100%" height={350}>
-              <LineChart data={userGrowthData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" stroke="#888888" fontSize={12} tickLine={false} axisLine={false}/>
-                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip />
-                <Line type="monotone" dataKey="users" stroke="hsl(var(--primary))" activeDot={{ r: 8 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle>Günlük Aktif Kullanıcılar</CardTitle>
-          </CardHeader>
-          <CardContent>
-             <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={dailyActiveData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip />
-                <Bar dataKey="active" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
       <Card>
          <CardHeader>
             <CardTitle>Son Aktiviteler</CardTitle>
@@ -133,33 +104,65 @@ export default function AdminDashboardPage() {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Kullanıcı</TableHead>
+                        <TableHead>Kullanıcı/Raporlayan</TableHead>
                         <TableHead>Tür</TableHead>
                         <TableHead>Detaylar</TableHead>
                         <TableHead>Zaman</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {recentActivities.map(activity => (
-                        <TableRow key={activity.id}>
-                            <TableCell>
-                                <div className="flex items-center gap-3">
-                                    <Avatar className="h-8 w-8">
-                                        <AvatarImage src={activity.avatar} />
-                                        <AvatarFallback>{activity.user.charAt(0).toUpperCase()}</AvatarFallback>
-                                    </Avatar>
-                                    <span>{activity.user}</span>
-                                </div>
-                            </TableCell>
-                            <TableCell>
-                                <Badge variant={activity.type === 'Kayıt Oldu' ? 'default' : activity.type === 'Abonelik' ? 'secondary' : 'destructive'}>
-                                  {activity.type}
-                                </Badge>
-                            </TableCell>
-                            <TableCell>{activity.details || '-'}</TableCell>
-                            <TableCell>{activity.timestamp}</TableCell>
+                    {(isLoadingRecentUsers || isLoadingRecentReports) ? (
+                      Array.from({length: 3}).map((_, i) => (
+                        <TableRow key={i}>
+                          <TableCell><Skeleton className="h-8 w-32" /></TableCell>
+                          <TableCell><Skeleton className="h-8 w-20" /></TableCell>
+                          <TableCell><Skeleton className="h-8 w-24" /></TableCell>
+                          <TableCell><Skeleton className="h-8 w-16" /></TableCell>
                         </TableRow>
-                    ))}
+                      ))
+                    ) : recentActivities.length > 0 ? (
+                      recentActivities.map((activity, index) => {
+                          let user, details;
+                          if (activity.type === 'Kayıt Oldu') {
+                              const userData = activity.data as UserProfile;
+                              user = { name: userData.name, avatar: userData.avatarUrl };
+                              details = userData.email;
+                          } else { // Rapor
+                              const reportData = activity.data as Report;
+                              user = { name: `Rapor ID: ${reportData.id.substring(0, 6)}`, avatar: '' };
+                              details = `Sebep: ${reportData.reason}`;
+                          }
+
+                          return (
+                            <TableRow key={index}>
+                                <TableCell>
+                                    <div className="flex items-center gap-3">
+                                        <Avatar className="h-8 w-8">
+                                            <AvatarImage src={user.avatar} />
+                                            <AvatarFallback>{user.name?.charAt(0).toUpperCase()}</AvatarFallback>
+                                        </Avatar>
+                                        <span>{user.name}</span>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant={activity.type === 'Kayıt Oldu' ? 'default' : 'destructive'}>
+                                        {activity.type}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell>{details || '-'}</TableCell>
+                                <TableCell>
+                                  {activity.timestamp ? formatDistanceToNow(activity.timestamp, { addSuffix: true, locale: locale === 'tr' ? tr : enUS }) : '-'}
+                                </TableCell>
+                            </TableRow>
+                          );
+                      })
+                    ) : (
+                      <TableRow>
+                          <TableCell colSpan={4} className="h-24 text-center">
+                            Henüz bir aktivite yok.
+                          </TableCell>
+                      </TableRow>
+                    )}
                 </TableBody>
             </Table>
         </CardContent>
