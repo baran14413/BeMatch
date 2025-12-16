@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Crown, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Crown, Settings, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useLanguage } from '@/context/language-context';
@@ -119,6 +119,11 @@ export default function ProfilePage() {
           <CardContent className="p-4">
              <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">{t('profile.myPhotos')}</h3>
+                 <Link href="/settings/gallery" passHref>
+                    <Button variant="ghost" size="icon" aria-label={t('settings.editGallery')}>
+                        <Pencil className="w-5 h-5 text-muted-foreground" />
+                    </Button>
+                </Link>
              </div>
              {images.length > 0 ? (
                 <div className="grid grid-cols-3 gap-3">
