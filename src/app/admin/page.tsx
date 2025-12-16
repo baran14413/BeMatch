@@ -6,7 +6,7 @@ import { Users, UserCheck, UserX, FileText, DollarSign, Crown } from 'lucide-rea
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, limit, orderBy, query, where } from 'firebase/firestore';
 import type { UserProfile, Match, Report } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -39,6 +39,7 @@ const StatCard = ({ title, value, icon: Icon, description, isLoading }: { title:
 
 export default function AdminDashboardPage() {
     const firestore = useFirestore();
+    const { user } = useUser();
     const { t, locale } = useLanguage();
 
     // Queries for statistics
@@ -48,7 +49,10 @@ export default function AdminDashboardPage() {
     const premiumUsersQuery = useMemoFirebase(() => query(collection(firestore, 'users'), where('premiumTier', '!=', null)), [firestore]);
     const { data: premiumUsers, isLoading: isLoadingPremium } = useCollection<UserProfile>(premiumUsersQuery);
     
-    const matchesQuery = useMemoFirebase(() => collection(firestore, 'matches'), [firestore]);
+    const matchesQuery = useMemoFirebase(() => {
+      if (!firestore || !user) return null; // Prevent query if firestore or user is not available
+      return collection(firestore, 'matches');
+    }, [firestore, user]);
     const { data: matches, isLoading: isLoadingMatches } = useCollection<Match>(matchesQuery);
 
     const pendingReportsQuery = useMemoFirebase(() => query(collection(firestore, 'reports'), where('status', '==', 'pending')), [firestore]);
