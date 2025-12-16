@@ -35,14 +35,14 @@ export default function Home() {
     };
 
     return (
-        <main className="w-full h-screen flex items-center justify-center bg-gray-100 dark:bg-black">
+        <main className="w-full h-screen flex items-center justify-center bg-background">
             <AnimatePresence>
                 <motion.div 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.3 }}
-                    className="w-full max-w-md h-[90vh] max-h-[800px] bg-card rounded-2xl shadow-2xl overflow-hidden"
+                    className="w-full max-w-md h-full md:h-[90vh] md:max-h-[800px] bg-card md:rounded-2xl"
                 >
                     <AuthScreen onAuthSuccess={handleAuthSuccess} />
                 </motion.div>
