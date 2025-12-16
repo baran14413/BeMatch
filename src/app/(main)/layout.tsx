@@ -28,7 +28,7 @@ export default function MainLayout({
   }
   
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-dvh bg-background">
       {!isChatPage && <MainHeader />}
       <ScrollArea className="flex-1">
         <main>{children}</main>
