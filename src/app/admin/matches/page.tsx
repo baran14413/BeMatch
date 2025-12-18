@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { useLanguage } from '@/context/language-context';
+import { tr, enUS } from 'date-fns/locale';
 
 const MatchesTableSkeleton = () => (
     <div className="space-y-4">
@@ -81,7 +82,7 @@ export default function MatchHistoryPage() {
                                     </TableCell>
                                     <TableCell>
                                         {format(new Date(match.timestamp), 'PPP p', {
-                                            locale: locale === 'tr' ? require('date-fns/locale/tr') : require('date-fns/locale/en-US')
+                                            locale: locale === 'tr' ? tr : enUS
                                         })}
                                     </TableCell>
                                 </TableRow>
