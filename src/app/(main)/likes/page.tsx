@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useLanguage } from "@/context/language-context";
-import { Card } from "../ui/card";
+import { Card } from "@/components/ui/card";
 import { Star, Heart, MessageSquare, Crown } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -10,7 +10,7 @@ import { collection, doc, getDoc, query, where, addDoc, serverTimestamp, writeBa
 import type { UserProfile } from '@/lib/data';
 import { Skeleton } from '../ui/skeleton';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import ProfileDetails from './profile-details';
+import ProfileDetails from '@/components/discover/profile-details';
 import { useRouter } from 'next/navigation';
 import { Button } from '../ui/button';
 import { errorEmitter } from '@/firebase/error-emitter';
