@@ -49,7 +49,7 @@ const activityConfig = {
 const getBadgeVariant = (status: string) => {
     switch (status.toLowerCase()) {
         case 'pending': return 'bg-red-600 hover:bg-red-700';
-        case 'success': return 'bg-pink-600 hover:bg-pink-700';
+        case 'new match': return 'bg-pink-600 hover:bg-pink-700';
         case 'verified': return 'bg-green-600 hover:bg-green-700';
         case 'new user': return 'bg-blue-600 hover:bg-blue-700';
         case 'resolved': return 'bg-gray-600 hover:bg-gray-700';
@@ -59,7 +59,7 @@ const getBadgeVariant = (status: string) => {
 
 const RecentActivities = ({ activities }: { activities: any[] }) => {
     return (
-        <Card className="lg:col-span-7 dark:bg-gray-800">
+        <Card className="lg:col-span-3 dark:bg-gray-800">
             <CardHeader>
                 <CardTitle>Latest events and activities</CardTitle>
             </CardHeader>
@@ -88,9 +88,10 @@ export default function AdminDashboardPage() {
     const firestore = useFirestore();
     const { user } = useUser();
 
+    // --- SECURE QUERIES ---
     const usersQuery = useMemoFirebase(() => {
         if (!user) return null;
-        return query(collection(firestore, "users"), orderBy('createdAt', 'desc'), limit(5));
+        return query(collection(firestore, "users"), orderBy('createdAt', 'desc'));
     }, [user, firestore]);
 
     const premiumUsersQuery = useMemoFirebase(() => {
@@ -100,20 +101,28 @@ export default function AdminDashboardPage() {
     
     const reportsQuery = useMemoFirebase(() => {
         if (!user) return null;
-        return query(collection(firestore, "reports"), orderBy('timestamp', 'desc'), limit(5));
+        return query(collection(firestore, "reports"), orderBy('timestamp', 'desc'));
     }, [user, firestore]);
-
+    
+    // This query is now safe: it only fetches the last 5 matches.
+    const matchesQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, "matches"), orderBy('timestamp', 'desc'), limit(5));
+    }, [user, firestore]);
+    
+    // --- DATA HOOKS ---
     const { data: usersData } = useCollection<UserProfile>(usersQuery);
     const { data: premiumUsers } = useCollection(premiumUsersQuery);
     const { data: reportsData } = useCollection<Report>(reportsQuery);
+    const { data: matchesData } = useCollection<Match>(matchesQuery);
 
     const combinedActivities = useMemo(() => {
         const activities: any[] = [];
 
-        usersData?.forEach(u => activities.push({
+        usersData?.slice(0, 5).forEach(u => activities.push({
             id: `user-${u.id}`,
             type: 'newUser',
-            description: `New user @${u.email.split('@')[0]} signed up and completed onboarding`,
+            description: `New user @${u.email.split('@')[0]} signed up.`,
             timestamp: u.createdAt ? formatDistanceToNow(u.createdAt.toDate(), { addSuffix: true }) : 'just now',
             status: 'New User',
             date: u.createdAt?.toDate() || new Date()
@@ -128,9 +137,18 @@ export default function AdminDashboardPage() {
             date: r.timestamp?.toDate() || new Date()
         }));
         
+        matchesData?.forEach(m => activities.push({
+            id: `match-${m.id}`,
+            type: 'match',
+            description: `New match between @${m.users[0].slice(0,8)} and @${m.users[1].slice(0,8)}`,
+            timestamp: m.timestamp ? formatDistanceToNow(m.timestamp.toDate(), { addSuffix: true }) : 'just now',
+            status: 'New Match',
+            date: m.timestamp?.toDate() || new Date()
+        }));
+        
         return activities.sort((a,b) => b.date - a.date).slice(0, 10);
 
-    }, [usersData, reportsData]);
+    }, [usersData, reportsData, matchesData]);
     
   return (
     <>
@@ -141,6 +159,21 @@ export default function AdminDashboardPage() {
         <StatCard title="Pending Reports" value={reportsData?.filter(r => r.status === 'pending').length.toLocaleString() ?? '...'} icon={AlertTriangle} iconBg="bg-red-500" trend={-3} trendText="from yesterday" />
       </div>
       <div className="grid gap-4 lg:grid-cols-7">
+        <Card className="lg:col-span-4 dark:bg-gray-800">
+          <CardHeader>
+            <CardTitle>User Growth & Activity</CardTitle>
+          </CardHeader>
+          <CardContent className="pl-2">
+             <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={[{name: 'Jan', users: 120}, {name: 'Feb', users: 180}, {name: 'Mar', users: 220}]}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <Tooltip />
+                <Area type="monotone" dataKey="users" stroke="#8884d8" fill="#8884d8" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
         <RecentActivities activities={combinedActivities} />
       </div>
     </>
