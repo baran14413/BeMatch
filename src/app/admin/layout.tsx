@@ -35,25 +35,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { useUser } from '@/firebase';
 import backend from '@/docs/backend.json';
 
-const NavItem = ({ href, icon: Icon, label }: { href: string; icon: React.ElementType; label: string; }) => {
-  const pathname = usePathname();
-  const isActive = pathname === href;
-
-  return (
-    <Link
-      href={href}
-      className={cn(
-        'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary',
-        isActive && 'bg-muted text-primary'
-      )}
-    >
-      <Icon className="h-4 w-4" />
-      {label}
-    </Link>
-  );
-};
-
-
 export default function AdminLayout({
   children,
 }: {
@@ -64,37 +45,6 @@ export default function AdminLayout({
     const [authStatus, setAuthStatus] = useState<'checking' | 'authorized' | 'unauthorized'>('checking');
     const [userRole, setUserRole] = useState<string | null>(null);
 
-    const allNavItems = [
-        { href: '/admin', icon: Home, label: 'Genel Bakış' },
-        { href: '/admin/users', icon: Users, label: 'Kullanıcı Yönetimi' },
-        { href: '/admin/safety', icon: ShieldCheck, label: 'Güvenlik & Denetim' },
-        { href: '/admin/financials', icon: CreditCard, label: 'Finans & Abonelikler' },
-        { href: '/admin/algorithm', icon: BrainCircuit, label: 'Algoritma Ayarları' },
-        { href: '/admin/app-settings', icon: Settings, label: 'Uygulama Ayarları' },
-        { href: '/admin/audit-logs', icon: History, label: 'Denetim Kayıtları' },
-    ];
-
-    const visibleNavItems = useMemo(() => {
-        if (!userRole) return [];
-        const rolesConfig = backend.auth.roles as Record<string, { permissions: string[] }>;
-        const userPermissions = rolesConfig[userRole]?.permissions;
-
-        if (!userPermissions) return [];
-        if (userPermissions.includes('*')) return allNavItems;
-        
-        // Always include the main dashboard link if they have any permissions
-        const dashboardItem = allNavItems.find(item => item.href === '/admin');
-        const accessibleItems = allNavItems.filter(item => userPermissions.includes(item.href));
-        
-        // Ensure dashboard item is included and not duplicated
-        if (dashboardItem && !accessibleItems.some(item => item.href === '/admin')) {
-             return [dashboardItem, ...accessibleItems];
-        }
-
-        return accessibleItems;
-
-    }, [userRole]);
-    
     useEffect(() => {
         if (isUserLoading) {
             setAuthStatus('checking');
@@ -142,76 +92,73 @@ export default function AdminLayout({
         return null;
     }
 
-
-    const SidebarContent = ({ navItems }: { navItems: typeof allNavItems }) => (
-        <div className="flex h-full max-h-screen flex-col gap-2">
-            <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-                <Link href="/admin" className="flex items-center gap-2 font-semibold">
-                    <span className="">BeMatch Komuta Merkezi</span>
-                </Link>
-            </div>
-            <div className="flex-1">
-                <nav className="grid items-start gap-1 px-2 text-sm font-medium lg:px-4">
-                    {navItems.map((item) => (
-                        <NavItem key={item.href} {...item} />
-                    ))}
-                </nav>
-            </div>
-        </div>
-    );
-
   return (
-      <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-        <div className="hidden border-r bg-muted/20 md:block">
-          <SidebarContent navItems={visibleNavItems} />
-        </div>
-        <div className="flex flex-col">
-          <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="shrink-0 md:hidden"
+      <div className="flex min-h-screen w-full flex-col">
+          <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 z-10">
+            <nav className="hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
+                <Link
+                    href="#"
+                    className="flex items-center gap-2 text-lg font-semibold md:text-base"
                 >
-                  <Menu className="h-5 w-5" />
-                  <span className="sr-only">Navigasyon menüsünü aç/kapat</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="flex flex-col p-0">
-                 <SheetHeader>
-                    <SheetTitle className="sr-only">Admin Navigation</SheetTitle>
-                 </SheetHeader>
-                <SidebarContent navItems={visibleNavItems} />
-              </SheetContent>
+                    <LayoutDashboard className="h-6 w-6" />
+                    <span className="sr-only">BeMatch</span>
+                </Link>
+                 <h1 className='text-lg font-semibold'>BeMatch Komuta Merkezi</h1>
+            </nav>
+            <Sheet>
+                <SheetTrigger asChild>
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        className="shrink-0 md:hidden"
+                    >
+                        <Menu className="h-5 w-5" />
+                        <span className="sr-only">Toggle navigation menu</span>
+                    </Button>
+                </SheetTrigger>
+                <SheetContent side="left">
+                    <nav className="grid gap-6 text-lg font-medium">
+                         <Link
+                            href="#"
+                            className="flex items-center gap-2 text-lg font-semibold"
+                        >
+                            <LayoutDashboard className="h-6 w-6" />
+                             <span className="sr-only">BeMatch</span>
+                        </Link>
+                         <h1 className='text-lg font-semibold'>BeMatch Komuta Merkezi</h1>
+                    </nav>
+                </SheetContent>
             </Sheet>
-            <div className="w-full flex-1">
-              {/* Header Content, e.g., Search Bar */}
+            <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
+                <div className="ml-auto flex-1 sm:flex-initial">
+                    {/* Potential Search Bar */}
+                </div>
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="secondary" size="icon" className="rounded-full">
+                        <Avatar>
+                            <AvatarImage src={user?.photoURL || "https://i.pravatar.cc/150?u=superadmin"} />
+                            <AvatarFallback>{user?.displayName?.charAt(0) || 'A'}</AvatarFallback>
+                        </Avatar>
+                        <span className="sr-only">Kullanıcı menüsünü aç/kapat</span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>{userRole && backend.auth.roles && (backend.auth.roles as any)[userRole] ? (backend.auth.roles as any)[userRole].name : (userRole || 'Admin')}</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                            <Link href="/discover">Uygulamaya Dön</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>Destek</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem>Çıkış Yap</DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="secondary" size="icon" className="rounded-full">
-                  <Avatar>
-                    <AvatarImage src={user?.photoURL || "https://i.pravatar.cc/150?u=superadmin"} />
-                    <AvatarFallback>{user?.displayName?.charAt(0) || 'A'}</AvatarFallback>
-                  </Avatar>
-                  <span className="sr-only">Kullanıcı menüsünü aç/kapat</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{userRole && backend.auth.roles && (backend.auth.roles as any)[userRole] ? (backend.auth.roles as any)[userRole].name : (userRole || 'Admin')}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Ayarlar</DropdownMenuItem>
-                <DropdownMenuItem>Destek</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Çıkış Yap</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </header>
           <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
             {children}
           </main>
-        </div>
       </div>
   );
 }
