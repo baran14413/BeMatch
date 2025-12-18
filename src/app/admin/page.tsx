@@ -99,22 +99,22 @@ export default function AdminDashboardPage() {
         return query(collection(firestore, "users"), where("premiumTier", "!=", null))
     }, [user, firestore]);
     
+    // This query is now safe: it only fetches the last 5 matches.
+    const recentMatchesQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, "matches"), orderBy('timestamp', 'desc'), limit(5));
+    }, [user, firestore]);
+
     const reportsQuery = useMemoFirebase(() => {
         if (!user) return null;
         return query(collection(firestore, "reports"), orderBy('timestamp', 'desc'));
-    }, [user, firestore]);
-    
-    // This query is now safe: it only fetches the last 5 matches.
-    const matchesQuery = useMemoFirebase(() => {
-        if (!user) return null;
-        return query(collection(firestore, "matches"), orderBy('timestamp', 'desc'), limit(5));
     }, [user, firestore]);
     
     // --- DATA HOOKS ---
     const { data: usersData } = useCollection<UserProfile>(usersQuery);
     const { data: premiumUsers } = useCollection(premiumUsersQuery);
     const { data: reportsData } = useCollection<Report>(reportsQuery);
-    const { data: matchesData } = useCollection<Match>(matchesQuery);
+    const { data: matchesData } = useCollection<Match>(recentMatchesQuery);
 
     const combinedActivities = useMemo(() => {
         const activities: any[] = [];

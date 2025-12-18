@@ -33,10 +33,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo } from 'react';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import backend from '@/docs/backend.json';
 import { useLanguage } from '@/context/language-context';
+import { collection, query, where } from 'firebase/firestore';
+import type { Report } from '@/lib/data';
+
 
 const SidebarLink = ({ href, icon: Icon, children, hasBadge, badgeCount }: { href: string; icon: any; children: React.ReactNode; hasBadge?: boolean; badgeCount?: number; }) => {
     const pathname = usePathname();
@@ -120,8 +123,17 @@ export default function AdminLayout({
     const { user, isUserLoading } = useUser();
     const router = useRouter();
     const auth = useAuth();
+    const firestore = useFirestore();
     const [authStatus, setAuthStatus] = useState<'checking' | 'authorized' | 'unauthorized'>('checking');
     const [userRole, setUserRole] = useState<string | null>(null);
+
+    // Secure query to get ONLY pending reports for the badge count
+    const pendingReportsQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, "reports"), where("status", "==", "pending"));
+    }, [user, firestore]);
+    const { data: pendingReports } = useCollection<Report>(pendingReportsQuery);
+
 
     useEffect(() => {
         if (isUserLoading) {
@@ -178,7 +190,7 @@ export default function AdminLayout({
   return (
       <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
           <div className="hidden border-r bg-gray-100/40 lg:block dark:bg-gray-800/40">
-            <SidebarContent userRole={userRole} />
+            <SidebarContent userRole={userRole} pendingReportsCount={pendingReports?.length} />
           </div>
           <div className="flex flex-col">
               <header className="flex h-14 items-center gap-4 border-b bg-gray-100/40 px-6 dark:bg-gray-800/40">
@@ -194,7 +206,7 @@ export default function AdminLayout({
                           </Button>
                       </SheetTrigger>
                       <SheetContent side="left" className="flex flex-col p-0 bg-[#1f1f1f] text-white border-r-0">
-                          <SidebarContent userRole={userRole} />
+                          <SidebarContent userRole={userRole} pendingReportsCount={pendingReports?.length} />
                       </SheetContent>
                   </Sheet>
                   
