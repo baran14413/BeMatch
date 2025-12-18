@@ -11,7 +11,7 @@ import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebas
 import { collection, query, where } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 
-const StatCard = ({ title, value, icon: Icon, iconBg, trend, trendText }: { title: string; value: string; icon: React.ElementType; iconBg: string; trend: number; trendText: string; }) => (
+const StatCard = ({ title, value, icon: Icon, iconBg, trend, trendText }: { title: string; value: string; icon: React.ElementType; iconBg: string; trend?: number; trendText?: string; }) => (
     <Card className="dark:bg-gray-800">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
@@ -21,11 +21,13 @@ const StatCard = ({ title, value, icon: Icon, iconBg, trend, trendText }: { titl
         </CardHeader>
         <CardContent>
             <div className="text-2xl font-bold">{value}</div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                {trend >= 0 ? <ArrowUp className="h-3 w-3 text-green-500" /> : <ArrowDown className="h-3 w-3 text-red-500" />}
-                <span className={cn(trend >= 0 ? 'text-green-500' : 'text-red-500', "font-semibold")}>{trend >= 0 ? '+' : ''}{trend}%</span>
-                {trendText}
-            </p>
+            {trend !== undefined && trendText && (
+                 <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    {trend >= 0 ? <ArrowUp className="h-3 w-3 text-green-500" /> : <ArrowDown className="h-3 w-3 text-red-500" />}
+                    <span className={cn(trend >= 0 ? 'text-green-500' : 'text-red-500', "font-semibold")}>{trend >= 0 ? '+' : ''}{trend}%</span>
+                    {trendText}
+                </p>
+            )}
         </CardContent>
     </Card>
 );
@@ -50,17 +52,32 @@ const genderData = [
 
 export default function AdminDashboardPage() {
     const firestore = useFirestore();
+    const { user } = useUser();
 
-    const { data: users } = useCollection(useMemoFirebase(() => query(collection(firestore, "users")), [firestore]));
-    const { data: premiumUsers } = useCollection(useMemoFirebase(() => query(collection(firestore, "users"), where("premiumTier", "!=", null)), [firestore]));
-    const { data: matches } = useCollection(useMemoFirebase(() => query(collection(firestore, "matches")), [firestore]));
-    const { data: pendingReports } = useCollection(useMemoFirebase(() => query(collection(firestore, "reports"), where("status", "==", "pending")), [firestore]));
+    const usersQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, "users"))
+    }, [user, firestore]);
+
+    const premiumUsersQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, "users"), where("premiumTier", "!=", null))
+    }, [user, firestore]);
+    
+    const pendingReportsQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, "reports"), where("status", "==", "pending"))
+    }, [user, firestore]);
+
+    const { data: users } = useCollection(usersQuery);
+    const { data: premiumUsers } = useCollection(premiumUsersQuery);
+    const { data: pendingReports } = useCollection(pendingReportsQuery);
     
   return (
     <>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Total Users" value={users?.length.toLocaleString() ?? '...'} icon={Users} iconBg="bg-blue-500" trend={5.2} trendText="this week" />
-        <StatCard title="Active Matches" value={matches?.length.toLocaleString() ?? '...'} icon={Heart} iconBg="bg-pink-500" trend={12.5} trendText="this week" />
+        <StatCard title="Active Matches" value={'N/A'} icon={Heart} iconBg="bg-pink-500" />
         <StatCard title="Premium Subscribers" value={premiumUsers?.length.toLocaleString() ?? '...'} icon={Crown} iconBg="bg-yellow-500" trend={8.1} trendText="this week" />
         <StatCard title="Pending Reports" value={pendingReports?.length.toLocaleString() ?? '...'} icon={AlertTriangle} iconBg="bg-red-500" trend={-3} trendText="from yesterday" />
       </div>
