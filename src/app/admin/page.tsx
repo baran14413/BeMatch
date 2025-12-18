@@ -103,15 +103,9 @@ export default function AdminDashboardPage() {
         return query(collection(firestore, "reports"), orderBy('timestamp', 'desc'), limit(5));
     }, [user, firestore]);
 
-     const matchesQuery = useMemoFirebase(() => {
-        if (!user) return null;
-        return query(collection(firestore, "matches"), orderBy('timestamp', 'desc'), limit(5));
-    }, [user, firestore]);
-
     const { data: usersData } = useCollection<UserProfile>(usersQuery);
     const { data: premiumUsers } = useCollection(premiumUsersQuery);
     const { data: reportsData } = useCollection<Report>(reportsQuery);
-    const { data: matchesData } = useCollection<Match>(matchesQuery);
 
     const combinedActivities = useMemo(() => {
         const activities: any[] = [];
@@ -133,25 +127,16 @@ export default function AdminDashboardPage() {
             status: r.status.charAt(0).toUpperCase() + r.status.slice(1),
             date: r.timestamp?.toDate() || new Date()
         }));
-
-        matchesData?.forEach(m => activities.push({
-            id: `match-${m.id}`,
-            type: 'match',
-            description: `New match created between @${m.users[0].slice(0,8)} and @${m.users[1].slice(0,8)}`,
-            timestamp: m.timestamp ? formatDistanceToNow(m.timestamp.toDate(), { addSuffix: true }) : 'just now',
-            status: 'Success',
-            date: m.timestamp?.toDate() || new Date()
-        }));
-
+        
         return activities.sort((a,b) => b.date - a.date).slice(0, 10);
 
-    }, [usersData, reportsData, matchesData]);
+    }, [usersData, reportsData]);
     
   return (
     <>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Total Users" value={usersData?.length.toLocaleString() ?? '...'} icon={Users} iconBg="bg-blue-500" trend={5.2} trendText="this week" />
-        <StatCard title="Active Matches" value={matchesData?.length.toLocaleString() ?? '...'} icon={Heart} iconBg="bg-pink-500" />
+        <StatCard title="Active Matches" value={'N/A'} icon={Heart} iconBg="bg-pink-500" />
         <StatCard title="Premium Subscribers" value={premiumUsers?.length.toLocaleString() ?? '...'} icon={Crown} iconBg="bg-yellow-500" trend={8.1} trendText="this week" />
         <StatCard title="Pending Reports" value={reportsData?.filter(r => r.status === 'pending').length.toLocaleString() ?? '...'} icon={AlertTriangle} iconBg="bg-red-500" trend={-3} trendText="from yesterday" />
       </div>
