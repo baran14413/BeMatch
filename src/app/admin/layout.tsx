@@ -127,7 +127,6 @@ export default function AdminLayout({
     const [authStatus, setAuthStatus] = useState<'checking' | 'authorized' | 'unauthorized'>('checking');
     const [userRole, setUserRole] = useState<string | null>(null);
 
-    // Secure query to get ONLY pending reports for the badge count
     const pendingReportsQuery = useMemoFirebase(() => {
         if (!user) return null;
         return query(collection(firestore, "reports"), where("status", "==", "pending"));
