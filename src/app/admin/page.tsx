@@ -9,6 +9,7 @@ import {
 import { Area, AreaChart, CartesianGrid, XAxis, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
 
 const StatCard = ({ title, value, icon: Icon, iconBg, trend, trendText }: { title: string; value: string; icon: React.ElementType; iconBg: string; trend: number; trendText: string; }) => (
     <Card className="dark:bg-gray-800">
