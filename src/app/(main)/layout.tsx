@@ -5,6 +5,7 @@ import { useUser } from '@/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import EmailVerificationBanner from '@/components/auth/email-verification-banner';
 
 export default function MainLayout({
   children,
@@ -29,6 +30,7 @@ export default function MainLayout({
   
   return (
     <div className="flex flex-col h-dvh bg-background">
+      {!user.emailVerified && <EmailVerificationBanner />}
       {!isChatPage && <MainHeader />}
       <ScrollArea className="flex-1">
         <main>{children}</main>

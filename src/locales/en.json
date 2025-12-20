@@ -445,7 +445,9 @@
             "blockError": "Could not block user.",
             "userUnblocked": "Unblocked {name}.",
             "unblockError": "Failed to unblock user.",
-            "userReported": "User reported."
+            "userReported": "User reported.",
+            "verifyEmailPrompt": "For your security, please verify your email.",
+            "resendEmailButton": "Resend Email"
         },
         "deleteModal": {
             "title": "Are you sure you want to delete the message?",

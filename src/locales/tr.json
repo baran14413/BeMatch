@@ -251,7 +251,7 @@
             "weakPassword": "Şifre güvenlik gereksinimlerini karşılamıyor.",
             "generic": "Bilinmeyen bir hata oluştu. Lütfen tekrar deneyin.",
             "invalidTitle": "Geçersiz veya Süresi Dolmuş Bağlantı",
-            "invalidDescription": "Şifre sıfırlama bağlantısı geçersiz veya süresi dolmuş. Lütfen yeni bir tane talep edin.",
+            "invalidDescription": "Şifre sıırlama bağlantısı geçersiz veya süresi dolmuş. Lütfen yeni bir tane talep edin.",
             "backToLogin": "Giriş Sayfasına Dön"
         },
         "resetSuccess": {
@@ -445,7 +445,9 @@
             "blockError": "Kullanıcı engellenemedi.",
             "userUnblocked": "{name} kullanıcısının engeli kaldırıldı.",
             "unblockError": "Engeli kaldırma işlemi başarısız oldu.",
-            "userReported": "Kullanıcı şikayet edildi."
+            "userReported": "Kullanıcı şikayet edildi.",
+            "verifyEmailPrompt": "Güvenliğiniz için lütfen e-postanızı doğrulayın.",
+            "resendEmailButton": "E-postayı Tekrar Gönder"
         },
         "deleteModal": {
             "title": "Mesajı Silmek İstediğine Emin misin?",
