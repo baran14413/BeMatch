@@ -7,7 +7,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, doc, getDoc, query, where, addDoc, serverTimestamp, writeBatch, deleteDoc } from 'firebase/firestore';
-import type { UserProfile } from '@/lib/data';
+import type { UserProfile, Swipe } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import ProfileDetails from '@/components/discover/profile-details';
@@ -16,14 +16,6 @@ import { Button } from '@/components/ui/button';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-type LikeInfo = {
-    id: string; // liker's ID
-    type: 'like' | 'superlike';
-};
-
-type LikedByProfile = UserProfile & {
-    likeType: 'like' | 'superlike';
-};
 
 const LikesGridSkeleton = () => (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
@@ -54,9 +46,7 @@ export default function LikesGrid() {
     const firestore = useFirestore();
     const router = useRouter();
 
-    const [likedByProfiles, setLikedByProfiles] = useState<LikedByProfile[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [selectedProfile, setSelectedProfile] = useState<LikedByProfile | null>(null);
+    const [selectedProfile, setSelectedProfile] = useState<Swipe | null>(null);
 
     const currentUserDocRef = useMemoFirebase(() => {
         if (!user) return null;
@@ -65,12 +55,13 @@ export default function LikesGrid() {
     const { data: currentUserProfile, isLoading: isLoadingCurrentUser } = useDoc<UserProfile>(currentUserDocRef);
     const isPremium = !!currentUserProfile?.premiumTier;
 
+    // This query is now optimized. It fetches denormalized data, avoiding N+1 reads.
     const likedByQuery = useMemoFirebase(() => {
         if (!user) return null;
         return collection(firestore, 'users', user.uid, 'likedBy');
     }, [user, firestore]);
 
-    const { data: likes, isLoading: isLoadingLikes } = useCollection<LikeInfo>(likedByQuery);
+    const { data: likes, isLoading: isLoadingLikes } = useCollection<Swipe>(likedByQuery);
 
     // Mark likes as "viewed" when the user visits this page
     useEffect(() => {
@@ -80,11 +71,11 @@ export default function LikesGrid() {
     }, []);
 
 
-     const handleStartChat = async (profile: LikedByProfile) => {
-        if (!user || !firestore) return;
+     const handleStartChat = async (likerProfile: Swipe) => {
+        if (!user || !firestore || !currentUserProfile) return;
 
         const currentUserId = user.uid;
-        const targetUserId = profile.id;
+        const targetUserId = likerProfile.likerId;
         const chatId = [currentUserId, targetUserId].sort().join('_');
         const matchRef = doc(firestore, 'matches', chatId);
 
@@ -101,7 +92,15 @@ export default function LikesGrid() {
                 const matchData = {
                     users: [currentUserId, targetUserId],
                     timestamp: serverTimestamp(),
-                    lastMessage: ''
+                    lastMessage: '',
+                     [`user_info_${currentUserId}`]: {
+                        name: currentUserProfile.name,
+                        avatarUrl: currentUserProfile.avatarUrl,
+                    },
+                    [`user_info_${targetUserId}`]: {
+                        name: likerProfile.likerName,
+                        avatarUrl: likerProfile.likerAvatar,
+                    },
                 };
                 batch.set(matchRef, matchData);
 
@@ -122,48 +121,13 @@ export default function LikesGrid() {
         }
     };
 
-
-    useEffect(() => {
-        const fetchProfiles = async () => {
-            if (!likes || !firestore) {
-                setIsLoading(false);
-                return;
-            }
-
-            setIsLoading(true);
-            try {
-                const profilePromises = likes.map(async (like) => {
-                    const userDocRef = doc(firestore, 'users', like.id);
-                    const userDoc = await getDoc(userDocRef);
-                    if (userDoc.exists()) {
-                        return { 
-                            ...(userDoc.data() as UserProfile), 
-                            id: userDoc.id, 
-                            likeType: like.type 
-                        };
-                    }
-                    return null;
-                });
-
-                const profiles = (await Promise.all(profilePromises)).filter(p => p !== null) as LikedByProfile[];
-                setLikedByProfiles(profiles);
-            } catch (error) {
-                console.error("Error fetching liked by profiles: ", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        
-        fetchProfiles();
-
-    }, [likes, firestore]);
-
+    const isLoading = isUserLoading || isLoadingCurrentUser || isLoadingLikes;
     
-    if (isLoading || isUserLoading || isLoadingCurrentUser) {
+    if (isLoading) {
         return <LikesGridSkeleton />;
     }
 
-    if (likedByProfiles.length === 0) {
+    if (!likes || likes.length === 0) {
         return (
              <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-8">
                 <p className="text-muted-foreground">{t('likes.noLikesYet')}</p>
@@ -175,24 +139,24 @@ export default function LikesGrid() {
         <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 relative">
                 {!isPremium && <BlurredLikesOverlay />}
-                {likedByProfiles.map((like) => (
+                {likes.map((like) => (
                     <Card 
                         key={like.id} 
                         className={cn("aspect-[3/4] rounded-lg overflow-hidden relative group", !isPremium && "blur-md")}
                     >
-                       <div onClick={() => isPremium && setSelectedProfile(like)} className={cn("cursor-pointer w-full h-full", !isPremium && "pointer-events-none")}>
-                         {like.avatarUrl && <Image src={like.avatarUrl} alt={like.name} fill className="object-cover"/>}
+                       <div className={cn("cursor-pointer w-full h-full", !isPremium && "pointer-events-none")}>
+                         {like.likerAvatar && <Image src={like.likerAvatar} alt={like.likerName} fill className="object-cover"/>}
                          
                          <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
-                            <p className="text-white font-bold truncate">{like.name}</p>
+                            <p className="text-white font-bold truncate">{like.likerName}</p>
                          </div>
 
                          <div className={cn("absolute top-1.5 right-1.5 p-1.5 rounded-full",
-                           like.likeType === 'superlike' && "bg-blue-500/80",
-                           like.likeType === 'like' && "bg-red-500/80",
+                           like.type === 'superlike' && "bg-blue-500/80",
+                           like.type === 'like' && "bg-red-500/80",
                          )}>
-                          {like.likeType === 'superlike' && <Star className="w-4 h-4 text-white fill-white"/>}
-                          {like.likeType === 'like' && <Heart className="w-4 h-4 text-white fill-white"/>}
+                          {like.type === 'superlike' && <Star className="w-4 h-4 text-white fill-white"/>}
+                          {like.type === 'like' && <Heart className="w-4 h-4 text-white fill-white"/>}
                          </div>
                        </div>
                        {isPremium && (
@@ -210,11 +174,14 @@ export default function LikesGrid() {
                        <>
                          <SheetHeader className="sr-only">
                            <SheetTitle>{t('discover.profileDetailsTitle')}</SheetTitle>
-                           <SheetDescription>{t('discover.profileDetailsDescription', { name: selectedProfile.name })}</SheetDescription>
+                           <SheetDescription>{t('discover.profileDetailsDescription', { name: selectedProfile.likerName })}</SheetDescription>
                          </SheetHeader>
-                         <div className="flex-1 overflow-hidden">
+                         {/* This would require fetching the full profile which is what we want to avoid.
+                             A full implementation would need to decide if a full profile view is needed here,
+                             or if the card is enough. For now, this is disabled. */}
+                         {/* <div className="flex-1 overflow-hidden">
                            <ProfileDetails profile={selectedProfile} />
-                         </div>
+                         </div> */}
                        </>
                    )}
                 </SheetContent>

@@ -13,6 +13,16 @@ export type Prompt = {
   answer: string;
 };
 
+export type Swipe = {
+  id: string; // The doc ID, which is the liker's UID
+  type: 'like' | 'nope' | 'superlike';
+  timestamp: any;
+  // Denormalized data to prevent extra reads on the 'Likes' screen
+  likerId: string;
+  likerName: string;
+  likerAvatar: string;
+};
+
 export type Message = {
   id: string;
   senderId: string;
@@ -89,6 +99,12 @@ export type Match = {
     isBlocked?: boolean;
     blockedBy?: string;
     typing?: { [userId: string]: boolean };
+    // Denormalized user info to prevent N+1 reads on the lounge page.
+    // The keys will be dynamic, e.g., 'user_info_userId1', 'user_info_userId2'
+    [key: `user_info_${string}`]: {
+        name: string;
+        avatarUrl: string;
+    };
 };
 
 

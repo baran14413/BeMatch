@@ -32,7 +32,7 @@ import { useUnreadMessages } from "@/hooks/use-unread-messages";
 
 type ConversationPreview = {
     chatId: string;
-    otherUser: UserProfile;
+    otherUser: { name: string; avatarUrl: string; };
     lastMessage: string;
     timestamp: any;
 };
@@ -45,7 +45,6 @@ export default function LoungePage() {
   const unreadMessagesByMatch = useUnreadMessages();
 
   const [conversations, setConversations] = useState<ConversationPreview[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
 
   const matchesQuery = useMemoFirebase(() => {
@@ -53,43 +52,31 @@ export default function LoungePage() {
     return query(collection(firestore, 'matches'), where('users', 'array-contains', user.uid));
   }, [user, firestore]);
 
-  const { data: matches } = useCollection<Match>(matchesQuery);
+  const { data: matches, isLoading } = useCollection<Match>(matchesQuery);
 
   useEffect(() => {
-    const fetchConversationDetails = async () => {
-        if (!matches || !firestore || !user) {
-            setIsLoading(false);
-            return;
-        };
-        
-        setIsLoading(true);
-        const convPromises = matches.map(async (match) => {
-            const otherUserId = match.users.find(uid => uid !== user.uid);
-            if (!otherUserId) return null;
-
-            const userDocRef = doc(firestore, 'users', otherUserId);
-            const userDoc = await getDoc(userDocRef);
-            
-            if (userDoc.exists()) {
-                const otherUser = { ...userDoc.data(), id: userDoc.id } as UserProfile;
-                return {
-                    chatId: match.id,
-                    otherUser,
-                    lastMessage: match.lastMessage,
-                    timestamp: match.timestamp?.toDate(),
-                };
-            }
-            return null;
-        });
-
-        const resolvedConversations = (await Promise.all(convPromises)).filter(Boolean) as ConversationPreview[];
-        resolvedConversations.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        setConversations(resolvedConversations);
-        setIsLoading(false);
+    if (!matches || !user) {
+        setConversations([]);
+        return;
     };
+    
+    const convs = matches.map(match => {
+        const otherUserId = match.users.find(uid => uid !== user.uid)!;
+        const otherUserInfo = (match as any)[`user_info_${otherUserId}`];
+        return {
+            chatId: match.id,
+            otherUser: {
+                name: otherUserInfo?.name || 'Bilinmeyen Kullanıcı',
+                avatarUrl: otherUserInfo?.avatarUrl || '',
+            },
+            lastMessage: match.lastMessage,
+            timestamp: match.timestamp?.toDate(),
+        };
+    }).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
-    fetchConversationDetails();
-  }, [matches, firestore, user]);
+    setConversations(convs);
+
+  }, [matches, user]);
 
   const handleDeleteConversation = async (chatId: string) => {
     if (!firestore) return;

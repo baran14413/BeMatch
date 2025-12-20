@@ -4,35 +4,71 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+        return request.auth != null && request.auth.token.role == 'admin';
+    }
+
     // Any authenticated user can read public user profiles
     match /users/{userId} {
       allow read: if request.auth != null;
       // Admins can write to any user's profile.
       // Users can only write to their own profile.
-      allow write: if request.auth != null && (request.auth.uid == userId || request.auth.token.role == 'admin');
+      allow write: if isOwner(userId) || isAdmin();
     }
     
     // Users can read/write their own subcollections (e.g. for future features)
     match /users/{userId}/{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isOwner(userId);
     }
     
     // Users can write to another user's 'likedBy' subcollection
     match /users/{targetUserId}/likedBy/{likerId} {
       allow read: if request.auth != null && (request.auth.uid == targetUserId || request.auth.uid == likerId);
-      allow write: if request.auth != null && request.auth.uid == likerId;
+      // Validate that the denormalized data matches the actual liker's data
+      allow create: if isOwner(likerId) 
+                      && request.resource.data.likerId == likerId
+                      && request.resource.data.likerName is string
+                      && request.resource.data.likerAvatar is string;
+      allow update, delete: if isOwner(likerId);
     }
     
     // A user can read/write a match document if they are a participant
     match /matches/{matchId} {
-      // Allow get, list, update, and delete if the user is a participant.
-      // 'list' is crucial for querying collections (e.g., in the lounge page).
-      allow get, list, update, delete: if request.auth != null && request.auth.uid in resource.data.users;
-      allow create: if request.auth != null && request.auth.uid in request.resource.data.users;
+      function isParticipant() {
+        return request.auth != null && request.auth.uid in resource.data.users;
+      }
+      
+      function userCanCreate() {
+        let userId = request.auth.uid;
+        let otherUserId = request.resource.data.users[1];
+        if (userId == request.resource.data.users[1]) {
+           otherUserId = request.resource.data.users[0];
+        }
+        
+        let denormalizedSelf = request.resource.data[str.format('user_info_{0}', [userId])];
+        let denormalizedOther = request.resource.data[str.format('user_info_{0}', [otherUserId])];
+
+        return request.auth != null 
+                && userId in request.resource.data.users
+                // Check if the other user has liked me first (required to create a match)
+                && exists(/databases/$(database)/documents/users/$(userId)/likedBy/$(otherUserId))
+                // Validate denormalized data
+                && denormalizedSelf.name is string
+                && denormalizedSelf.avatarUrl is string
+                && denormalizedOther.name is string
+                && denormalizedOther.avatarUrl is string;
+      }
+      
+      allow get, list, update, delete: if isParticipant() || isAdmin();
+      allow create: if userCanCreate();
 
       // Messages can be read/written by participants of the parent match
       match /messages/{messageId} {
-        allow read, write: if request.auth != null && get(/databases/$(database)/documents/matches/$(matchId)).data.users.hasAny([request.auth.uid]);
+        allow read, write: if get(/databases/$(database)/documents/matches/$(matchId)).data.users.hasAny([request.auth.uid]) || isAdmin();
       }
     }
 
@@ -45,7 +81,7 @@ service cloud.firestore {
 
     // A user can write their own deletion record. No one can read it from the client.
     match /deletedUsers/{userId} {
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if isOwner(userId);
       allow read: if false; // No client read access
     }
   }

@@ -173,12 +173,13 @@ export default function DiscoverPage() {
   }, [user, firestore]);
   const { data: currentUserProfile } = useDoc<UserProfile>(currentUserDocRef);
 
+  // This query is very expensive and should be replaced with a smarter feed for production
+  // For now, we remove it to optimize for Blaze plan during development.
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || !user) {
-        return null;
-    }
-    // A basic query to get all users except the current one.
-    return query(collection(firestore, 'users'));
+    if (!firestore || !user) return null;
+    // A more optimized query would be needed for production, e.g., using location-based queries
+    // or a dedicated feed generation service. For now, this is removed to prevent high costs.
+    return null; // OLD: query(collection(firestore, 'users'));
   }, [firestore, user]);
 
 
@@ -327,7 +328,11 @@ export default function DiscoverPage() {
     // 2. Record the like/superlike in the swiped user's 'likedBy' subcollection
     const swipeData = {
         type: swipeType,
-        timestamp: serverTimestamp()
+        timestamp: serverTimestamp(),
+        // Denormalize current user's data for the 'Likes' screen to avoid extra reads
+        likerId: currentUserProfile.id,
+        likerName: currentUserProfile.name,
+        likerAvatar: currentUserProfile.avatarUrl,
     };
     
     const targetUserLikedByRef = doc(firestore, 'users', swipedProfile.id, 'likedBy', user.uid);
@@ -351,6 +356,15 @@ export default function DiscoverPage() {
                 users: [user.uid, swipedProfile.id],
                 timestamp: serverTimestamp(),
                 lastMessage: t('discover.newMatch'),
+                 // Denormalize user info into the match doc to avoid reads on lounge page
+                [`user_info_${user.uid}`]: {
+                    name: currentUserProfile.name,
+                    avatarUrl: currentUserProfile.avatarUrl,
+                },
+                [`user_info_${swipedProfile.id}`]: {
+                    name: swipedProfile.name,
+                    avatarUrl: swipedProfile.avatarUrl,
+                },
             };
             batch.set(matchRef, matchData);
 

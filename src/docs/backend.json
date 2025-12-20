@@ -203,7 +203,18 @@
         "id",
         "users",
         "timestamp"
-      ]
+      ],
+      "patternProperties": {
+        "^user_info_": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "avatarUrl": { "type": "string", "format": "uri" }
+          },
+          "required": ["name", "avatarUrl"],
+          "description": "Denormalized user data for efficient reads in the lounge."
+        }
+      }
     },
     "Swipe": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -224,11 +235,26 @@
           "type": "string",
           "format": "date-time",
           "description": "When the swipe occurred."
+        },
+        "likerId": {
+          "type": "string",
+          "description": "The UID of the user who performed the swipe."
+        },
+        "likerName": {
+            "type": "string",
+            "description": "Denormalized name of the liker to prevent extra reads."
+        },
+        "likerAvatar": {
+            "type": "string",
+            "description": "Denormalized avatar URL of the liker to prevent extra reads."
         }
       },
       "required": [
         "type",
-        "timestamp"
+        "timestamp",
+        "likerId",
+        "likerName",
+        "likerAvatar"
       ]
     },
     "Message": {
