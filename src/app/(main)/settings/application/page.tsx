@@ -1,7 +1,7 @@
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, ArrowLeft, Monitor, Sun, Moon, Bell, BellOff, Loader2, AlertTriangle } from "lucide-react";
+import { Trash2, ArrowLeft, Monitor, Sun, Moon, Bell, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -13,12 +13,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useState } from "react";
@@ -32,22 +26,21 @@ export default function ApplicationSettingsPage() {
 
     const [cacheSize, setCacheSize] = useState<string>('0 KB');
     const [lastCleared, setLastCleared] = useState<string | null>(null);
-    const [notifPermission, setNotifPermission] = useState<NotificationPermission>('default');
     const [isRequesting, setIsRequesting] = useState(false);
 
     // --- BROWSER NOTIFICATION LOGIC ---
-    useEffect(() => {
-        if (typeof window !== 'undefined' && 'Notification' in window) {
-            setNotifPermission(Notification.permission);
-        }
-    }, []);
-
      const handleRequestPermission = async () => {
-        if (!('Notification' in window)) return;
+        if (!('Notification' in window)) {
+            toast({
+                variant: 'destructive',
+                title: "Hata",
+                description: "Bu tarayıcı bildirimleri desteklemiyor.",
+            });
+            return;
+        }
         setIsRequesting(true);
         try {
             const permission = await Notification.requestPermission();
-            setNotifPermission(permission);
             if (permission === 'granted') {
                 toast({
                     title: "Harika!",
@@ -203,33 +196,10 @@ export default function ApplicationSettingsPage() {
                             <CardDescription>Yeni eşleşmeler ve mesajlar gibi önemli güncellemelerden anında haberdar ol.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {notifPermission === 'granted' && (
-                                <div className="flex items-center gap-3 p-4 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
-                                    <Bell className="w-5 h-5" />
-                                    <p className="text-sm font-medium">Tarayıcı bildirimleri aktif.</p>
-                                </div>
-                            )}
-                             {notifPermission === 'default' && (
-                                <Button onClick={handleRequestPermission} disabled={isRequesting} className="w-full">
-                                    {isRequesting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bell className="w-4 h-4 mr-2" />}
-                                    Bildirimleri Etkinleştir
-                                </Button>
-                            )}
-                            {notifPermission === 'denied' && (
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button variant="destructive" className="w-full cursor-not-allowed">
-                                                <BellOff className="w-4 h-4 mr-2" />
-                                                Bildirimler Engellendi
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>İzni tarayıcı ayarlarından vermeniz gerekiyor.</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            )}
+                            <Button onClick={handleRequestPermission} disabled={isRequesting} className="w-full">
+                                {isRequesting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bell className="w-4 h-4 mr-2" />}
+                                Bildirimleri Etkinleştir
+                            </Button>
                         </CardContent>
                     </Card>
 
