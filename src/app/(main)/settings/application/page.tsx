@@ -1,7 +1,7 @@
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, ArrowLeft, Monitor, Sun, Moon } from "lucide-react";
+import { Trash2, ArrowLeft, Monitor, Sun, Moon, Bell, BellOff, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -24,9 +24,59 @@ export default function ApplicationSettingsPage() {
     const { setTheme, theme } = useTheme();
     const { locale, setLocale, t } = useLanguage();
     
+    // Cache states
     const [cacheSize, setCacheSize] = useState<string>('0 KB');
     const [lastCleared, setLastCleared] = useState<string | null>(null);
 
+    // Notification states
+    const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+    const [isNotificationLoading, setIsNotificationLoading] = useState(false);
+
+    // --- NOTIFICATION LOGIC ---
+    useEffect(() => {
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+            setNotificationPermission(Notification.permission);
+        }
+    }, []);
+
+    const handleRequestNotificationPermission = async () => {
+        if (!('Notification' in window)) return;
+
+        setIsNotificationLoading(true);
+        try {
+            const permission = await Notification.requestPermission();
+            setNotificationPermission(permission);
+            if (permission === 'granted') {
+                toast({
+                    title: "Bildirimlere İzin Verildi",
+                    description: "Artık yeni eşleşmelerden haberdar olacaksın!",
+                });
+            }
+        } catch (error) {
+            console.error("Notification permission error:", error);
+            toast({
+                variant: 'destructive',
+                title: "Hata",
+                description: "Bildirim izni istenirken bir hata oluştu.",
+            });
+        } finally {
+            setIsNotificationLoading(false);
+        }
+    };
+    
+    const getNotificationStatusText = () => {
+        switch (notificationPermission) {
+            case 'granted':
+                return "Bildirimlere izin verildi.";
+            case 'denied':
+                return "Bildirimler engellendi.";
+            default:
+                return "Bildirimler için izin istenmedi.";
+        }
+    };
+
+
+    // --- CACHE LOGIC ---
     const calculateCacheSize = () => {
         let total = 0;
         for (let i = 0; i < localStorage.length; i++) {
@@ -153,6 +203,35 @@ export default function ApplicationSettingsPage() {
                                         <SelectItem value="en">🇬🇧 English</SelectItem>
                                     </SelectContent>
                                 </Select>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Bildirimler</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex items-center justify-between">
+                                <div className="flex-1 pr-4">
+                                    <div className="flex items-center gap-2">
+                                        {notificationPermission === 'granted' ? <Bell className="w-5 h-5 text-green-500" /> : <BellOff className="w-5 h-5 text-destructive" />}
+                                        <p className="font-medium">Anlık Bildirimler</p>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        {getNotificationStatusText()}
+                                    </p>
+                                </div>
+                                {notificationPermission === 'default' && (
+                                     <Button variant="default" size="sm" onClick={handleRequestNotificationPermission} disabled={isNotificationLoading}>
+                                        {isNotificationLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "İzin Ver"}
+                                    </Button>
+                                )}
+                                {notificationPermission === 'denied' && (
+                                    <p className="text-xs text-muted-foreground max-w-[150px] text-right">
+                                        İzin vermek için tarayıcı ayarlarınızı kontrol edin.
+                                    </p>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
