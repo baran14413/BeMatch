@@ -17,7 +17,7 @@ export default function MainLayout({
 
   useEffect(() => {
     if (!isUserLoading && !user) {
-      router.replace('/?loggedOut=true');
+      router.replace('/');
     }
   }, [isUserLoading, user, router]);
 
