@@ -72,6 +72,14 @@ export default function LikesGrid() {
 
     const { data: likes, isLoading: isLoadingLikes } = useCollection<LikeInfo>(likedByQuery);
 
+    // Mark likes as "viewed" when the user visits this page
+    useEffect(() => {
+        localStorage.setItem('lastLikesViewTimestamp', new Date().toISOString());
+        // Dispatch a custom event so other components (like the header) can react immediately
+        window.dispatchEvent(new CustomEvent('likes-viewed'));
+    }, []);
+
+
      const handleStartChat = async (profile: LikedByProfile) => {
         if (!user || !firestore) return;
 
