@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Smartphone, Monitor, Clock, Calendar, ArrowLeft, BadgeCheck, Mail, Loader2, AlertTriangle } from "lucide-react";
@@ -14,6 +14,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { tr, enUS } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { sendEmailVerification } from 'firebase/auth';
+import { usePageVisibility } from '@/hooks/use-page-visibility';
 
 const InfoItem = ({ label, value }: { label: string, value: string }) => (
     <div className="flex justify-between items-center py-3">
@@ -39,6 +40,15 @@ export default function PersonalInfoPage() {
     const auth = useAuth();
     const { toast } = useToast();
     const [isSendingVerification, setIsSendingVerification] = useState(false);
+    const isVisible = usePageVisibility();
+
+    useEffect(() => {
+        // When the tab becomes visible again, reload the user's data
+        // to get the latest emailVerified status.
+        if (isVisible && user) {
+            user.reload();
+        }
+    }, [isVisible, user]);
 
     const userDocRef = useMemoFirebase(() => {
         if (!user) return null;
