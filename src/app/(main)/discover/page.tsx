@@ -7,7 +7,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import ProfileCard from '@/components/discover/profile-card';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
-import { collection, query, where, doc, writeBatch, getDoc, serverTimestamp, getDocs, updateDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, getDoc, serverTimestamp, getDocs, updateDoc, Timestamp, limit } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/data';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import ProfileDetails from '@/components/discover/profile-details';
@@ -173,13 +173,10 @@ export default function DiscoverPage() {
   }, [user, firestore]);
   const { data: currentUserProfile } = useDoc<UserProfile>(currentUserDocRef);
 
-  // This query is very expensive and should be replaced with a smarter feed for production
-  // For now, we remove it to optimize for Blaze plan during development.
+  // This query is now limited to 50 to prevent excessive reads on large user bases.
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    // A more optimized query would be needed for production, e.g., using location-based queries
-    // or a dedicated feed generation service. For now, this is removed to prevent high costs.
-    return null; // OLD: query(collection(firestore, 'users'));
+    return query(collection(firestore, 'users'), limit(50));
   }, [firestore, user]);
 
 
