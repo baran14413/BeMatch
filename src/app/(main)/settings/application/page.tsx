@@ -1,7 +1,7 @@
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, ArrowLeft, Monitor, Sun, Moon, Bell, BellOff, Loader2 } from "lucide-react";
+import { Trash2, ArrowLeft, Monitor, Sun, Moon, Bell, BellOff, Loader2, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -18,90 +18,75 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useState } from "react";
 import { formatDistanceToNow } from 'date-fns';
 import { tr, enUS } from 'date-fns/locale';
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useDoc, useFirestore, useUser, useMemoFirebase } from "@/firebase";
+import { doc, updateDoc } from "firebase/firestore";
 
 export default function ApplicationSettingsPage() {
     const { toast } = useToast();
     const { setTheme, theme } = useTheme();
     const { locale, setLocale, t } = useLanguage();
+    const { user } = useUser();
+    const firestore = useFirestore();
+
+    const userDocRef = useMemoFirebase(() => {
+        if (!user) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [firestore, user]);
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
     
     // Cache states
     const [cacheSize, setCacheSize] = useState<string>('0 KB');
     const [lastCleared, setLastCleared] = useState<string | null>(null);
 
-    // Notification states
-    const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
-    const [isNotificationLoading, setIsNotificationLoading] = useState(false);
+    // Browser Notification states
+    const [browserNotifPermission, setBrowserNotifPermission] = useState<NotificationPermission>('default');
+    const [isRequestingPermission, setIsRequestingPermission] = useState(false);
 
-    // --- NOTIFICATION LOGIC ---
+    // --- BROWSER NOTIFICATION LOGIC ---
     useEffect(() => {
         if (typeof window !== 'undefined' && 'Notification' in window) {
-            setNotificationPermission(Notification.permission);
+            setBrowserNotifPermission(Notification.permission);
         }
     }, []);
 
-    const handleNotificationAction = async () => {
+     const handleRequestBrowserPermission = async () => {
         if (!('Notification' in window)) return;
-
-        if (notificationPermission === 'denied') {
-            toast({
-                title: "Bildirimler Engellenmiş",
-                description: "Bildirimlere izin vermek için lütfen tarayıcınızın ayarlarından bu site için izinleri değiştirin.",
-                duration: 5000,
-            });
-            return;
-        }
-
-        if (notificationPermission === 'default') {
-            setIsNotificationLoading(true);
-            try {
-                const permission = await Notification.requestPermission();
-                setNotificationPermission(permission);
-                if (permission === 'granted') {
-                    toast({
-                        title: "Bildirimlere İzin Verildi",
-                        description: "Artık yeni eşleşmelerden haberdar olacaksın!",
-                    });
-                }
-            } catch (error) {
-                console.error("Notification permission error:", error);
+        setIsRequestingPermission(true);
+        try {
+            const permission = await Notification.requestPermission();
+            setBrowserNotifPermission(permission);
+            if (permission === 'granted') {
                 toast({
-                    variant: 'destructive',
-                    title: "Hata",
-                    description: "Bildirim izni istenirken bir hata oluştu.",
+                    title: "Tarayıcı Bildirimlerine İzin Verildi",
+                    description: "Artık bildirimleri alabilirsin!",
                 });
-            } finally {
-                setIsNotificationLoading(false);
             }
-        }
-    };
-    
-    const getNotificationInfo = () => {
-        switch (notificationPermission) {
-            case 'granted':
-                return {
-                    text: "Bildirimlere izin verildi.",
-                    icon: <Bell className="w-5 h-5 text-green-500" />,
-                    buttonText: "İzin Verildi",
-                    buttonDisabled: true,
-                };
-            case 'denied':
-                return {
-                    text: "Bildirimler tarayıcı tarafından engellendi.",
-                    icon: <BellOff className="w-5 h-5 text-destructive" />,
-                    buttonText: "Bildirimleri Etkinleştir",
-                    buttonDisabled: false, // Button is clickable to show info toast
-                };
-            default:
-                return {
-                    text: "Yeni eşleşmeler ve mesajlar için bildirimleri etkinleştirin.",
-                    icon: <Bell className="w-5 h-5 text-muted-foreground" />,
-                    buttonText: "İzin Ver",
-                    buttonDisabled: isNotificationLoading,
-                };
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: "Hata",
+                description: "Tarayıcı bildirim izni istenirken bir hata oluştu.",
+            });
+        } finally {
+            setIsRequestingPermission(false);
         }
     };
 
-    const notificationInfo = getNotificationInfo();
+    // --- APP NOTIFICATION SETTINGS LOGIC ---
+    const handleSettingChange = async (setting: 'newMatches' | 'newMessages' | 'promotions', value: boolean) => {
+        if (!userDocRef) return;
+        try {
+            await updateDoc(userDocRef, {
+                [`notificationSettings.${setting}`]: value
+            });
+        } catch (error) {
+            console.error("Error updating notification settings:", error);
+            toast({ variant: 'destructive', title: "Hata", description: "Ayar güncellenemedi." });
+        }
+    };
+
 
     // --- CACHE LOGIC ---
     const calculateCacheSize = () => {
@@ -165,6 +150,8 @@ export default function ApplicationSettingsPage() {
         // Reload info
         loadCacheInfo();
     };
+
+    const notificationSettings = userProfile?.notificationSettings || {};
 
     return (
         <ScrollArea className="h-full">
@@ -237,26 +224,53 @@ export default function ApplicationSettingsPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle>Bildirimler</CardTitle>
+                            <CardDescription>Hangi durumlarda bildirim almak istediğini seç.</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <div className="flex items-center justify-between">
-                                <div className="flex-1 pr-4">
-                                    <div className="flex items-center gap-2">
-                                        {notificationInfo.icon}
-                                        <p className="font-medium">Anlık Bildirimler</p>
+                        <CardContent className="space-y-6">
+                            {browserNotifPermission !== 'granted' && (
+                                <div className="flex items-center justify-between p-4 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300">
+                                    <div className="flex items-center gap-3">
+                                        <AlertTriangle className="w-5 h-5" />
+                                        <p className="text-sm font-medium">
+                                            {browserNotifPermission === 'denied' ? "Tarayıcı bildirimleri engellendi." : "Tarayıcı bildirimlerine izin vermen gerekiyor."}
+                                        </p>
                                     </div>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        {notificationInfo.text}
-                                    </p>
+                                    {browserNotifPermission === 'default' && (
+                                        <Button size="sm" onClick={handleRequestBrowserPermission} disabled={isRequestingPermission}>
+                                            {isRequestingPermission ? <Loader2 className="w-4 h-4 animate-spin" /> : "İzin Ver"}
+                                        </Button>
+                                    )}
                                 </div>
-                                <Button 
-                                    variant="default" 
-                                    size="sm" 
-                                    onClick={handleNotificationAction} 
-                                    disabled={notificationInfo.buttonDisabled}
-                                >
-                                    {isNotificationLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : notificationInfo.buttonText}
-                                </Button>
+                            )}
+
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="new-matches" className="font-medium cursor-pointer">Yeni Eşleşmeler</Label>
+                                <Switch
+                                    id="new-matches"
+                                    checked={notificationSettings.newMatches ?? true}
+                                    onCheckedChange={(value) => handleSettingChange('newMatches', value)}
+                                    disabled={isProfileLoading}
+                                />
+                            </div>
+                             <Separator />
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="new-messages" className="font-medium cursor-pointer">Yeni Mesajlar</Label>
+                                <Switch
+                                    id="new-messages"
+                                    checked={notificationSettings.newMessages ?? true}
+                                    onCheckedChange={(value) => handleSettingChange('newMessages', value)}
+                                    disabled={isProfileLoading}
+                                />
+                            </div>
+                             <Separator />
+                             <div className="flex items-center justify-between">
+                                <Label htmlFor="promotions" className="font-medium cursor-pointer">Promosyonlar ve Duyurular</Label>
+                                <Switch
+                                    id="promotions"
+                                    checked={notificationSettings.promotions ?? false}
+                                    onCheckedChange={(value) => handleSettingChange('promotions', value)}
+                                    disabled={isProfileLoading}
+                                />
                             </div>
                         </CardContent>
                     </Card>
