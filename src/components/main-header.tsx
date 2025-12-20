@@ -23,7 +23,7 @@ const MainHeader = () => {
     ];
     
     return (
-        <header className={cn("flex items-center justify-between px-4 py-1 h-12 border-b border-border bg-background z-10", "pt-[env(safe-area-inset-top)]")}>
+        <header className={cn("flex items-center justify-between px-4 py-1 h-14 border-b border-border bg-background z-10", "pt-[calc(env(safe-area-inset-top,0rem)+0.25rem)]")}>
             <Link href="/discover">
                 <h1 className="text-2xl font-bold text-primary tracking-tight">BeMatch</h1>
             </Link>

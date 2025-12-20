@@ -92,7 +92,7 @@ export default function SettingsPage() {
   return (
     <ScrollArea className="h-full">
         <div className="h-full bg-gray-50 dark:bg-black">
-            <header className="p-4 py-6 md:p-8">
+            <header className="p-4 md:p-8 pt-[calc(env(safe-area-inset-top,0rem)+1.5rem)]">
                 <h1 className="text-3xl font-bold text-primary">{t('settings.title')}</h1>
                 <p className="text-muted-foreground">{t('settings.description')}</p>
             </header>

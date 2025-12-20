@@ -862,7 +862,7 @@ export default function ChatPage() {
 
       <div 
         style={{ overflowAnchor: 'none' }}
-        className="flex-1 space-y-1 overflow-y-auto px-2 sm:px-4 pt-[calc(env(safe-area-inset-top,0rem)+4.5rem)] pb-[calc(env(safe-area-inset-bottom,0rem)+8rem)]"
+        className="flex-1 space-y-1 overflow-y-auto px-2 sm:px-4 pt-[calc(env(safe-area-inset-top,0rem)+5rem)] pb-[calc(env(safe-area-inset-bottom,0rem)+8rem)]"
       >
         <AnimatePresence>
           {messages && messages.map((message) => {

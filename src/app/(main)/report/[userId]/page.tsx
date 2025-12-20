@@ -126,7 +126,7 @@ export default function ReportPage() {
   return (
     <>
     <div className="h-full bg-gray-50 dark:bg-black">
-      <header className="p-4 py-6 md:p-8 flex items-center gap-4">
+      <header className="p-4 md:p-8 flex items-center gap-4 pt-[calc(env(safe-area-inset-top,0rem)+1rem)]">
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="w-6 h-6" />
         </Button>

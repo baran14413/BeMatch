@@ -1,7 +1,7 @@
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, ArrowLeft, Monitor, Sun, Moon, Bell, Loader2 } from "lucide-react";
+import { Trash2, ArrowLeft, Monitor, Sun, Moon, Bell, Loader2, BellOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -27,8 +27,14 @@ export default function ApplicationSettingsPage() {
     const [cacheSize, setCacheSize] = useState<string>('0 KB');
     const [lastCleared, setLastCleared] = useState<string | null>(null);
     const [isRequesting, setIsRequesting] = useState(false);
+    const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
 
-    // --- BROWSER NOTIFICATION LOGIC ---
+    useEffect(() => {
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+            setNotificationPermission(Notification.permission);
+        }
+    }, []);
+
      const handleRequestPermission = async () => {
         if (!('Notification' in window)) {
             toast({
@@ -38,19 +44,24 @@ export default function ApplicationSettingsPage() {
             });
             return;
         }
+
+        if (Notification.permission === 'denied') {
+             toast({
+                variant: 'destructive',
+                title: "Bildirimler engellendi",
+                description: "Bildirimleri etkinleştirmek için tarayıcı ayarlarını manuel olarak değiştirmeniz gerekecek.",
+            });
+            return;
+        }
+
         setIsRequesting(true);
         try {
             const permission = await Notification.requestPermission();
+            setNotificationPermission(permission);
             if (permission === 'granted') {
                 toast({
                     title: "Harika!",
                     description: "Artık bildirimleri alabilirsin.",
-                });
-            } else if (permission === 'denied') {
-                toast({
-                    variant: 'destructive',
-                    title: "Bildirimler engellendi",
-                    description: "Bildirimleri etkinleştirmek için tarayıcı ayarlarını kullanman gerekecek.",
                 });
             }
         } catch (error) {
@@ -125,7 +136,7 @@ export default function ApplicationSettingsPage() {
     return (
         <ScrollArea className="h-full">
             <div className="h-full bg-gray-50 dark:bg-black">
-                <header className="p-4 py-6 md:p-8 flex items-center gap-4">
+                <header className="p-4 md:p-8 flex items-center gap-4 pt-[calc(env(safe-area-inset-top,0rem)+1.5rem)]">
                     <Link href="/settings" passHref>
                         <Button variant="ghost" size="icon">
                             <ArrowLeft className="w-6 h-6" />
@@ -196,9 +207,15 @@ export default function ApplicationSettingsPage() {
                             <CardDescription>Yeni eşleşmeler ve mesajlar gibi önemli güncellemelerden anında haberdar ol.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Button onClick={handleRequestPermission} disabled={isRequesting} className="w-full">
-                                {isRequesting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bell className="w-4 h-4 mr-2" />}
-                                Bildirimleri Etkinleştir
+                             <Button onClick={handleRequestPermission} disabled={isRequesting || notificationPermission === 'granted'} className="w-full">
+                                {isRequesting ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : notificationPermission === 'granted' ? (
+                                    <Bell className="w-4 h-4 mr-2" />
+                                ) : (
+                                    <BellOff className="w-4 h-4 mr-2" />
+                                )}
+                                {notificationPermission === 'granted' ? "Bildirimler Aktif" : "Bildirimleri Etkinleştir"}
                             </Button>
                         </CardContent>
                     </Card>
