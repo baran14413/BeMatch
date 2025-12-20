@@ -441,6 +441,13 @@ export default function DiscoverPage() {
           <AnimatePresence>
             {visibleStack.length > 0 ? (
               <>
+                {history.length > 0 && (
+                    <div className="absolute left-4 bottom-1/2 translate-y-1/2 z-0">
+                        <Button onClick={handleRewind} variant="outline" size="icon" className="w-12 h-12 rounded-full shadow-lg bg-white/80 backdrop-blur-sm hover:bg-white">
+                            <Rewind className="w-6 h-6 text-yellow-500" />
+                        </Button>
+                    </div>
+                )}
                 {visibleStack.map((profile, index) => {
                   const isTop = index === visibleStack.length - 1;
                   const stackIndex = visibleStack.length - 1 - index;
