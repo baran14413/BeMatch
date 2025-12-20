@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import EmailVerificationBanner from '@/components/auth/email-verification-banner';
 import { usePageVisibility } from '@/hooks/use-page-visibility';
+import NotificationPermissionBanner from '@/components/notifications/notification-permission-banner';
 
 export default function MainLayout({
   children,
@@ -41,6 +42,7 @@ export default function MainLayout({
   return (
     <div className="flex flex-col h-dvh bg-background">
       {!user.emailVerified && <EmailVerificationBanner />}
+      <NotificationPermissionBanner />
       {!isChatPage && <MainHeader />}
       <ScrollArea className="flex-1">
         <main>{children}</main>
