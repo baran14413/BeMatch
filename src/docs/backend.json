@@ -158,15 +158,6 @@
         "role": {
           "type": "string",
           "description": "The user's role in the system (e.g., admin, user)."
-        },
-        "notificationSettings": {
-            "type": "object",
-            "description": "User's preferences for receiving notifications.",
-            "properties": {
-                "newMatches": { "type": "boolean", "description": "Notify on new matches." },
-                "newMessages": { "type": "boolean", "description": "Notify on new messages." },
-                "promotions": { "type": "boolean", "description": "Notify on special promotions." }
-            }
         }
       },
       "required": [

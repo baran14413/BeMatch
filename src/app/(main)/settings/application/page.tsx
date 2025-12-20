@@ -13,54 +13,51 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useState } from "react";
 import { formatDistanceToNow } from 'date-fns';
 import { tr, enUS } from 'date-fns/locale';
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { useDoc, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { doc, updateDoc } from "firebase/firestore";
 
 export default function ApplicationSettingsPage() {
     const { toast } = useToast();
     const { setTheme, theme } = useTheme();
     const { locale, setLocale, t } = useLanguage();
-    const { user } = useUser();
-    const firestore = useFirestore();
 
-    const userDocRef = useMemoFirebase(() => {
-        if (!user) return null;
-        return doc(firestore, 'users', user.uid);
-    }, [firestore, user]);
-    const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
-    
-    // Cache states
     const [cacheSize, setCacheSize] = useState<string>('0 KB');
     const [lastCleared, setLastCleared] = useState<string | null>(null);
-
-    // Browser Notification states
-    const [browserNotifPermission, setBrowserNotifPermission] = useState<NotificationPermission>('default');
-    const [isRequestingPermission, setIsRequestingPermission] = useState(false);
+    const [notifPermission, setNotifPermission] = useState<NotificationPermission>('default');
+    const [isRequesting, setIsRequesting] = useState(false);
 
     // --- BROWSER NOTIFICATION LOGIC ---
     useEffect(() => {
         if (typeof window !== 'undefined' && 'Notification' in window) {
-            setBrowserNotifPermission(Notification.permission);
+            setNotifPermission(Notification.permission);
         }
     }, []);
 
-     const handleRequestBrowserPermission = async () => {
+     const handleRequestPermission = async () => {
         if (!('Notification' in window)) return;
-        setIsRequestingPermission(true);
+        setIsRequesting(true);
         try {
             const permission = await Notification.requestPermission();
-            setBrowserNotifPermission(permission);
+            setNotifPermission(permission);
             if (permission === 'granted') {
                 toast({
-                    title: "Tarayıcı Bildirimlerine İzin Verildi",
-                    description: "Artık bildirimleri alabilirsin!",
+                    title: "Harika!",
+                    description: "Artık bildirimleri alabilirsin.",
+                });
+            } else if (permission === 'denied') {
+                toast({
+                    variant: 'destructive',
+                    title: "Bildirimler engellendi",
+                    description: "Bildirimleri etkinleştirmek için tarayıcı ayarlarını kullanman gerekecek.",
                 });
             }
         } catch (error) {
@@ -70,23 +67,9 @@ export default function ApplicationSettingsPage() {
                 description: "Tarayıcı bildirim izni istenirken bir hata oluştu.",
             });
         } finally {
-            setIsRequestingPermission(false);
+            setIsRequesting(false);
         }
     };
-
-    // --- APP NOTIFICATION SETTINGS LOGIC ---
-    const handleSettingChange = async (setting: 'newMatches' | 'newMessages' | 'promotions', value: boolean) => {
-        if (!userDocRef) return;
-        try {
-            await updateDoc(userDocRef, {
-                [`notificationSettings.${setting}`]: value
-            });
-        } catch (error) {
-            console.error("Error updating notification settings:", error);
-            toast({ variant: 'destructive', title: "Hata", description: "Ayar güncellenemedi." });
-        }
-    };
-
 
     // --- CACHE LOGIC ---
     const calculateCacheSize = () => {
@@ -96,7 +79,7 @@ export default function ApplicationSettingsPage() {
             if (key) {
                 const value = localStorage.getItem(key);
                 if (value) {
-                    total += (key.length + value.length) * 2; // Roughly in bytes
+                    total += (key.length + value.length) * 2;
                 }
             }
         }
@@ -121,11 +104,9 @@ export default function ApplicationSettingsPage() {
 
 
     const handleClearCache = () => {
-        // Preserve essential settings
         const theme = localStorage.getItem('theme');
         const locale = localStorage.getItem('locale');
 
-        // Clear everything else
         const keysToRemove: string[] = [];
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
@@ -135,11 +116,9 @@ export default function ApplicationSettingsPage() {
         }
         keysToRemove.forEach(key => localStorage.removeItem(key));
         
-        // Restore essential settings if they existed
         if(theme) localStorage.setItem('theme', theme);
         if(locale) localStorage.setItem('locale', locale);
 
-        // Set new cleared timestamp
         localStorage.setItem('cacheLastCleared', Date.now().toString());
         
         toast({
@@ -147,11 +126,8 @@ export default function ApplicationSettingsPage() {
             description: t('applicationPage.cacheClearedDescription'),
         });
         
-        // Reload info
         loadCacheInfo();
     };
-
-    const notificationSettings = userProfile?.notificationSettings || {};
 
     return (
         <ScrollArea className="h-full">
@@ -221,57 +197,39 @@ export default function ApplicationSettingsPage() {
                         </CardContent>
                     </Card>
 
-                    <Card>
+                     <Card>
                         <CardHeader>
                             <CardTitle>Bildirimler</CardTitle>
-                            <CardDescription>Hangi durumlarda bildirim almak istediğini seç.</CardDescription>
+                            <CardDescription>Yeni eşleşmeler ve mesajlar gibi önemli güncellemelerden anında haberdar ol.</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-6">
-                            {browserNotifPermission !== 'granted' && (
-                                <div className="flex items-center justify-between p-4 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300">
-                                    <div className="flex items-center gap-3">
-                                        <AlertTriangle className="w-5 h-5" />
-                                        <p className="text-sm font-medium">
-                                            {browserNotifPermission === 'denied' ? "Tarayıcı bildirimleri engellendi." : "Tarayıcı bildirimlerine izin vermen gerekiyor."}
-                                        </p>
-                                    </div>
-                                    {browserNotifPermission === 'default' && (
-                                        <Button size="sm" onClick={handleRequestBrowserPermission} disabled={isRequestingPermission}>
-                                            {isRequestingPermission ? <Loader2 className="w-4 h-4 animate-spin" /> : "İzin Ver"}
-                                        </Button>
-                                    )}
+                        <CardContent>
+                            {notifPermission === 'granted' && (
+                                <div className="flex items-center gap-3 p-4 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
+                                    <Bell className="w-5 h-5" />
+                                    <p className="text-sm font-medium">Tarayıcı bildirimleri aktif.</p>
                                 </div>
                             )}
-
-                            <div className="flex items-center justify-between">
-                                <Label htmlFor="new-matches" className="font-medium cursor-pointer">Yeni Eşleşmeler</Label>
-                                <Switch
-                                    id="new-matches"
-                                    checked={notificationSettings.newMatches ?? true}
-                                    onCheckedChange={(value) => handleSettingChange('newMatches', value)}
-                                    disabled={isProfileLoading}
-                                />
-                            </div>
-                             <Separator />
-                            <div className="flex items-center justify-between">
-                                <Label htmlFor="new-messages" className="font-medium cursor-pointer">Yeni Mesajlar</Label>
-                                <Switch
-                                    id="new-messages"
-                                    checked={notificationSettings.newMessages ?? true}
-                                    onCheckedChange={(value) => handleSettingChange('newMessages', value)}
-                                    disabled={isProfileLoading}
-                                />
-                            </div>
-                             <Separator />
-                             <div className="flex items-center justify-between">
-                                <Label htmlFor="promotions" className="font-medium cursor-pointer">Promosyonlar ve Duyurular</Label>
-                                <Switch
-                                    id="promotions"
-                                    checked={notificationSettings.promotions ?? false}
-                                    onCheckedChange={(value) => handleSettingChange('promotions', value)}
-                                    disabled={isProfileLoading}
-                                />
-                            </div>
+                             {notifPermission === 'default' && (
+                                <Button onClick={handleRequestPermission} disabled={isRequesting} className="w-full">
+                                    {isRequesting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bell className="w-4 h-4 mr-2" />}
+                                    Bildirimleri Etkinleştir
+                                </Button>
+                            )}
+                            {notifPermission === 'denied' && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="destructive" className="w-full cursor-not-allowed">
+                                                <BellOff className="w-4 h-4 mr-2" />
+                                                Bildirimler Engellendi
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>İzni tarayıcı ayarlarından vermeniz gerekiyor.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            )}
                         </CardContent>
                     </Card>
 
