@@ -39,42 +39,69 @@ export default function ApplicationSettingsPage() {
         }
     }, []);
 
-    const handleRequestNotificationPermission = async () => {
+    const handleNotificationAction = async () => {
         if (!('Notification' in window)) return;
 
-        setIsNotificationLoading(true);
-        try {
-            const permission = await Notification.requestPermission();
-            setNotificationPermission(permission);
-            if (permission === 'granted') {
-                toast({
-                    title: "Bildirimlere İzin Verildi",
-                    description: "Artık yeni eşleşmelerden haberdar olacaksın!",
-                });
-            }
-        } catch (error) {
-            console.error("Notification permission error:", error);
+        if (notificationPermission === 'denied') {
             toast({
-                variant: 'destructive',
-                title: "Hata",
-                description: "Bildirim izni istenirken bir hata oluştu.",
+                title: "Bildirimler Engellenmiş",
+                description: "Bildirimlere izin vermek için lütfen tarayıcınızın ayarlarından bu site için izinleri değiştirin.",
+                duration: 5000,
             });
-        } finally {
-            setIsNotificationLoading(false);
+            return;
+        }
+
+        if (notificationPermission === 'default') {
+            setIsNotificationLoading(true);
+            try {
+                const permission = await Notification.requestPermission();
+                setNotificationPermission(permission);
+                if (permission === 'granted') {
+                    toast({
+                        title: "Bildirimlere İzin Verildi",
+                        description: "Artık yeni eşleşmelerden haberdar olacaksın!",
+                    });
+                }
+            } catch (error) {
+                console.error("Notification permission error:", error);
+                toast({
+                    variant: 'destructive',
+                    title: "Hata",
+                    description: "Bildirim izni istenirken bir hata oluştu.",
+                });
+            } finally {
+                setIsNotificationLoading(false);
+            }
         }
     };
     
-    const getNotificationStatusText = () => {
+    const getNotificationInfo = () => {
         switch (notificationPermission) {
             case 'granted':
-                return "Bildirimlere izin verildi.";
+                return {
+                    text: "Bildirimlere izin verildi.",
+                    icon: <Bell className="w-5 h-5 text-green-500" />,
+                    buttonText: "İzin Verildi",
+                    buttonDisabled: true,
+                };
             case 'denied':
-                return "Bildirimler engellendi.";
+                return {
+                    text: "Bildirimler tarayıcı tarafından engellendi.",
+                    icon: <BellOff className="w-5 h-5 text-destructive" />,
+                    buttonText: "Bildirimleri Etkinleştir",
+                    buttonDisabled: false, // Button is clickable to show info toast
+                };
             default:
-                return "Bildirimler için izin istenmedi.";
+                return {
+                    text: "Yeni eşleşmeler ve mesajlar için bildirimleri etkinleştirin.",
+                    icon: <Bell className="w-5 h-5 text-muted-foreground" />,
+                    buttonText: "İzin Ver",
+                    buttonDisabled: isNotificationLoading,
+                };
         }
     };
 
+    const notificationInfo = getNotificationInfo();
 
     // --- CACHE LOGIC ---
     const calculateCacheSize = () => {
@@ -215,23 +242,21 @@ export default function ApplicationSettingsPage() {
                             <div className="flex items-center justify-between">
                                 <div className="flex-1 pr-4">
                                     <div className="flex items-center gap-2">
-                                        {notificationPermission === 'granted' ? <Bell className="w-5 h-5 text-green-500" /> : <BellOff className="w-5 h-5 text-destructive" />}
+                                        {notificationInfo.icon}
                                         <p className="font-medium">Anlık Bildirimler</p>
                                     </div>
                                     <p className="text-sm text-muted-foreground mt-1">
-                                        {getNotificationStatusText()}
+                                        {notificationInfo.text}
                                     </p>
                                 </div>
-                                {notificationPermission === 'default' && (
-                                     <Button variant="default" size="sm" onClick={handleRequestNotificationPermission} disabled={isNotificationLoading}>
-                                        {isNotificationLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "İzin Ver"}
-                                    </Button>
-                                )}
-                                {notificationPermission === 'denied' && (
-                                    <p className="text-xs text-muted-foreground max-w-[150px] text-right">
-                                        İzin vermek için tarayıcı ayarlarınızı kontrol edin.
-                                    </p>
-                                )}
+                                <Button 
+                                    variant="default" 
+                                    size="sm" 
+                                    onClick={handleNotificationAction} 
+                                    disabled={notificationInfo.buttonDisabled}
+                                >
+                                    {isNotificationLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : notificationInfo.buttonText}
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>
