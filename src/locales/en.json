@@ -551,5 +551,15 @@
         "noThanks": "No, Thanks",
         "blockSuccessTitle": "User blocked.",
         "blockErrorDescription": "An error occurred while blocking the user. Please try again."
+    },
+    "notifications": {
+        "title": "Notifications",
+        "description": "Get instant updates about new matches and messages.",
+        "notSupported": "Not supported on this device",
+        "active": "Notifications are active",
+        "enableButton": "Enable Notifications",
+        "blockedButton": "Notifications Blocked",
+        "blockedTitle": "Notifications Blocked",
+        "blockedDescription": "To enable notifications, you need to change your browser settings."
     }
 }

@@ -551,5 +551,15 @@
         "noThanks": "Hayır, Teşekkürler",
         "blockSuccessTitle": "Kullanıcı engellendi ve sohbet kaldırıldı.",
         "blockErrorDescription": "Kullanıcı engellenirken bir hata oluştu. Lütfen tekrar deneyin."
+    },
+    "notifications": {
+        "title": "Bildirimler",
+        "description": "Yeni eşleşmeler ve mesajlar gibi önemli güncellemelerden anında haberdar ol.",
+        "notSupported": "Bu cihazda desteklenmiyor",
+        "active": "Bildirimler aktif",
+        "enableButton": "Bildirimlere İzin Ver",
+        "blockedButton": "Bildirimler Engellendi",
+        "blockedTitle": "Bildirimler Engellendi",
+        "blockedDescription": "Bildirimleri etkinleştirmek için tarayıcı ayarlarınızı değiştirmeniz gerekiyor."
     }
 }

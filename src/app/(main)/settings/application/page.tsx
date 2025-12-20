@@ -18,6 +18,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useState } from "react";
 import { formatDistanceToNow } from 'date-fns';
 import { tr, enUS } from 'date-fns/locale';
+import NotificationToggle from "@/components/NotificationToggle";
 
 export default function ApplicationSettingsPage() {
     const { toast } = useToast();
@@ -26,54 +27,6 @@ export default function ApplicationSettingsPage() {
 
     const [cacheSize, setCacheSize] = useState<string>('0 KB');
     const [lastCleared, setLastCleared] = useState<string | null>(null);
-    const [isRequesting, setIsRequesting] = useState(false);
-    const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
-
-    useEffect(() => {
-        if (typeof window !== 'undefined' && 'Notification' in window) {
-            setNotificationPermission(Notification.permission);
-        }
-    }, []);
-
-     const handleRequestPermission = async () => {
-        if (!('Notification' in window)) {
-            toast({
-                variant: 'destructive',
-                title: "Hata",
-                description: "Bu tarayıcı bildirimleri desteklemiyor.",
-            });
-            return;
-        }
-
-        if (Notification.permission === 'denied') {
-             toast({
-                variant: 'destructive',
-                title: "Bildirimler engellendi",
-                description: "Bildirimleri etkinleştirmek için tarayıcı ayarlarını manuel olarak değiştirmeniz gerekecek.",
-            });
-            return;
-        }
-
-        setIsRequesting(true);
-        try {
-            const permission = await Notification.requestPermission();
-            setNotificationPermission(permission);
-            if (permission === 'granted') {
-                toast({
-                    title: "Harika!",
-                    description: "Artık bildirimleri alabilirsin.",
-                });
-            }
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: "Hata",
-                description: "Tarayıcı bildirim izni istenirken bir hata oluştu.",
-            });
-        } finally {
-            setIsRequesting(false);
-        }
-    };
 
     // --- CACHE LOGIC ---
     const calculateCacheSize = () => {
@@ -201,24 +154,7 @@ export default function ApplicationSettingsPage() {
                         </CardContent>
                     </Card>
 
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Bildirimler</CardTitle>
-                            <CardDescription>Yeni eşleşmeler ve mesajlar gibi önemli güncellemelerden anında haberdar ol.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                             <Button onClick={handleRequestPermission} disabled={isRequesting || notificationPermission === 'granted'} className="w-full">
-                                {isRequesting ? (
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                ) : notificationPermission === 'granted' ? (
-                                    <Bell className="w-4 h-4 mr-2" />
-                                ) : (
-                                    <BellOff className="w-4 h-4 mr-2" />
-                                )}
-                                {notificationPermission === 'granted' ? "Bildirimler Aktif" : "Bildirimleri Etkinleştir"}
-                            </Button>
-                        </CardContent>
-                    </Card>
+                    <NotificationToggle />
 
                     <Card>
                         <CardHeader>
