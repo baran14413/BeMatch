@@ -437,7 +437,7 @@ export default function DiscoverPage() {
   return (
     <div className="h-full w-full flex flex-col bg-gray-50 dark:bg-black overflow-hidden">
       <div className="flex-1 flex flex-col items-center justify-start pt-2 px-1.5">
-        <div className="w-full max-w-sm h-[80vh] max-h-[700px] relative flex items-center justify-center">
+        <div className="w-full max-w-sm h-full relative flex items-center justify-center">
           <AnimatePresence>
             {visibleStack.length > 0 ? (
               <>
@@ -485,20 +485,7 @@ export default function DiscoverPage() {
           </AnimatePresence>
         </div>
       </div>
-       <div className="flex justify-center items-center p-4 gap-4">
-        <Button onClick={handleRewind} variant="outline" size="icon" className="w-16 h-16 rounded-full border-2 border-yellow-500 text-yellow-500" disabled={history.length === 0}>
-            <Rewind className="w-8 h-8" />
-        </Button>
-        <Button onClick={() => handleSwipe('left')} variant="outline" size="icon" className="w-16 h-16 rounded-full border-2 border-red-500 text-red-500">
-            <X className="w-8 h-8" />
-        </Button>
-        <Button onClick={() => handleSwipe('up')} variant="outline" size="icon" className="w-16 h-16 rounded-full border-2 border-blue-500 text-blue-500">
-            <Star className="w-8 h-8" />
-        </Button>
-        <Button onClick={() => handleSwipe('right')} variant="outline" size="icon" className="w-16 h-16 rounded-full border-2 border-green-500 text-green-500">
-            <Heart className="w-8 h-8" />
-        </Button>
-      </div>
+      
       <Sheet open={!!detailsProfile} onOpenChange={(isOpen) => !isOpen && setDetailsProfile(null)}>
         <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl flex flex-col">
             <SheetHeader>
