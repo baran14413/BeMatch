@@ -1,16 +1,19 @@
 'use client';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Smartphone, Monitor, Clock, Calendar, ArrowLeft } from "lucide-react";
+import { Smartphone, Monitor, Clock, Calendar, ArrowLeft, BadgeCheck, Mail, Loader2, AlertTriangle } from "lucide-react";
 import Link from 'next/link';
 import { useLanguage } from '@/context/language-context';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from "@/firebase";
 import { doc } from "firebase/firestore";
 import type { UserProfile } from "@/lib/data";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from 'date-fns';
 import { tr, enUS } from 'date-fns/locale';
+import { useToast } from '@/hooks/use-toast';
+import { sendEmailVerification } from 'firebase/auth';
 
 const InfoItem = ({ label, value }: { label: string, value: string }) => (
     <div className="flex justify-between items-center py-3">
@@ -33,6 +36,9 @@ export default function PersonalInfoPage() {
     const { t, locale } = useLanguage();
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
+    const auth = useAuth();
+    const { toast } = useToast();
+    const [isSendingVerification, setIsSendingVerification] = useState(false);
 
     const userDocRef = useMemoFirebase(() => {
         if (!user) return null;
@@ -40,6 +46,27 @@ export default function PersonalInfoPage() {
     }, [firestore, user]);
 
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
+    const handleSendVerification = async () => {
+        if (!user) return;
+        setIsSendingVerification(true);
+        try {
+            await sendEmailVerification(user);
+            toast({
+                title: t('login.forgotPassword.successTitle'),
+                description: t('login.forgotPassword.successDescription'),
+            });
+        } catch (error) {
+            console.error("Error sending verification email:", error);
+            toast({
+                variant: 'destructive',
+                title: t('common.error'),
+                description: (error as Error).message,
+            });
+        } finally {
+            setIsSendingVerification(false);
+        }
+    };
 
     const isLoading = isUserLoading || isProfileLoading;
     
@@ -73,16 +100,38 @@ export default function PersonalInfoPage() {
                         </CardHeader>
                         <CardContent className="divide-y">
                             {isLoading ? (
-                                <div className="space-y-4">
-                                    <Skeleton className="h-6 w-full" />
-                                    <Skeleton className="h-6 w-full" />
-                                    <Skeleton className="h-6 w-full" />
+                                <div className="space-y-4 py-2">
+                                    <Skeleton className="h-8 w-full" />
+                                    <Skeleton className="h-8 w-full" />
+                                    <Skeleton className="h-8 w-full" />
+                                    <Skeleton className="h-8 w-full" />
                                 </div>
-                            ) : userProfile ? (
+                            ) : userProfile && user ? (
                                 <>
                                     <InfoItem label={t('personalInfoPage.firstName')} value={userProfile.firstName} />
                                     <InfoItem label={t('personalInfoPage.lastName')} value={userProfile.lastName} />
                                     <InfoItem label={t('personalInfoPage.age')} value={userProfile.age.toString()} />
+                                     <div className="flex justify-between items-center py-3">
+                                        <p className="text-muted-foreground">E-posta</p>
+                                        <div className="flex items-center gap-3">
+                                            <p className="font-semibold">{user.email}</p>
+                                            {user.emailVerified ? (
+                                                <div className="flex items-center gap-1 text-green-600">
+                                                    <BadgeCheck className="w-5 h-5" />
+                                                    <span className="text-sm font-medium">Doğrulandı</span>
+                                                </div>
+                                            ) : (
+                                                <Button size="sm" variant="outline" onClick={handleSendVerification} disabled={isSendingVerification}>
+                                                    {isSendingVerification ? (
+                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                    ) : (
+                                                         <AlertTriangle className="w-4 h-4 mr-2 text-yellow-500" />
+                                                    )}
+                                                    Doğrula
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
                                 </>
                             ) : (
                                 <p>{t('profile.notFound')}</p>
