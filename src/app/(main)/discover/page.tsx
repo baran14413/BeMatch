@@ -7,7 +7,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import ProfileCard from '@/components/discover/profile-card';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
-import { collection, query, where, doc, writeBatch, getDoc, serverTimestamp, getDocs, updateDoc, Timestamp, limit } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, getDoc, serverTimestamp, getDocs, updateDoc, Timestamp, limit, orderBy } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/data';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import ProfileDetails from '@/components/discover/profile-details';
@@ -176,8 +176,12 @@ export default function DiscoverPage() {
   // This query is now limited to 50 to prevent excessive reads on large user bases.
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, 'users'), limit(50));
-  }, [firestore, user]);
+    return query(
+        collection(firestore, 'users'),
+        orderBy('createdAt', 'desc'), 
+        limit(50)
+    );
+  }, [firestore, user, currentUserProfile]);
 
 
   const { data: profiles, isLoading: isLoadingProfiles } = useCollection<UserProfile>(usersQuery);
