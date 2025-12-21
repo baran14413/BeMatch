@@ -181,7 +181,7 @@ export default function DiscoverPage() {
         orderBy('createdAt', 'desc'), 
         limit(50)
     );
-  }, [firestore, user, currentUserProfile]);
+  }, [firestore, user]);
 
 
   const { data: profiles, isLoading: isLoadingProfiles } = useCollection<UserProfile>(usersQuery);
@@ -400,7 +400,7 @@ export default function DiscoverPage() {
     return null; // or a loading skeleton
   }
 
-  const isLoading = isUserLoading || isLoadingProfiles;
+  const isLoading = isUserLoading || isLoadingProfiles || !currentUserProfile;
 
   if (isLoading) {
      return (
@@ -446,7 +446,7 @@ export default function DiscoverPage() {
             {visibleStack.length > 0 ? (
               <>
                 {history.length > 0 && (
-                    <div className="absolute left-4 bottom-1/2 translate-y-1/2 z-0">
+                    <div className="absolute left-4 bottom-28 z-20">
                         <Button onClick={handleRewind} variant="outline" size="icon" className="w-12 h-12 rounded-full shadow-lg bg-white/80 backdrop-blur-sm hover:bg-white">
                             <Rewind className="w-6 h-6 text-yellow-500" />
                         </Button>
