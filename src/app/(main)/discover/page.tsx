@@ -175,13 +175,12 @@ export default function DiscoverPage() {
 
   // This query is now limited to 50 to prevent excessive reads on large user bases.
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore || !user || !currentUserProfile) return null;
     return query(
         collection(firestore, 'users'),
-        orderBy('createdAt', 'desc'), 
-        limit(50)
+        where('createdAt', '!=', currentUserProfile.createdAt)
     );
-  }, [firestore, user]);
+  }, [firestore, user, currentUserProfile]);
 
 
   const { data: profiles, isLoading: isLoadingProfiles } = useCollection<UserProfile>(usersQuery);
@@ -326,23 +325,22 @@ export default function DiscoverPage() {
 
     if (swipeType === 'nope') return; // Don't do any DB operations for a 'nope'
 
-    // 2. Record the like/superlike in the swiped user's 'likedBy' subcollection
-    const swipeData = {
-        type: swipeType,
-        timestamp: serverTimestamp(),
-        // Denormalize current user's data for the 'Likes' screen to avoid extra reads
-        likerId: currentUserProfile.id,
-        likerName: currentUserProfile.name,
-        likerAvatar: currentUserProfile.avatarUrl,
-    };
-    
-    const targetUserLikedByRef = doc(firestore, 'users', swipedProfile.id, 'likedBy', user.uid);
-    
-    // 3. Check for a match by seeing if the other user has already liked us
-    const swipedUserLikeRef = doc(firestore, 'users', user.uid, 'likedBy', swipedProfile.id);
-    
-    getDoc(swipedUserLikeRef)
-      .then(async (swipedUserLikeDoc) => {
+    try {
+        // 2. Record the like/superlike in the swiped user's 'likedBy' subcollection
+        const swipeData = {
+            type: swipeType,
+            timestamp: serverTimestamp(),
+            // Denormalize current user's data for the 'Likes' screen to avoid extra reads
+            likerId: currentUserProfile.id,
+            likerName: currentUserProfile.name,
+            likerAvatar: currentUserProfile.avatarUrl,
+        };
+        
+        const targetUserLikedByRef = doc(firestore, 'users', swipedProfile.id, 'likedBy', user.uid);
+        
+        // 3. Check for a match by seeing if the other user has already liked us
+        const swipedUserLikeDoc = await getDoc(doc(firestore, 'users', user.uid, 'likedBy', swipedProfile.id));
+        
         const batch = writeBatch(firestore);
         
         // Always record our like on their profile
@@ -376,24 +374,16 @@ export default function DiscoverPage() {
         }
 
         // Commit all DB changes
-        batch.commit().catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: targetUserLikedByRef.path, // The most likely failure path in the batch
-                operation: 'create',
-                requestResourceData: swipeData,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        });
+        await batch.commit();
 
-      })
-      .catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-            path: swipedUserLikeRef.path,
-            operation: 'get',
+    } catch (error) {
+        console.error("Error handling swipe:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "An error occurred while swiping. Please check Firestore security rules.",
         });
-        errorEmitter.emit('permission-error', permissionError);
-      });
-    
+    }
   }, [visibleStack, profileIndex, filteredAndSortedProfiles, user, firestore, currentUserProfile, toast, t, router]);
 
   if (isMobile === undefined) {
@@ -445,13 +435,6 @@ export default function DiscoverPage() {
           <AnimatePresence>
             {visibleStack.length > 0 ? (
               <>
-                {history.length > 0 && (
-                    <div className="absolute left-4 bottom-28 z-20">
-                        <Button onClick={handleRewind} variant="outline" size="icon" className="w-12 h-12 rounded-full shadow-lg bg-white/80 backdrop-blur-sm hover:bg-white">
-                            <Rewind className="w-6 h-6 text-yellow-500" />
-                        </Button>
-                    </div>
-                )}
                 {visibleStack.map((profile, index) => {
                   const isTop = index === visibleStack.length - 1;
                   const stackIndex = visibleStack.length - 1 - index;
