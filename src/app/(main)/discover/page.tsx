@@ -495,7 +495,7 @@ export default function DiscoverPage() {
       
       <Sheet open={!!detailsProfile} onOpenChange={(isOpen) => !isOpen && setDetailsProfile(null)}>
         <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl flex flex-col">
-            <SheetHeader>
+            <SheetHeader className="pt-[calc(env(safe-area-inset-top,0rem)+0.75rem)]">
                 <SheetTitle className="sr-only">{t('discover.profileDetailsTitle')}</SheetTitle>
             </SheetHeader>
             {detailsProfile && <ProfileDetails profile={detailsProfile} />}
