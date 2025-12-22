@@ -52,7 +52,7 @@ const SwipeableCard = ({
   isTop,
 }: {
   profile: UserProfile;
-  onSwipe: (direction: SwipeDirection) => void;
+  onSwipe: (direction: SwipeDirection, triggeredByButton?: boolean) => void;
   onShowDetails: () => void;
   isTop: boolean;
 }) => {
@@ -71,26 +71,14 @@ const SwipeableCard = ({
     };
     
     if (Math.abs(offset.y) > Math.abs(offset.x) && offset.y < -swipeThreshold * 1.5) {
-        animate(y, -500, { duration: 0.4, onComplete: () => {
-             onSwipe('up');
-             y.set(0);
-             x.set(0);
-        } });
+        onSwipe('up');
         return;
     }
 
     if (offset.x > swipeThreshold || swipePower(offset.x, velocity.x) > 10000) {
-      animate(x, 300, { duration: 0.3, onComplete: () => {
-        onSwipe('right');
-        x.set(0);
-        y.set(0);
-      }});
+      onSwipe('right');
     } else if (offset.x < -swipeThreshold || swipePower(offset.x, velocity.x) < -10000) {
-      animate(x, -300, { duration: 0.3, onComplete: () => {
-        onSwipe('left');
-        x.set(0);
-        y.set(0);
-      }});
+      onSwipe('left');
     }
   };
 
@@ -295,12 +283,12 @@ export default function DiscoverPage() {
 
     toast({
         title: "Geri Alındı!",
-        description: `${'${lastAction.profile.name}'} profiline geri döndün.`
+        description: `${lastAction.profile.name} profiline geri döndün.`
     })
 
   };
 
-  const handleSwipe = useCallback(async (direction: SwipeDirection) => {
+  const handleSwipe = useCallback(async (direction: SwipeDirection, triggeredByButton: boolean = false) => {
     if (visibleStack.length === 0 || !user || !firestore || !currentUserProfile) return;
 
     if (direction === 'up' && !currentUserProfile.premiumTier) {
@@ -317,7 +305,6 @@ export default function DiscoverPage() {
 
     setHistory(prev => [{profile: swipedProfile, type: swipeType}, ...prev]);
     setProfileIndex(prev => prev + 1);
-
 
     if (swipeType === 'nope') return;
 
@@ -345,11 +332,11 @@ export default function DiscoverPage() {
                 users: [user.uid, swipedProfile.id],
                 timestamp: serverTimestamp(),
                 lastMessage: t('discover.newMatch'),
-                [`user_info_${'${user.uid}'}`]: {
+                [`user_info_${user.uid}`]: {
                     name: currentUserProfile.name,
                     avatarUrl: currentUserProfile.avatarUrl,
                 },
-                [`user_info_${'${swipedProfile.id}'}`]: {
+                [`user_info_${swipedProfile.id}`]: {
                     name: swipedProfile.name,
                     avatarUrl: swipedProfile.avatarUrl,
                 },
@@ -406,9 +393,9 @@ export default function DiscoverPage() {
             onContinue={() => setNewlyMatchedProfile(null)}
         />
     )}
-    <div className="h-full w-full flex-1 flex flex-col bg-gray-50 dark:bg-black overflow-hidden">
-      <div className="flex-1 flex flex-col items-center justify-start pt-2 px-1.5 relative">
-        <div className="w-full max-w-sm h-full relative flex-1 flex items-center justify-center z-20">
+    <div className="flex flex-col h-full bg-gray-50 dark:bg-black">
+      <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden">
+        <div className="w-full max-w-sm h-full relative">
           <AnimatePresence>
             {visibleStack.length > 0 ? (
               <>
@@ -429,6 +416,7 @@ export default function DiscoverPage() {
                         opacity: stackIndex < MAX_VISIBLE_CARDS -1 ? 1 : (isTop ? 1 : 0),
                       }}
                       exit={{
+                        x: profile.id === visibleStack[visibleStack.length - 1].id ? (history[0]?.type === 'like' || history[0]?.type === 'superlike' ? 300 : -300) : 0,
                         opacity: 0,
                         transition: { duration: 0.3 }
                       }}
@@ -451,17 +439,30 @@ export default function DiscoverPage() {
                 {showTutorial && <TutorialOverlay />}
               </>
             ) : (
-              <NoMoreProfiles onReset={handleReset} />
+              <div className="flex items-center justify-center h-full">
+                <NoMoreProfiles onReset={handleReset} />
+              </div>
             )}
           </AnimatePresence>
         </div>
-        <div className="absolute left-4 bottom-4 z-30">
-            <Button variant="secondary" size="icon" className="w-16 h-16 rounded-full shadow-lg" onClick={handleRewind} disabled={history.length === 0}>
-                <Rewind className="w-8 h-8 text-yellow-500" />
-            </Button>
-        </div>
       </div>
       
+      {/* Action Buttons */}
+      <div className="flex items-center justify-evenly p-4">
+          <Button variant="secondary" size="icon" className="w-16 h-16 rounded-full shadow-lg bg-white/90" onClick={handleRewind} disabled={history.length === 0}>
+              <Rewind className="w-8 h-8 text-yellow-500" />
+          </Button>
+           <Button variant="secondary" size="icon" className="w-20 h-20 rounded-full shadow-lg bg-white/90" onClick={() => handleSwipe('left', true)}>
+              <X className="w-10 h-10 text-red-500" />
+          </Button>
+           <Button variant="secondary" size="icon" className="w-16 h-16 rounded-full shadow-lg bg-white/90" onClick={() => handleSwipe('up', true)}>
+              <Star className="w-8 h-8 text-blue-500" />
+          </Button>
+           <Button variant="secondary" size="icon" className="w-20 h-20 rounded-full shadow-lg bg-white/90" onClick={() => handleSwipe('right', true)}>
+              <Heart className="w-10 h-10 text-green-400" />
+          </Button>
+      </div>
+
       <Sheet open={!!detailsProfile} onOpenChange={(isOpen) => !isOpen && setDetailsProfile(null)}>
         <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl flex flex-col">
             <SheetHeader className="pt-[calc(env(safe-area-inset-top,0rem)+0.75rem)]">
