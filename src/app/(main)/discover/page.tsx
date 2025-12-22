@@ -176,7 +176,6 @@ export default function DiscoverPage() {
   }, [user, firestore]);
   const { data: currentUserProfile } = useDoc<UserProfile>(currentUserDocRef);
 
-  // This query is now limited to 50 to prevent excessive reads on large user bases.
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
@@ -419,7 +418,7 @@ export default function DiscoverPage() {
         >
             <Rewind className="h-7 w-7 text-yellow-500" />
         </Button>
-        <div className="w-full max-w-sm h-full relative flex items-center justify-center">
+        <div className="w-full max-w-sm h-full relative flex items-center justify-center z-20">
           <AnimatePresence>
             {visibleStack.length > 0 ? (
               <>
