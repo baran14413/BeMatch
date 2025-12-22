@@ -448,18 +448,18 @@ export default function DiscoverPage() {
       </div>
       
       {/* Action Buttons */}
-      <div className="flex items-center justify-evenly p-4">
-          <Button variant="secondary" size="icon" className="w-16 h-16 rounded-full shadow-lg bg-white/90" onClick={handleRewind} disabled={history.length === 0}>
-              <Rewind className="w-8 h-8 text-yellow-500" />
+      <div className="flex items-center justify-evenly p-4 pb-[calc(env(safe-area-inset-bottom,0rem)+0.5rem)]">
+          <Button variant="secondary" size="icon" className="w-14 h-14 rounded-full shadow-lg bg-white/90" onClick={handleRewind} disabled={history.length === 0}>
+              <Rewind className="w-7 h-7 text-yellow-500" />
           </Button>
-           <Button variant="secondary" size="icon" className="w-20 h-20 rounded-full shadow-lg bg-white/90" onClick={() => handleSwipe('left', true)}>
-              <X className="w-10 h-10 text-red-500" />
+           <Button variant="secondary" size="icon" className="w-16 h-16 rounded-full shadow-lg bg-white/90" onClick={() => handleSwipe('left', true)}>
+              <X className="w-8 h-8 text-red-500" />
           </Button>
-           <Button variant="secondary" size="icon" className="w-16 h-16 rounded-full shadow-lg bg-white/90" onClick={() => handleSwipe('up', true)}>
-              <Star className="w-8 h-8 text-blue-500" />
+           <Button variant="secondary" size="icon" className="w-14 h-14 rounded-full shadow-lg bg-white/90" onClick={() => handleSwipe('up', true)}>
+              <Star className="w-7 h-7 text-blue-500" />
           </Button>
-           <Button variant="secondary" size="icon" className="w-20 h-20 rounded-full shadow-lg bg-white/90" onClick={() => handleSwipe('right', true)}>
-              <Heart className="w-10 h-10 text-green-400" />
+           <Button variant="secondary" size="icon" className="w-16 h-16 rounded-full shadow-lg bg-white/90" onClick={() => handleSwipe('right', true)}>
+              <Heart className="w-8 h-8 text-green-400" />
           </Button>
       </div>
 
