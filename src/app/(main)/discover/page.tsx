@@ -18,6 +18,8 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { isToday, isFuture } from 'date-fns';
+import ItIsAMatch from '@/components/discover/it-is-a-match';
+
 
 type SwipeDirection = 'left' | 'right' | 'up';
 type SwipeType = 'like' | 'nope' | 'superlike';
@@ -160,6 +162,7 @@ export default function DiscoverPage() {
   const router = useRouter();
   
   const [detailsProfile, setDetailsProfile] = useState<UserProfile | null>(null);
+  const [newlyMatchedProfile, setNewlyMatchedProfile] = useState<UserProfile | null>(null);
 
   const [profileIndex, setProfileIndex] = useState(0);
   const [visibleStack, setVisibleStack] = useState<UserProfile[]>([]);
@@ -175,12 +178,13 @@ export default function DiscoverPage() {
 
   // This query is now limited to 50 to prevent excessive reads on large user bases.
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || !user || !currentUserProfile) return null;
+    if (!firestore || !user) return null;
     return query(
         collection(firestore, 'users'),
-        where('createdAt', '!=', currentUserProfile.createdAt)
+        orderBy('createdAt', 'desc'),
+        limit(50)
     );
-  }, [firestore, user, currentUserProfile]);
+  }, [firestore, user]);
 
 
   const { data: profiles, isLoading: isLoadingProfiles } = useCollection<UserProfile>(usersQuery);
@@ -201,8 +205,7 @@ export default function DiscoverPage() {
     
     return profiles
       .filter(p => {
-        // Exclude self, apply age range, and gender preference filter
-        const isNotSelf = p.id !== user?.uid;
+        const isNotSelf = p.id !== user.uid;
         const isInAgeRange = p.age >= minAge && p.age <= maxAge;
         
         let interestMatch = true;
@@ -218,14 +221,12 @@ export default function DiscoverPage() {
         return { ...p, distance, isBoosted };
       })
       .filter(p => {
-          // Apply distance filter only if global mode is off
           if (globalMode || p.distance === undefined) {
               return true;
           }
           return p.distance <= maxDistance;
       })
       .sort((a, b) => {
-        // Sort boosted profiles to the top, then by distance
         if (a.isBoosted && !b.isBoosted) return -1;
         if (!a.isBoosted && b.isBoosted) return 1;
         if (a.distance === undefined && b.distance === undefined) return 0;
@@ -246,7 +247,6 @@ export default function DiscoverPage() {
   }, [filteredAndSortedProfiles, profileIndex]);
 
   useEffect(() => {
-    // Show tutorial only on mobile, once, when profiles are loaded
     if (isMobile && profiles && profiles.length > 0) {
       const hasSeenTutorial = localStorage.getItem('hasSeenSwipeTutorial');
       if (!hasSeenTutorial) {
@@ -270,7 +270,6 @@ export default function DiscoverPage() {
 
     const isPremium = !!currentUserProfile.premiumTier;
     
-    // Check if the last rewind was today. If not, the count is 0.
     const lastRewindDate = currentUserProfile.lastRewindAt?.toDate();
     const rewindsToday = (lastRewindDate && isToday(lastRewindDate)) ? (currentUserProfile.rewindCount || 0) : 0;
 
@@ -289,7 +288,6 @@ export default function DiscoverPage() {
 
     if (!isPremium) {
         const newRewindCount = rewindsToday + 1;
-        // Always set the timestamp to now when a rewind is used.
         await updateDoc(currentUserDocRef, {
             rewindCount: newRewindCount,
             lastRewindAt: serverTimestamp(),
@@ -318,36 +316,29 @@ export default function DiscoverPage() {
     const swipedProfile = visibleStack[visibleStack.length - 1];
     const swipeType: SwipeType = direction === 'right' ? 'like' : direction === 'up' ? 'superlike' : 'nope';
 
-    // 1. Move to the next profile in the UI
     setHistory(prev => [{profile: swipedProfile, type: swipeType}, ...prev]);
     setProfileIndex(prev => prev + 1);
 
 
-    if (swipeType === 'nope') return; // Don't do any DB operations for a 'nope'
+    if (swipeType === 'nope') return;
 
-    try {
-        // 2. Record the like/superlike in the swiped user's 'likedBy' subcollection
-        const swipeData = {
-            type: swipeType,
-            timestamp: serverTimestamp(),
-            // Denormalize current user's data for the 'Likes' screen to avoid extra reads
-            likerId: currentUserProfile.id,
-            likerName: currentUserProfile.name,
-            likerAvatar: currentUserProfile.avatarUrl,
-        };
-        
-        const targetUserLikedByRef = doc(firestore, 'users', swipedProfile.id, 'likedBy', user.uid);
-        
-        // 3. Check for a match by seeing if the other user has already liked us
-        const swipedUserLikeDoc = await getDoc(doc(firestore, 'users', user.uid, 'likedBy', swipedProfile.id));
-        
-        const batch = writeBatch(firestore);
-        
-        // Always record our like on their profile
-        batch.set(targetUserLikedByRef, swipeData);
-        
+    const swipeData = {
+        type: swipeType,
+        timestamp: serverTimestamp(),
+        likerId: currentUserProfile.id,
+        likerName: currentUserProfile.name,
+        likerAvatar: currentUserProfile.avatarUrl,
+    };
+    
+    const targetUserLikedByRef = doc(firestore, 'users', swipedProfile.id, 'likedBy', user.uid);
+    const swipedUserLikeDocRef = doc(firestore, 'users', user.uid, 'likedBy', swipedProfile.id);
+    
+    const batch = writeBatch(firestore);
+    batch.set(targetUserLikedByRef, swipeData);
+
+    getDoc(swipedUserLikeDocRef)
+      .then(swipedUserLikeDoc => {
         if (swipedUserLikeDoc.exists()) {
-            // It's a MATCH!
             const matchId = [user.uid, swipedProfile.id].sort().join('_');
             const matchRef = doc(firestore, 'matches', matchId);
             
@@ -355,7 +346,6 @@ export default function DiscoverPage() {
                 users: [user.uid, swipedProfile.id],
                 timestamp: serverTimestamp(),
                 lastMessage: t('discover.newMatch'),
-                 // Denormalize user info into the match doc to avoid reads on lounge page
                 [`user_info_${user.uid}`]: {
                     name: currentUserProfile.name,
                     avatarUrl: currentUserProfile.avatarUrl,
@@ -366,28 +356,28 @@ export default function DiscoverPage() {
                 },
             };
             batch.set(matchRef, matchData);
-
-            toast({
-                title: t('discover.matchToastTitle'),
-                description: t('discover.matchToastDescription', { name: swipedProfile.name }),
-            });
+            setNewlyMatchedProfile(swipedProfile);
         }
 
-        // Commit all DB changes
-        await batch.commit();
-
-    } catch (error) {
-        console.error("Error handling swipe:", error);
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "An error occurred while swiping. Please check Firestore security rules.",
+        batch.commit().catch(serverError => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: `batch write`, // Placeholder path for batch
+                operation: 'write',
+            }));
         });
-    }
-  }, [visibleStack, profileIndex, filteredAndSortedProfiles, user, firestore, currentUserProfile, toast, t, router]);
+
+      })
+      .catch(serverError => {
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+              path: swipedUserLikeDocRef.path,
+              operation: 'get',
+          }));
+      });
+
+  }, [visibleStack, user, firestore, currentUserProfile, toast, t, router]);
 
   if (isMobile === undefined) {
-    return null; // or a loading skeleton
+    return null;
   }
 
   const isLoading = isUserLoading || isLoadingProfiles || !currentUserProfile;
@@ -408,29 +398,27 @@ export default function DiscoverPage() {
      )
   }
 
-  if (!isMobile) {
-    return (
-      <div className="w-full flex flex-col items-center p-4 md:p-8 space-y-8">
-          <div className="w-full max-w-md space-y-8">
-          {filteredAndSortedProfiles.length > profileIndex ? filteredAndSortedProfiles.slice(profileIndex).map((profile) => (
-              <ProfileCard key={profile.id} profile={profile} onShowDetails={() => setDetailsProfile(profile)} isTopCard={false}/>
-          )) : <NoMoreProfiles onReset={handleReset} />}
-           <Sheet open={!!detailsProfile} onOpenChange={(isOpen) => !isOpen && setDetailsProfile(null)}>
-                <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">
-                    <SheetHeader>
-                        <SheetTitle className="sr-only">{t('discover.profileDetailsTitle')}</SheetTitle>
-                    </SheetHeader>
-                   {detailsProfile && <ProfileDetails profile={detailsProfile} />}
-                </SheetContent>
-            </Sheet>
-          </div>
-      </div>
-    );
-  }
-
   return (
+    <>
+    {newlyMatchedProfile && currentUserProfile && (
+        <ItIsAMatch 
+            currentUser={currentUserProfile}
+            matchedUser={newlyMatchedProfile}
+            onContinue={() => setNewlyMatchedProfile(null)}
+        />
+    )}
     <div className="h-full w-full flex flex-col bg-gray-50 dark:bg-black overflow-hidden">
-      <div className="flex-1 flex flex-col items-center justify-start pt-2 px-1.5">
+      <div className="flex-1 flex flex-col items-center justify-start pt-2 px-1.5 relative">
+         <Button
+            onClick={handleRewind}
+            disabled={history.length === 0}
+            variant="outline"
+            size="icon"
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-30 h-14 w-14 rounded-full bg-white/80 backdrop-blur-md shadow-lg disabled:opacity-50"
+            aria-label={t('common.back')}
+        >
+            <Rewind className="h-7 w-7 text-yellow-500" />
+        </Button>
         <div className="w-full max-w-sm h-full relative flex items-center justify-center">
           <AnimatePresence>
             {visibleStack.length > 0 ? (
@@ -489,5 +477,6 @@ export default function DiscoverPage() {
         </SheetContent>
       </Sheet>
     </div>
+    </>
   );
 }
