@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import EmailVerificationBanner from '@/components/auth/email-verification-banner';
 import { usePageVisibility } from '@/hooks/use-page-visibility';
 import NotificationPermissionBanner from '@/components/notifications/notification-permission-banner';
+import { cn } from '@/lib/utils';
 
 export default function MainLayout({
   children,
@@ -45,7 +46,7 @@ export default function MainLayout({
       <NotificationPermissionBanner />
       {!isChatPage && <MainHeader />}
       <ScrollArea className="flex-1" viewportClassName="h-full">
-        <main className="h-full">{children}</main>
+        <main className={cn("h-full", "pb-[env(safe-area-inset-bottom,0rem)]")}>{children}</main>
       </ScrollArea>
     </div>
   );
