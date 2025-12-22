@@ -383,7 +383,7 @@ export default function DiscoverPage() {
 
   if (isLoading) {
      return (
-         <div className="h-full w-full flex justify-center bg-gray-50 dark:bg-black md:p-8">
+         <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 dark:bg-black md:p-8">
             {isMobile ? 
                 <div className="w-full max-w-sm h-full relative flex items-center justify-center">
                      <Skeleton className="w-full h-full rounded-2xl" />
@@ -406,7 +406,7 @@ export default function DiscoverPage() {
             onContinue={() => setNewlyMatchedProfile(null)}
         />
     )}
-    <div className="h-full w-full flex flex-col flex-1 bg-gray-50 dark:bg-black overflow-hidden">
+    <div className="h-full w-full flex-1 flex flex-col bg-gray-50 dark:bg-black overflow-hidden">
       <div className="flex-1 flex flex-col items-center justify-start pt-2 px-1.5 relative">
         <div className="w-full max-w-sm h-full relative flex items-center justify-center">
           <AnimatePresence>
@@ -454,6 +454,11 @@ export default function DiscoverPage() {
               <NoMoreProfiles onReset={handleReset} />
             )}
           </AnimatePresence>
+        </div>
+        <div className="absolute left-4 bottom-4 z-30">
+            <Button variant="secondary" size="icon" className="w-16 h-16 rounded-full shadow-lg" onClick={handleRewind} disabled={history.length === 0}>
+                <Rewind className="w-8 h-8 text-yellow-500" />
+            </Button>
         </div>
       </div>
       
