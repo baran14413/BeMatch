@@ -407,7 +407,7 @@ export default function DiscoverPage() {
             onContinue={() => setNewlyMatchedProfile(null)}
         />
     )}
-    <div className="h-full w-full flex flex-col bg-gray-50 dark:bg-black overflow-hidden">
+    <div className="h-full w-full flex flex-col flex-1 bg-gray-50 dark:bg-black overflow-hidden">
       <div className="flex-1 flex flex-col items-center justify-start pt-2 px-1.5 relative">
          <Button
             onClick={handleRewind}
