@@ -97,9 +97,10 @@ service cloud.firestore {
                 && denormalizedOther.avatarUrl is string;
       }
       
-      // GET, LIST: Katılımcı veya Admin okuyabilir.
-      // UPDATE, DELETE: Katılımcı veya Admin güncelleyebilir/silebilir.
-      allow get, list, update, delete: if isParticipant() || isAdmin();
+      // GET: Allow reading a match document if the user's ID is in the matchId, to check for existence before creation.
+      allow get: if isAdmin() || (request.auth != null && request.auth.uid in matchId.split('_'));
+      // LIST, UPDATE, DELETE: Participant or Admin can perform these actions on existing documents.
+      allow list, update, delete: if isParticipant() || isAdmin();
       
       // CREATE: Sadece `userCanCreate` fonksiyonu true dönerse oluşturulabilir.
       allow create: if userCanCreate();
