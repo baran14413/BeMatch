@@ -89,20 +89,24 @@ export default function LikesGrid() {
                 // If it doesn't exist, create it in a batch with the like deletion
                 const batch = writeBatch(firestore);
                 
-                const matchData = {
+                const safeMatchData = {
                     users: [currentUserId, targetUserId],
                     timestamp: serverTimestamp(),
                     lastMessage: '',
                      [`user_info_${currentUserId}`]: {
-                        name: currentUserProfile.name,
-                        avatarUrl: currentUserProfile.avatarUrl,
+                        name: currentUserProfile.name || "Bilinmeyen Kullanıcı",
+                        avatarUrl: currentUserProfile.avatarUrl || null,
                     },
                     [`user_info_${targetUserId}`]: {
-                        name: likerProfile.likerName,
-                        avatarUrl: likerProfile.likerAvatar,
+                        name: likerProfile.likerName || "Bilinmeyen Kullanıcı",
+                        avatarUrl: likerProfile.likerAvatar || null,
                     },
                 };
-                batch.set(matchRef, matchData);
+
+                // Add console.log for debugging as requested
+                console.log("Attempting to create match with sanitized data:", safeMatchData);
+                
+                batch.set(matchRef, safeMatchData);
 
                 // Also delete the like from the 'likedBy' subcollection
                 const likedByRef = doc(firestore, 'users', currentUserId, 'likedBy', targetUserId);
