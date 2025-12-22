@@ -12,36 +12,71 @@ service cloud.firestore {
         return request.auth != null && request.auth.token.role == 'admin';
     }
 
-    // Any authenticated user can read public user profiles
+    // --- HIZ SINIRLAMA FONKSİYONU (RATE LIMITING) ---
+    // Belirtilen süreden daha kısa aralıklarla işlem yapılmasını engeller.
+    // path: Kullanıcının doküman yolu (örn: /databases/$(database)/documents/users/$(userId))
+    // field: Zaman damgasının tutulduğu alan (örn: 'lastSwipeTimestamp')
+    // duration: İki işlem arasında geçmesi gereken minimum süre (saniye)
+    function isRateLimited(path, field, duration) {
+      let lastActionTime = get(path).data[field];
+      // Eğer zaman damgası yoksa (ilk işlem), izin ver.
+      if (!lastActionTime) {
+        return false;
+      }
+      // Son işlem ile şimdiki zaman arasındaki fark, belirtilen süreden büyükse izin ver.
+      return request.time - lastActionTime < duration(0, 0, duration, 0, 0);
+    }
+
+
+    // --- KULLANICI İŞLEMLERİ ---
     match /users/{userId} {
       allow read: if request.auth != null;
-      // Admins can write to any user's profile.
-      // Users can only write to their own profile.
-      allow write: if isOwner(userId) || isAdmin();
-    }
-    
-    // Users can read/write their own subcollections (e.g. for future features)
-    match /users/{userId}/{document=**} {
+      // Adminler her şeyi yazabilir.
+      // Kullanıcılar sadece kendi profilini yazabilir.
+      allow write: if isAdmin() || (
+        isOwner(userId) &&
+        // Kullanıcının kendi profilini çok sık güncellemesini engelle
+        !isRateLimited(/databases/$(database)/documents/users/$(userId), 'updatedAt', 1)
+      );
+
+      // Kullanıcı kendi alt koleksiyonlarını (örn: ayarlar, vb.) okuyup yazabilir.
+      match /{document=**} {
         allow read, write: if isOwner(userId);
+      }
     }
-    
-    // Users can write to another user's 'likedBy' subcollection
+
+
+    // --- BEĞENİ (SWIPE) İŞLEMLERİ ---
     match /users/{targetUserId}/likedBy/{likerId} {
       allow read: if request.auth != null && (request.auth.uid == targetUserId || request.auth.uid == likerId);
-      // Validate that the denormalized data matches the actual liker's data
-      allow create: if isOwner(likerId) 
+      
+      // Beğeni oluşturma (CREATE):
+      // 1. İşlemi yapan kendi ID'siyle yazmalı.
+      // 2. Hız sınırını (saniyede 1) aşmamalı.
+      // 3. Gönderilen veri (denormalize edilmiş) doğru formatta olmalı.
+      allow create: if isOwner(likerId)
+                      && !isRateLimited(/databases/$(database)/documents/users/$(likerId), 'lastSwipeTimestamp', 1)
                       && request.resource.data.likerId == likerId
                       && request.resource.data.likerName is string
                       && request.resource.data.likerAvatar is string;
+      
+      // Beğeniyi güncelleme veya silme (geri alma).
       allow update, delete: if isOwner(likerId);
     }
     
-    // A user can read/write a match document if they are a participant
+
+    // --- EŞLEŞME (MATCH) İŞLEMLERİ ---
     match /matches/{matchId} {
       function isParticipant() {
         return request.auth != null && request.auth.uid in resource.data.users;
       }
       
+      // Eşleşme oluşturma koşulları:
+      // 1. Oturum açık olmalı.
+      // 2. Kullanıcı, oluşturulan eşleşmenin katılımcılarından biri olmalı.
+      // 3. Karşı tarafın daha önce beni beğenmiş olması GEREKLİ. (En önemli güvenlik kuralı)
+      // 4. Hız sınırını (5 saniyede 1) aşmamalı.
+      // 5. Denormalize edilen veriler doğru ve eksiksiz olmalı.
       function userCanCreate() {
         let userId = request.auth.uid;
         let otherUserId = request.resource.data.users[1];
@@ -49,40 +84,51 @@ service cloud.firestore {
            otherUserId = request.resource.data.users[0];
         }
         
-        let denormalizedSelf = request.resource.data[str.format('user_info_{0}', [userId])];
-        let denormalizedOther = request.resource.data[str.format('user_info_{0}', [otherUserId])];
+        let denormalizedSelf = request.resource.data[('user_info_' + userId)];
+        let denormalizedOther = request.resource.data[('user_info_' + otherUserId)];
 
         return request.auth != null 
                 && userId in request.resource.data.users
-                // Check if the other user has liked me first (required to create a match)
                 && exists(/databases/$(database)/documents/users/$(userId)/likedBy/$(otherUserId))
-                // Validate denormalized data
+                && !isRateLimited(/databases/$(database)/documents/users/$(userId), 'lastMatchTimestamp', 5)
                 && denormalizedSelf.name is string
                 && denormalizedSelf.avatarUrl is string
                 && denormalizedOther.name is string
                 && denormalizedOther.avatarUrl is string;
       }
       
+      // GET, LIST: Katılımcı veya Admin okuyabilir.
+      // UPDATE, DELETE: Katılımcı veya Admin güncelleyebilir/silebilir.
       allow get, list, update, delete: if isParticipant() || isAdmin();
+      
+      // CREATE: Sadece `userCanCreate` fonksiyonu true dönerse oluşturulabilir.
       allow create: if userCanCreate();
 
-      // Messages can be read/written by participants of the parent match
+
+      // --- MESAJ İŞLEMLERİ ---
       match /messages/{messageId} {
-        allow read, write: if get(/databases/$(database)/documents/matches/$(matchId)).data.users.hasAny([request.auth.uid]) || isAdmin();
+        // Okuma ve yazma: Üst eşleşme belgesindeki katılımcılardan biri veya Admin ise izin ver.
+        // Hız Sınırlama: Mesaj yazma kuralına da hız sınırı ekleyerek spam önlenir.
+        allow read: if get(/databases/$(database)/documents/matches/$(matchId)).data.users.hasAny([request.auth.uid]) || isAdmin();
+        allow write: if (get(/databases/$(database)/documents/matches/$(matchId)).data.users.hasAny([request.auth.uid]) 
+                      && !isRateLimited(/databases/$(database)/documents/users/$(request.auth.uid), 'lastMessageTimestamp', 1)) 
+                      || isAdmin();
       }
     }
 
-    // Reports can be created by any authenticated user
+
+    // --- DİĞER KOLEKSİYONLAR ---
+    // Raporlama: Oturumu açık olan herkes rapor oluşturabilir. Sadece Admin ve Moderatörler okuyabilir/güncelleyebilir.
     match /reports/{reportId} {
       allow create: if request.auth != null && request.resource.data.reporterId == request.auth.uid;
-      // Admins and moderators can read/update reports
       allow read, update: if request.auth != null && request.auth.token.role in ['admin', 'moderator'];
     }
 
-    // A user can write their own deletion record. No one can read it from the client.
+    // Silinen Kullanıcılar: Kullanıcı sadece kendi silinme kaydını yazabilir.
+    // Bu kayıtlar istemci tarafından okunamaz, sadece sunucu tarafı için log amaçlıdır.
     match /deletedUsers/{userId} {
       allow write: if isOwner(userId);
-      allow read: if false; // No client read access
+      allow read: if false; 
     }
   }
 }
