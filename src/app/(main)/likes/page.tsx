@@ -77,7 +77,8 @@ export default function LikesGrid() {
         if (!user || !firestore || !currentUserProfile) return;
 
         const currentUserId = user.uid;
-        const targetUserId = likerProfile.likerId;
+        // **FIX:** The liker's ID is the document ID of the 'like' document itself.
+        const targetUserId = likerProfile.id;
 
         // **Requirement 1 & 3: Strict Validation & Safety**
         if (!currentUserId || !targetUserId) {
