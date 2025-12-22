@@ -40,7 +40,7 @@ export default function MainLayout({
   }
   
   return (
-    <div className="flex flex-col h-dvh bg-background">
+    <div className="flex flex-col h-dvh">
       {!user.emailVerified && <EmailVerificationBanner />}
       <NotificationPermissionBanner />
       {!isChatPage && <MainHeader />}
