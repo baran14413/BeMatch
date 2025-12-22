@@ -233,7 +233,7 @@ export default function DiscoverPage() {
         if (b.distance === undefined) return -1;
         return a.distance - b.distance;
       });
-  }, [currentUserProfile, user]);
+  }, [profiles, currentUserProfile, user]);
 
   
   useEffect(() => {
@@ -408,7 +408,7 @@ export default function DiscoverPage() {
     )}
     <div className="h-full w-full flex-1 flex flex-col bg-gray-50 dark:bg-black overflow-hidden">
       <div className="flex-1 flex flex-col items-center justify-start pt-2 px-1.5 relative">
-        <div className="w-full max-w-sm h-full relative flex items-center justify-center z-20">
+        <div className="w-full max-w-sm h-full relative flex-1 flex items-center justify-center z-20">
           <AnimatePresence>
             {visibleStack.length > 0 ? (
               <>

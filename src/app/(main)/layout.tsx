@@ -45,9 +45,7 @@ export default function MainLayout({
       {!user.emailVerified && <EmailVerificationBanner />}
       <NotificationPermissionBanner />
       {!isChatPage && <MainHeader />}
-      <ScrollArea className="flex-1" viewportClassName="h-full">
-        <main className={cn("h-full", "pb-[env(safe-area-inset-bottom,0rem)]")}>{children}</main>
-      </ScrollArea>
+      <main className={cn("flex-1 h-full", "pb-[env(safe-area-inset-bottom,0rem)]")}>{children}</main>
     </div>
   );
 }
