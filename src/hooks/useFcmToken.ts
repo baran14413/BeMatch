@@ -22,9 +22,16 @@ export function useFcmToken() {
         
         if (Notification.permission === 'granted') {
           const messaging = getMessaging(firebaseApp);
+          
+          // Explicitly register the service worker.
+          const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+          
+          // Pass the registration to the getToken function.
           const currentToken = await getToken(messaging, {
             vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+            serviceWorkerRegistration: registration,
           });
+
           if (currentToken) {
             setFcmToken(currentToken);
             // Here you would typically save the token to your backend/Firestore
