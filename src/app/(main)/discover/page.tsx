@@ -295,7 +295,7 @@ export default function DiscoverPage() {
 
     toast({
         title: "Geri Alındı!",
-        description: `${lastAction.profile.name} profiline geri döndün.`
+        description: `${'${lastAction.profile.name}'} profiline geri döndün.`
     })
 
   };
@@ -345,11 +345,11 @@ export default function DiscoverPage() {
                 users: [user.uid, swipedProfile.id],
                 timestamp: serverTimestamp(),
                 lastMessage: t('discover.newMatch'),
-                [`user_info_${user.uid}`]: {
+                [`user_info_${'${user.uid}'}`]: {
                     name: currentUserProfile.name,
                     avatarUrl: currentUserProfile.avatarUrl,
                 },
-                [`user_info_${swipedProfile.id}`]: {
+                [`user_info_${'${swipedProfile.id}'}`]: {
                     name: swipedProfile.name,
                     avatarUrl: swipedProfile.avatarUrl,
                 },
@@ -408,17 +408,7 @@ export default function DiscoverPage() {
     )}
     <div className="h-full w-full flex flex-col flex-1 bg-gray-50 dark:bg-black overflow-hidden">
       <div className="flex-1 flex flex-col items-center justify-start pt-2 px-1.5 relative">
-         <Button
-            onClick={handleRewind}
-            disabled={history.length === 0}
-            variant="outline"
-            size="icon"
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-30 h-14 w-14 rounded-full bg-white/80 backdrop-blur-md shadow-lg disabled:opacity-50"
-            aria-label={t('common.back')}
-        >
-            <Rewind className="h-7 w-7 text-yellow-500" />
-        </Button>
-        <div className="w-full max-w-sm h-full relative flex items-center justify-center z-20">
+        <div className="w-full max-w-sm h-full relative flex items-center justify-center">
           <AnimatePresence>
             {visibleStack.length > 0 ? (
               <>
