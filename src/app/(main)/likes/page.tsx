@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { useToast } from '@/hooks/use-toast';
 
 
 const LikesGridSkeleton = () => (
@@ -45,6 +46,7 @@ export default function LikesGrid() {
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
     const router = useRouter();
+    const { toast } = useToast();
 
     const [selectedProfile, setSelectedProfile] = useState<Swipe | null>(null);
 
@@ -76,6 +78,19 @@ export default function LikesGrid() {
 
         const currentUserId = user.uid;
         const targetUserId = likerProfile.likerId;
+
+        // **Requirement 1 & 3: Strict Validation & Safety**
+        if (!currentUserId || !targetUserId) {
+            console.error("Missing ID for chat creation:", { currentUserId, targetUserId });
+            toast({
+                variant: "destructive",
+                title: "Error Starting Chat",
+                description: "Could not start chat due to missing user information.",
+            });
+            return;
+        }
+        
+        // **Requirement 2: Correct ID Generation (after validation)**
         const chatId = [currentUserId, targetUserId].sort().join('_');
         const matchRef = doc(firestore, 'matches', chatId);
 
