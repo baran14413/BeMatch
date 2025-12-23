@@ -105,7 +105,7 @@ export default function ProfileCard({ profile, onShowDetails, isTopCard }: Profi
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
         <div className="absolute bottom-0 left-0 p-4 text-white w-full space-y-2">
             <div className="flex items-center gap-2">
-              <h2 className="text-3xl font-bold">{profile.name}, {profile.age}</h2>
+              <h2 className="text-3xl font-bold">{profile.name} {profile.age}</h2>
               {profile.premiumTier && <Crown className="w-6 h-6 text-yellow-400 fill-yellow-400" />}
             </div>
             {profile.bio && <p className="text-white/90 text-sm truncate">{profile.bio}</p>}

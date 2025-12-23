@@ -69,6 +69,8 @@ export default function ProfileDetails({ profile }: ProfileDetailsProps) {
                     <p className="text-sm mt-1 text-muted-foreground">{t('discover.distanceAway', { distance: profile.distance })}</p>
                 )}
             </div>
+            
+            {profile.imageUrls.map((url, index) => renderMedia(url, index))}
 
             <div className="relative">
               <h3 className="text-lg font-semibold">{t('discover.aboutMe')}</h3>
@@ -82,7 +84,7 @@ export default function ProfileDetails({ profile }: ProfileDetailsProps) {
           </div>
           )}
 
-          {profile.prompts.map((prompt, index) => {
+          {profile.prompts && profile.prompts.map((prompt, index) => {
           const id = `prompt-${index}`;
           return (
               <div
@@ -108,8 +110,6 @@ export default function ProfileDetails({ profile }: ProfileDetailsProps) {
               </div>
           );
           })}
-
-          {profile.imageUrls.slice(1).map((url, index) => renderMedia(url, index + 1))}
 
           {profile.videoUrl && (
             <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden snap-center">
