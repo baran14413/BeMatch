@@ -16,6 +16,7 @@ import WizardControls from '@/components/auth/wizard-controls';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useLanguage } from '@/context/language-context';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 type AuthView = 'login' | 'register';
 
@@ -51,7 +52,7 @@ export default function OnboardingWizard({ onSwitchView, onRegisterSuccess }: On
 
   return (
     <div className="w-full h-full flex flex-col bg-background">
-        <div className="p-4">
+        <div className="p-4 pt-[calc(env(safe-area-inset-top,0rem)+1rem)]">
             <StepIndicator currentStep={currentStep} totalSteps={steps.length} />
         </div>
         <ScrollArea className="flex-1" viewportClassName="flex">
@@ -75,7 +76,7 @@ export default function OnboardingWizard({ onSwitchView, onRegisterSuccess }: On
                </AnimatePresence>
             </div>
         </ScrollArea>
-        <div className="p-4 pt-0 mt-auto space-y-3">
+        <div className="p-4 pt-0 mt-auto space-y-3 pb-[calc(env(safe-area-inset-bottom,0rem)+1rem)]">
             <WizardControls
               totalSteps={steps.length}
             />
