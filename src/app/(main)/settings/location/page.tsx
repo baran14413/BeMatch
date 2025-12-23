@@ -97,7 +97,17 @@ export default function LocationPage() {
              setIsUpdating(false);
         }, (error) => {
             console.error("Geolocation error: ", error);
-             toast({ variant: 'destructive', title: t('locationPage.permissionDenied') });
+             let errorTitle = "Konum Hatası";
+             let errorDescription = "Konum bilginize erişilemedi. Lütfen cihazınızın konum servislerinin açık olduğundan ve tarayıcıya izin verdiğinizden emin olun.";
+             if(error.code === error.PERMISSION_DENIED){
+                 errorTitle = "Konum İzni Reddedildi";
+                 errorDescription = "Konum iznini reddettiniz. Ayarlardan BeMatch için konuma izin vermeniz gerekiyor.";
+             }
+             toast({ 
+                 variant: 'destructive', 
+                 title: errorTitle,
+                 description: errorDescription,
+             });
              setIsUpdating(false);
         });
     };

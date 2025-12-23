@@ -32,6 +32,7 @@ export default function StepLocation() {
   const handleLocationRequest = () => {
     if (!navigator.geolocation) {
         setError(t('locationPage.noSupport'));
+        toast({ variant: 'destructive', title: t('locationPage.noSupport') });
         return;
     }
 
@@ -54,20 +55,29 @@ export default function StepLocation() {
       }, 
       (err) => {
         console.error("Geolocation error: ", err);
+        let errorTitle = "Konum Hatası";
+        let errorDescription = "Bilinmeyen bir hata oluştu.";
+
         switch(err.code) {
             case err.PERMISSION_DENIED:
-                setError("Konum izni reddedildi. Ayarlardan izin vermeniz gerekiyor.");
+                errorTitle = "Konum İzni Reddedildi";
+                errorDescription = "BeMatch'in konumunuza erişmesine izin vermelisiniz. Lütfen tarayıcı ayarlarından izni etkinleştirin.";
                 break;
             case err.POSITION_UNAVAILABLE:
-                setError("Konum bilgisi alınamıyor. Lütfen daha sonra tekrar deneyin.");
+                 errorTitle = "Konum Bilgisi Alınamıyor";
+                 errorDescription = "Cihazınızın konum servisleri kapalı olabilir. Lütfen telefonunuzun ayarlarından konumu açıp tekrar deneyin.";
                 break;
             case err.TIMEOUT:
-                setError("Konum alma zaman aşımına uğradı. Cihazınızın konum servislerinin açık olduğundan emin olun.");
-                break;
-            default:
-                setError("Bilinmeyen bir hata oluştu.");
+                 errorTitle = "İstek Zaman Aşımına Uğradı";
+                 errorDescription = "Konum alma zaman aşımına uğradı. Cihazınızın konum servislerinin açık olduğundan emin olun.";
                 break;
         }
+        setError(errorDescription);
+        toast({
+            variant: "destructive",
+            title: errorTitle,
+            description: errorDescription,
+        });
         setIsLocating(false);
       },
       {
