@@ -103,7 +103,6 @@ export default function ProfilePage() {
                 <h1 className="text-3xl font-bold">{userProfile.name}</h1>
                 {isPremium && <Crown className="w-7 h-7 text-yellow-400 fill-yellow-400" />}
               </div>
-              <p className="text-lg text-muted-foreground">{userProfile.age} yaşında</p>
             </div>
           </div>
           <div className="flex-1 flex justify-end">
