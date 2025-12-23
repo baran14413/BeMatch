@@ -5,7 +5,7 @@ import { isSupported } from 'firebase/messaging/sw';
 import { useFirebase } from '@/firebase';
 
 export function useFcmToken() {
-  const { firebaseApp, user } = useFirebase();
+  const { firebaseApp } = useFirebase();
   const [fcmToken, setFcmToken] = useState<string | null>(null);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | null>(null);
   const [isNotificationSupported, setIsNotificationSupported] = useState<boolean>(false);
@@ -17,14 +17,17 @@ export function useFcmToken() {
       setIsNotificationSupported(supported);
 
       if (supported && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-        // Set current permission status
         setNotificationPermission(Notification.permission);
         
         if (Notification.permission === 'granted') {
           const messaging = getMessaging(firebaseApp);
-          // Explicitly register the service worker
+          
+          // Explicitly register the service worker.
           const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
           
+          // Ensure the service worker is active before trying to get the token.
+          await navigator.serviceWorker.ready;
+
           const currentToken = await getToken(messaging, {
             vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
             serviceWorkerRegistration: registration,
@@ -32,8 +35,7 @@ export function useFcmToken() {
 
           if (currentToken) {
             setFcmToken(currentToken);
-            // Here you would typically save the token to your backend/Firestore
-            // associated with the user.
+            // TODO: Save this token to your backend/Firestore for the current user
           } else {
             console.log('No registration token available. Request permission to generate one.');
           }
@@ -55,7 +57,7 @@ export function useFcmToken() {
       const permission = await Notification.requestPermission();
       setNotificationPermission(permission);
       if (permission === 'granted') {
-        await retrieveToken(); // Re-retrieve token after getting permission
+        await retrieveToken();
       }
     } catch (err) {
       console.error('An error occurred while requesting permission. ', err);
@@ -69,11 +71,16 @@ export function useFcmToken() {
 
   useEffect(() => {
     if (isNotificationSupported && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        console.log('Message from service worker:', event.data);
+      const messaging = getMessaging(firebaseApp);
+      const unsubscribe = onMessage(messaging, (payload) => {
+        console.log('Foreground message received.', payload);
+        // You can use a library like 'react-hot-toast' or a custom component to show a foreground notification.
       });
+      return () => {
+        unsubscribe();
+      };
     }
-  }, [isNotificationSupported]);
+  }, [isNotificationSupported, firebaseApp]);
 
   return { fcmToken, notificationPermission, requestPermission, isNotificationSupported, error };
 }
