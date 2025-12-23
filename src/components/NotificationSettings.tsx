@@ -1,76 +1,52 @@
-'use client'; // This directive is for Next.js, but the code logic is for React Native
+'use client';
 
 import React from 'react';
-import { View, Text, Switch, StyleSheet, Alert } from 'react-native';
-import { useNativeNotifications } from '@/hooks/useNativeNotifications';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'; // Assuming you have RN equivalents
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { useNativeNotifications } from '@/hooks/use-native-notifications';
+import { useToast } from '@/hooks/use-toast';
 
-/**
- * A component for toggling native push notification permissions.
- */
 export default function NotificationSettings() {
-  const { hasPermission, requestPermission } = useNativeNotifications();
+  const { hasPermission, requestPermission, isNative } = useNativeNotifications();
+  const { toast } = useToast();
 
   const handleToggle = (value: boolean) => {
-    if (value) {
-      // User is trying to turn notifications ON
+    if (value && !hasPermission) {
       requestPermission();
-    } else {
-      // User is trying to turn notifications OFF
-      // Apps cannot programmatically revoke permissions. Inform the user.
-      Alert.alert(
-        "Disable Notifications",
-        "To turn off notifications, you need to go to your phone's settings.\n\nSettings > Apps > BeMatch > Notifications",
-        [{ text: "OK" }]
-      );
+    } else if (!value) {
+      toast({
+        variant: "destructive",
+        title: "Disabling Notifications",
+        description: "To turn off notifications, you must go to your phone's system settings.",
+      });
     }
   };
 
+  if (!isNative) {
+    return null; // Don't show this component on the web
+  }
+
   return (
-    <Card style={styles.card}>
+    <Card>
       <CardHeader>
-        <CardTitle style={styles.title}>Push Notifications</CardTitle>
-        <CardDescription style={styles.description}>
-          Receive alerts for new messages and matches.
+        <CardTitle>Push Notifications</CardTitle>
+        <CardDescription>
+          Receive alerts for new messages and matches directly on your device.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <View style={styles.row}>
-          <Text style={styles.label}>Enable Notifications</Text>
+        <div className="flex items-center justify-between space-x-2">
+          <Label htmlFor="notifications-switch" className="flex-grow">
+            Enable Notifications
+          </Label>
           <Switch
-            trackColor={{ false: "#767577", true: "#81b0ff" }}
-            thumbColor={hasPermission ? "#f5dd4b" : "#f4f3f4"}
-            ios_backgroundColor="#3e3e3e"
-            onValueChange={handleToggle}
-            value={hasPermission}
+            id="notifications-switch"
+            checked={hasPermission}
+            onCheckedChange={handleToggle}
           />
-        </View>
+        </div>
       </CardContent>
     </Card>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    margin: 16,
-    // Add styling for your Card component if needed
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  description: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-  },
-  label: {
-    fontSize: 16,
-  },
-});
