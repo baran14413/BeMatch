@@ -93,7 +93,7 @@ export default function WalletPage() {
     return (
         <ScrollArea className="h-full">
             <div className="h-full bg-gray-50 dark:bg-black">
-                <header className="p-4 py-6 md:p-8 flex items-center gap-4">
+                <header className="p-4 py-6 md:p-8 flex items-center gap-4 pt-[calc(env(safe-area-inset-top,0rem)+1.5rem)]">
                     <Link href="/settings" passHref>
                         <Button variant="ghost" size="icon">
                             <ArrowLeft className="w-6 h-6" />
@@ -105,7 +105,7 @@ export default function WalletPage() {
                     </div>
                 </header>
                 {isLoading ? <WalletSkeleton /> : (
-                    <div className="p-4 md:p-8 md:pt-0 space-y-8">
+                    <div className="p-4 md:p-8 md:pt-0 space-y-8 pb-[calc(env(safe-area-inset-bottom,0rem)+2rem)]">
                         {userProfile?.premiumTier ? (
                              <Card className="overflow-hidden shadow-lg border-0">
                                 <div className="p-6 bg-gradient-to-br from-yellow-300 via-yellow-400 to-orange-400 dark:from-yellow-500 dark:via-amber-500 dark:to-orange-600 text-black">

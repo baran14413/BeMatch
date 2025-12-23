@@ -97,7 +97,7 @@ export default function SettingsPage() {
                 <p className="text-muted-foreground">{t('settings.description')}</p>
             </header>
 
-            <div className="p-4 md:p-8 md:pt-0 space-y-8">
+            <div className="p-4 md:p-8 md:pt-0 space-y-8 pb-[calc(env(safe-area-inset-bottom,0rem)+2rem)]">
                 {hasAdminAccess && (
                     <SettingsSection title="Yönetim">
                         <SettingsItem icon={LayoutDashboard} label="Admin Paneli" href="/admin" />

@@ -136,7 +136,7 @@ export default function ReportPage() {
         </div>
       </header>
 
-      <div className="p-4 md:p-8 md:pt-0 space-y-8 max-w-2xl mx-auto">
+      <div className="p-4 md:p-8 md:pt-0 space-y-8 max-w-2xl mx-auto pb-[calc(env(safe-area-inset-bottom,0rem)+2rem)]">
         <Card>
           <CardHeader>
             <CardTitle>{t('report.reasonTitle')}</CardTitle>

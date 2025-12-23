@@ -98,7 +98,7 @@ export default function SubscriptionsPage() {
     return (
         <ScrollArea className="h-full">
             <div className="h-full bg-gray-50 dark:bg-black">
-                <header className="p-4 py-6 md:p-8 flex items-center gap-4">
+                <header className="p-4 py-6 md:p-8 flex items-center gap-4 pt-[calc(env(safe-area-inset-top,0rem)+1.5rem)]">
                     <Link href="/settings" passHref>
                          <Button variant="ghost" size="icon">
                             <ArrowLeft className="w-6 h-6" />
@@ -110,7 +110,7 @@ export default function SubscriptionsPage() {
                     </div>
                 </header>
                 
-                <div className="px-4 md:px-8 pb-8 grid gap-8 md:grid-cols-1 lg:grid-cols-3 items-start">
+                <div className="px-4 md:px-8 pb-8 grid gap-8 md:grid-cols-1 lg:grid-cols-3 items-start pb-[calc(env(safe-area-inset-bottom,0rem)+2rem)]">
                     {subscriptionPackages.map((pkg) => (
                         <SubscriptionCard key={pkg.id} pkg={pkg} />
                     ))}

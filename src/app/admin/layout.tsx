@@ -89,7 +89,7 @@ const SidebarContent = ({ userRole, pendingReportsCount }: { userRole: string | 
 
   return (
     <div className="flex h-full max-h-screen flex-col gap-2 bg-[#1f1f1f] text-white">
-        <div className="flex h-16 items-center border-b border-gray-700 px-6">
+        <div className="flex h-16 items-center border-b border-gray-700 px-6 pt-[env(safe-area-inset-top,0rem)]">
             <Link href="/admin" className="flex items-center gap-2 font-semibold">
                 <Heart className="h-6 w-6 text-pink-500" />
                 <span>BeMatch Admin</span>
@@ -104,7 +104,7 @@ const SidebarContent = ({ userRole, pendingReportsCount }: { userRole: string | 
                 ))}
             </nav>
         </div>
-        <div className="mt-auto p-4 border-t border-gray-700">
+        <div className="mt-auto p-4 border-t border-gray-700 pb-[env(safe-area-inset-bottom,0rem)]">
             <SidebarLink href="#" icon={LogOut}>
                 Logout
             </SidebarLink>
@@ -192,7 +192,7 @@ export default function AdminLayout({
             <SidebarContent userRole={userRole} pendingReportsCount={pendingReports?.length} />
           </div>
           <div className="flex flex-col">
-              <header className="flex h-14 items-center gap-4 border-b bg-gray-100/40 px-6 dark:bg-gray-800/40">
+              <header className="flex h-14 items-center gap-4 border-b bg-gray-100/40 px-6 dark:bg-gray-800/40 pt-[env(safe-area-inset-top,0rem)]">
                   <Sheet>
                       <SheetTrigger asChild>
                           <Button
@@ -251,7 +251,7 @@ export default function AdminLayout({
                       </DropdownMenuContent>
                   </DropdownMenu>
               </header>
-              <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6 bg-gray-50 dark:bg-black">
+              <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6 bg-gray-50 dark:bg-black pb-[env(safe-area-inset-bottom,0rem)]">
                 {children}
               </main>
           </div>

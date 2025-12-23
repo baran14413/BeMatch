@@ -129,7 +129,7 @@ export default function GallerySettingsPage() {
   return (
     <ScrollArea className="h-full">
       <div className="h-full bg-gray-50 dark:bg-black">
-        <header className="p-4 py-6 md:p-8 flex items-center gap-4 border-b mb-8">
+        <header className="p-4 py-6 md:p-8 flex items-center gap-4 border-b mb-8 pt-[calc(env(safe-area-inset-top,0rem)+1.5rem)]">
             <Link href="/settings" passHref>
                 <Button variant="ghost" size="icon">
                     <ArrowLeft className="w-6 h-6" />
@@ -141,7 +141,7 @@ export default function GallerySettingsPage() {
             </div>
         </header>
 
-        <div className="p-4 md:p-8 md:pt-0 space-y-4">
+        <div className="p-4 md:p-8 md:pt-0 space-y-4 pb-[calc(env(safe-area-inset-bottom,0rem)+2rem)]">
           <p className="text-center text-muted-foreground text-sm">
             {t('onboarding.photos.info')}
           </p>

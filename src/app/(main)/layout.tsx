@@ -45,7 +45,7 @@ export default function MainLayout({
       {!user.emailVerified && <EmailVerificationBanner />}
       <NotificationPermissionBanner />
       {!isChatPage && <MainHeader />}
-      <main className={cn("flex-1 h-full", "pb-[env(safe-area-inset-bottom,0rem)]")}>{children}</main>
+      <main className="flex-1 h-full pb-[env(safe-area-inset-bottom,0rem)]">{children}</main>
     </div>
   );
 }

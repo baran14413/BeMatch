@@ -91,7 +91,7 @@ export default function PersonalInfoPage() {
     return (
         <ScrollArea className="h-full">
             <div className="h-full bg-gray-50 dark:bg-black">
-                <header className="p-4 py-6 md:p-8 flex items-center gap-4">
+                <header className="p-4 py-6 md:p-8 flex items-center gap-4 pt-[calc(env(safe-area-inset-top,0rem)+1.5rem)]">
                     <Link href="/settings" passHref>
                         <Button variant="ghost" size="icon">
                             <ArrowLeft className="w-6 h-6" />
@@ -103,7 +103,7 @@ export default function PersonalInfoPage() {
                     </div>
                 </header>
 
-                <div className="p-4 md:p-8 md:pt-0 space-y-8">
+                <div className="p-4 md:p-8 md:pt-0 space-y-8 pb-[calc(env(safe-area-inset-bottom,0rem)+2rem)]">
                     <Card>
                         <CardHeader>
                             <CardTitle>{t('personalInfoPage.profileDetails')}</CardTitle>
