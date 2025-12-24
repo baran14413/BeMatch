@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { useOnboardingContext } from '@/context/onboarding-context';
@@ -8,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import PasswordStrength from '@/components/auth/password-strength';
 import { useLanguage } from '@/context/language-context';
 import { cn } from '@/lib/utils';
-import PolicySheet from '@/components/auth/policy-sheet';
+import Link from 'next/link';
 
 export default function StepCredentials() {
   const { formData, updateFormData, setStepValid } = useOnboardingContext();
@@ -17,7 +18,6 @@ export default function StepCredentials() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isConfirmTouched, setIsConfirmTouched] = useState(false);
-  const [sheetContent, setSheetContent] = useState<'terms' | 'privacy' | null>(null);
 
   useEffect(() => {
     const hasLetters = /[a-zA-Z]/.test(formData.password);
@@ -104,17 +104,12 @@ export default function StepCredentials() {
       <div className="mt-auto">
           <div className="text-center text-xs text-muted-foreground mb-4">
             {parts[0]}
-            <button onClick={() => setSheetContent('terms')} className="underline hover:text-primary">{parts[1]}</button>
+            <Link href="/terms" target="_blank" className="underline hover:text-primary">{parts[1]}</Link>
             {parts[2]}
-            <button onClick={() => setSheetContent('privacy')} className="underline hover:text-primary">{parts[3]}</button>
+            <Link href="/privacy" target="_blank" className="underline hover:text-primary">{parts[3]}</Link>
             {parts[4]}
         </div>
       </div>
-      <PolicySheet
-        isOpen={!!sheetContent}
-        onOpenChange={(open) => !open && setSheetContent(null)}
-        initialTab={sheetContent === 'terms' ? 'terms' : 'privacy'}
-      />
     </div>
   );
 }

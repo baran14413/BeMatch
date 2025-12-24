@@ -1,3 +1,4 @@
+
 'use client';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -22,7 +23,7 @@ export default function PolicySheet({ isOpen, onOpenChange, initialTab = 'terms'
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="h-[85vh] p-0 flex flex-col">
-        <SheetHeader className="p-6 pb-0">
+        <SheetHeader className="p-6 pb-0 pt-[calc(env(safe-area-inset-top,0rem)+1.5rem)]">
           <SheetTitle className="text-center text-xl">{t('legal.title')}</SheetTitle>
         </SheetHeader>
         <div className="flex-1 overflow-hidden">
