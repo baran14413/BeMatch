@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { isToday, isFuture } from 'date-fns';
 import ItIsAMatch from '@/components/discover/it-is-a-match';
-import { mockProfiles } from '@/lib/mock-profiles';
+import { generateAiIcebreaker } from '@/app/actions';
 
 
 type SwipeDirection = 'left' | 'right' | 'up';
@@ -145,7 +145,7 @@ const NoMoreProfiles = ({ onReset }: { onReset: () => void }) => {
 export default function DiscoverPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const router = useRouter();
@@ -177,8 +177,8 @@ export default function DiscoverPage() {
   const { data: profiles, isLoading: isLoadingProfiles } = useCollection<UserProfile>(usersQuery);
 
   const filteredAndSortedProfiles = useMemo(() => {
-    // Combine real profiles with mock profiles
-    const combinedProfiles = [...mockProfiles, ...(profiles || [])];
+    // This part should be updated to not rely on a separate mock-profiles file
+    const combinedProfiles = [...(profiles || [])];
 
     if (!currentUserProfile || !user) return combinedProfiles;
 
@@ -210,10 +210,6 @@ export default function DiscoverPage() {
         return isNotSelf && isInAgeRange && interestMatch && hasAvatar;
       })
       .map(p => {
-        // Use hardcoded distance for mock profiles
-        if (p.id.startsWith('mock-')) {
-          return { ...p, isBoosted: false };
-        }
         const distance = getDistanceInKm(currentLat!, currentLon!, p.latitude!, p.longitude!);
         const isBoosted = p.boostExpiresAt && isFuture((p.boostExpiresAt as Timestamp).toDate());
         return { ...p, distance, isBoosted };
@@ -303,13 +299,69 @@ export default function DiscoverPage() {
     if (visibleStack.length === 0 || !user || !firestore || !currentUserProfile) return;
 
     const swipedProfile = visibleStack[visibleStack.length - 1];
+    const swipeType: SwipeType = direction === 'right' ? 'like' : direction === 'up' ? 'superlike' : 'nope';
 
-    // Don't interact with Firestore for mock profiles
-    if (swipedProfile.id.startsWith('mock-')) {
-        setHistory(prev => [{profile: swipedProfile, type: 'like'}, ...prev]);
-        setProfileIndex(prev => prev + 1);
+    setHistory(prev => [{profile: swipedProfile, type: swipeType}, ...prev]);
+    setProfileIndex(prev => prev + 1);
+
+    // If it's a mock profile and the user liked them, initiate an AI chat.
+    if (swipedProfile.isSystemAccount && (swipeType === 'like' || swipeType === 'superlike')) {
+        try {
+            const userProfileString = `Name: ${currentUserProfile.name}, Age: ${currentUserProfile.age}, Bio: ${currentUserProfile.bio}, Interests: ${currentUserProfile.interests?.join(', ')}`;
+            
+            const result = await generateAiIcebreaker({
+                userProfile: userProfileString,
+                mockProfileName: swipedProfile.name,
+                language: locale,
+            });
+
+            if (result.icebreaker) {
+                const matchId = [currentUserProfile.id, swipedProfile.id].sort().join('_');
+                const matchRef = doc(firestore, 'matches', matchId);
+                const messageRef = doc(collection(firestore, 'matches', matchId, 'messages'));
+
+                const batch = writeBatch(firestore);
+
+                batch.set(matchRef, {
+                    users: [currentUserProfile.id, swipedProfile.id],
+                    timestamp: serverTimestamp(),
+                    lastMessage: result.icebreaker,
+                    [`user_info_${currentUserProfile.id}`]: {
+                        name: currentUserProfile.name,
+                        avatarUrl: currentUserProfile.avatarUrl,
+                    },
+                    [`user_info_${swipedProfile.id}`]: {
+                        name: swipedProfile.name,
+                        avatarUrl: swipedProfile.avatarUrl,
+                    },
+                });
+
+                batch.set(messageRef, {
+                    senderId: swipedProfile.id,
+                    text: result.icebreaker,
+                    timestamp: serverTimestamp(),
+                    isRead: false,
+                });
+
+                await batch.commit();
+                toast({
+                    title: `Yeni Mesaj: ${swipedProfile.name}`,
+                    description: 'Sohbetler sayfasına göz at.',
+                });
+            }
+        } catch (error) {
+            console.error(`Failed to send message from mock profile ${swipedProfile.name}:`, error);
+            toast({
+                variant: 'destructive',
+                title: t('lounge.ai.errorTitle'),
+                description: t('lounge.ai.errorDescription'),
+            })
+        }
         return;
     }
+    
+    // Regular swipe logic for real users
+    if (swipeType === 'nope') return;
 
     if (direction === 'up' && !currentUserProfile.premiumTier) {
         toast({
@@ -319,13 +371,6 @@ export default function DiscoverPage() {
         });
         return;
     }
-
-    const swipeType: SwipeType = direction === 'right' ? 'like' : direction === 'up' ? 'superlike' : 'nope';
-
-    setHistory(prev => [{profile: swipedProfile, type: swipeType}, ...prev]);
-    setProfileIndex(prev => prev + 1);
-
-    if (swipeType === 'nope') return;
 
     const swipeData = {
         type: swipeType,
@@ -379,7 +424,7 @@ export default function DiscoverPage() {
           }));
       });
 
-  }, [visibleStack, user, firestore, currentUserProfile, toast, t, router]);
+  }, [visibleStack, user, firestore, currentUserProfile, toast, t, router, locale]);
 
   if (isMobile === undefined) {
     return null;
