@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useFirestore, useStorage, useUser } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -8,6 +8,9 @@ import { useToast } from '@/hooks/use-toast';
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 import { useLanguage } from './language-context';
+import { generateAiIcebreaker } from '@/app/actions';
+import { mockProfiles } from '@/lib/mock-profiles';
+import type { UserProfile } from '@/lib/data';
 
 
 interface FormData {
@@ -75,6 +78,72 @@ const OnboardingContext = createContext<OnboardingContextType | undefined>(undef
 
 const BEMATCH_SYSTEM_ID = 'bematch_system_account';
 
+// New function to schedule messages from mock profiles
+const scheduleMockMessages = (
+    newUserId: string,
+    newUserProfile: UserProfile,
+    language: 'tr' | 'en'
+) => {
+    // Select 3-4 random mock profiles
+    const shuffledMocks = [...mockProfiles].sort(() => 0.5 - Math.random());
+    const selectedMocks = shuffledMocks.slice(0, Math.floor(Math.random() * 2) + 3); // 3 to 4 mocks
+
+    selectedMocks.forEach((mockProfile, index) => {
+        // Random delay between 1 and 8 hours
+        const delay = (Math.random() * 7 + 1) * 60 * 60 * 1000;
+
+        setTimeout(async () => {
+            try {
+                const firestore = useFirestore();
+                const userProfileString = `Name: ${newUserProfile.name}, Age: ${newUserProfile.age}, Bio: ${newUserProfile.bio}, Interests: ${newUserProfile.interests?.join(', ')}`;
+                
+                const result = await generateAiIcebreaker({
+                    userProfile: userProfileString,
+                    mockProfileName: mockProfile.name,
+                    language: language,
+                });
+
+                if (result.icebreaker) {
+                    const matchId = [newUserId, mockProfile.id].sort().join('_');
+                    const matchRef = doc(firestore, 'matches', matchId);
+                    const messagesColRef = doc(firestore, 'matches', matchId, 'messages', uuidv4());
+
+                    const batch = writeBatch(firestore);
+
+                    // Create Match document
+                    batch.set(matchRef, {
+                        users: [newUserId, mockProfile.id],
+                        timestamp: serverTimestamp(),
+                        lastMessage: result.icebreaker,
+                        [`user_info_${newUserId}`]: {
+                            name: newUserProfile.name,
+                            avatarUrl: newUserProfile.avatarUrl,
+                        },
+                        [`user_info_${mockProfile.id}`]: {
+                            name: mockProfile.name,
+                            avatarUrl: mockProfile.avatarUrl,
+                        },
+                    });
+
+                    // Create the icebreaker message
+                    batch.set(messagesColRef, {
+                        senderId: mockProfile.id,
+                        text: result.icebreaker,
+                        timestamp: serverTimestamp(),
+                        isRead: false,
+                    });
+
+                    await batch.commit();
+                    console.log(`Scheduled message sent from ${mockProfile.name} to ${newUserProfile.name}`);
+                }
+            } catch (error) {
+                console.error(`Failed to send scheduled message from ${mockProfile.name}:`, error);
+            }
+        }, delay);
+    });
+};
+
+
 export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<FormData>(initialFormData);
@@ -102,7 +171,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     setFormData((prev) => ({ ...prev, ...data }));
   };
 
-  const createWelcomeChat = async (userId: string, userName: string, userAvatar: string) => {
+  const createWelcomeChat = useCallback(async (userId: string, userName: string, userAvatar: string) => {
     const matchId = [userId, BEMATCH_SYSTEM_ID].sort().join('_');
     const matchRef = doc(firestore, 'matches', matchId);
     const messagesColRef = doc(firestore, 'matches', matchId, 'messages', uuidv4());
@@ -142,7 +211,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         console.error("Welcome chat creation failed:", error);
         // We don't need to block the user flow for this, so just log the error.
     }
-  };
+  }, [firestore, locale]);
 
 
   const handleRegister = async () => {
@@ -216,8 +285,13 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
           });
       }
 
-      // 5. Create the welcome chat
+      // 5. Create the welcome chat from the system
       await createWelcomeChat(user.uid, initialProfileData.name, photoURLs[0] || '');
+
+      // 6. Schedule initial engagement messages from mock profiles
+      const fullNewUserProfile = { ...initialProfileData, avatarUrl: photoURLs[0] || '', imageUrls: photoURLs } as UserProfile;
+      scheduleMockMessages(user.uid, fullNewUserProfile, locale);
+
 
       toast({
         title: t('onboarding.toasts.successTitle'),
