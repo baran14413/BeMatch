@@ -13,32 +13,31 @@ let adminApp: FirebaseAdminApp | undefined;
 /**
  * A getter function to initialize and/or retrieve the Firebase Admin services.
  * This ensures that initialization only happens once per server instance.
- * @returns {FirebaseAdminApp} The initialized Firebase Admin services (auth and db).
+ * Returns null if credentials are not available, preventing build failures.
+ * @returns {FirebaseAdminApp | null} The initialized Firebase Admin services or null.
  */
-export function getFirebaseAdmin(): FirebaseAdminApp {
+export function getFirebaseAdmin(): FirebaseAdminApp | null {
   // If the adminApp instance already exists, return it to avoid re-initialization.
   if (adminApp) {
     return adminApp;
   }
   
   try {
-    // Check if there are no existing Firebase apps initialized. This is important
-    // to prevent errors, especially in development environments with hot-reloading.
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+    const projectId = process.env.FIREBASE_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+
+    // If essential credentials are not present (e.g., during build), log a warning and return null.
+    if (!projectId || !clientEmail || !privateKey) {
+        console.warn("Firebase Admin credentials not found in environment variables. Admin features will be disabled during build.");
+        return null;
+    }
+
     if (admin.apps.length === 0) {
-        const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-
-        if (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_CLIENT_EMAIL || !privateKey) {
-            console.warn("Firebase Admin credentials not found in environment variables. Admin features will be disabled during build.");
-            // Return a dummy object or throw a specific error that can be caught later
-            // For now, we'll throw to make it clear why admin features might fail at runtime.
-            throw new Error("Missing Firebase Admin credentials in environment variables.");
-        }
-
-        // Initialize the Firebase Admin SDK with credentials from environment variables.
         admin.initializeApp({
             credential: admin.credential.cert({
-                projectId: process.env.FIREBASE_PROJECT_ID,
-                clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+                projectId: projectId,
+                clientEmail: clientEmail,
                 privateKey: privateKey,
             }),
         });
@@ -53,10 +52,8 @@ export function getFirebaseAdmin(): FirebaseAdminApp {
     return adminApp;
 
   } catch (error: any) {
-    // If initialization fails, log the error for debugging purposes.
-    // We re-throw the error so that server actions that depend on this will fail,
-    // which is the correct behavior if admin SDK can't be initialized.
+    // This will catch any parsing errors or other initialization issues.
     console.error("Firebase Admin SDK Initialization Error:", error.message);
-    throw new Error(`Failed to initialize Firebase Admin SDK: ${error.message}. Check your environment variables and private key format.`);
+    return null; // Return null on error to prevent crashing the build.
   }
 }

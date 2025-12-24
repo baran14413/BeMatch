@@ -3,9 +3,14 @@
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import type { UserProfile } from '@/lib/data';
 
-const { db: adminDb } = getFirebaseAdmin();
-
 export async function getAllUsers(): Promise<UserProfile[]> {
+  const admin = getFirebaseAdmin();
+  if (!admin) {
+    console.log('Skipping getAllUsers: Firebase Admin not initialized.');
+    return [];
+  }
+  const { db: adminDb } = admin;
+
   try {
     const usersSnapshot = await adminDb.collection('users').orderBy('createdAt', 'desc').limit(50).get();
     if (usersSnapshot.empty) {
@@ -37,6 +42,13 @@ export async function getAllUsers(): Promise<UserProfile[]> {
 }
 
 export async function getUser(uid: string): Promise<UserProfile | null> {
+    const admin = getFirebaseAdmin();
+    if (!admin) {
+        console.log(`Skipping getUser(${uid}): Firebase Admin not initialized.`);
+        return null;
+    }
+    const { db: adminDb } = admin;
+    
     try {
         const userDoc = await adminDb.collection('users').doc(uid).get();
         if(!userDoc.exists) return null;

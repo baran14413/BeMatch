@@ -3,9 +3,14 @@
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import type { Report } from '@/lib/data';
 
-const { db: adminDb } = getFirebaseAdmin();
-
 export async function getAllReports(): Promise<Report[]> {
+  const admin = getFirebaseAdmin();
+  if (!admin) {
+    console.log('Skipping getAllReports: Firebase Admin not initialized.');
+    return [];
+  }
+  const { db: adminDb } = admin;
+
   try {
     const reportsSnapshot = await adminDb.collection('reports').orderBy('timestamp', 'desc').get();
     if (reportsSnapshot.empty) {
