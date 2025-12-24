@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { isToday, isFuture } from 'date-fns';
 import ItIsAMatch from '@/components/discover/it-is-a-match';
+import { mockProfiles } from '@/lib/mock-profiles';
 
 
 type SwipeDirection = 'left' | 'right' | 'up';
@@ -176,7 +177,10 @@ export default function DiscoverPage() {
   const { data: profiles, isLoading: isLoadingProfiles } = useCollection<UserProfile>(usersQuery);
 
   const filteredAndSortedProfiles = useMemo(() => {
-    if (!profiles || !currentUserProfile || !user) return [];
+    // Combine real profiles with mock profiles
+    const combinedProfiles = [...mockProfiles, ...(profiles || [])];
+
+    if (!currentUserProfile || !user) return combinedProfiles;
 
     const {
         ageRange = [18, 55],
@@ -189,7 +193,9 @@ export default function DiscoverPage() {
 
     const [minAge, maxAge] = ageRange;
     
-    return profiles
+    const uniqueProfiles = Array.from(new Map(combinedProfiles.map(p => [p.id, p])).values());
+
+    return uniqueProfiles
       .filter(p => {
         const isNotSelf = p.id !== user.uid;
         const isInAgeRange = p.age >= minAge && p.age <= maxAge;
@@ -204,6 +210,10 @@ export default function DiscoverPage() {
         return isNotSelf && isInAgeRange && interestMatch && hasAvatar;
       })
       .map(p => {
+        // Use hardcoded distance for mock profiles
+        if (p.id.startsWith('mock-')) {
+          return { ...p, isBoosted: false };
+        }
         const distance = getDistanceInKm(currentLat!, currentLon!, p.latitude!, p.longitude!);
         const isBoosted = p.boostExpiresAt && isFuture((p.boostExpiresAt as Timestamp).toDate());
         return { ...p, distance, isBoosted };
@@ -292,6 +302,15 @@ export default function DiscoverPage() {
   const handleSwipe = useCallback(async (direction: SwipeDirection, triggeredByButton: boolean = false) => {
     if (visibleStack.length === 0 || !user || !firestore || !currentUserProfile) return;
 
+    const swipedProfile = visibleStack[visibleStack.length - 1];
+
+    // Don't interact with Firestore for mock profiles
+    if (swipedProfile.id.startsWith('mock-')) {
+        setHistory(prev => [{profile: swipedProfile, type: 'like'}, ...prev]);
+        setProfileIndex(prev => prev + 1);
+        return;
+    }
+
     if (direction === 'up' && !currentUserProfile.premiumTier) {
         toast({
             title: "Süper Beğeni İçin Yükselt!",
@@ -301,7 +320,6 @@ export default function DiscoverPage() {
         return;
     }
 
-    const swipedProfile = visibleStack[visibleStack.length - 1];
     const swipeType: SwipeType = direction === 'right' ? 'like' : direction === 'up' ? 'superlike' : 'nope';
 
     setHistory(prev => [{profile: swipedProfile, type: swipeType}, ...prev]);
