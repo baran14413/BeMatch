@@ -3,7 +3,6 @@ import {onCall, HttpsError} from "firebase-functions/v2/ons";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 import {google} from "googleapis";
-import {UserRecord} from "firebase-admin/auth";
 import {getFirestore, Timestamp} from "firebase-admin/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 
@@ -17,7 +16,6 @@ interface VerifySubscriptionParams {
   purchaseToken: string;
   productId: string; // This will be the Base Plan ID, e.g., 'monthly-base'
   packageName: string;
-  isDevelopment?: boolean; // Flag for development environment
 }
 
 // Google Play API SubscriptionPurchase type (simplified)
@@ -40,6 +38,14 @@ interface SubscriptionPurchase {
     // ... other line item properties
   }[];
 }
+
+// Map Base Plan IDs to Subscription Product IDs
+// IMPORTANT: This must match your Google Play Console setup
+const planToSubscriptionIdMap: { [key: string]: string } = {
+    'weekly-base': 'premium_uyelik_1ay', // Assuming weekly plan is under the same subscription product
+    'monthly-base': 'premium_uyelik_1ay',
+    'yearly-base': 'premium_uyelik_1ay',
+};
 
 
 // Setup Google Play API client
@@ -77,57 +83,22 @@ export const verifySubscription = onCall(
       purchaseToken,
       productId, // This is the Base Plan ID from the client
       packageName,
-      isDevelopment,
     } = request.data as VerifySubscriptionParams;
 
-    if (!productId || !packageName) {
+    if (!purchaseToken || !productId || !packageName) {
       throw new HttpsError(
         "invalid-argument",
-        "Missing required parameters (productId, packageName).",
+        "Missing required parameters (purchaseToken, productId, packageName).",
       );
     }
-    
-    // --- DEVELOPMENT ONLY: SIMULATION LOGIC ---
-    if (isDevelopment && process.env.FUNCTIONS_EMULATOR === "true") {
-      logger.warn(`DEV MODE: Simulating purchase for user ${uid} ` +
-        `with product ${productId}`);
-      const expiryDate = new Date();
-      expiryDate.setMonth(expiryDate.getMonth() + 1); // Simulate 1 month
-
-      let premiumTier: "weekly" | "gold" | "platinum" | null = null;
-      if (productId.includes("yearly")) {
-        premiumTier = "platinum";
-      } else if (productId.includes("monthly")) {
-        premiumTier = "gold";
-      } else if (productId.includes("weekly")) {
-        premiumTier = "weekly";
-      }
-
-      await db.collection("users").doc(uid).update({
-        isPremium: true,
-        subscriptionId: productId,
-        purchaseToken: "dev_token",
-        premiumExpiresAt: Timestamp.fromDate(expiryDate),
-        autoRenewing: true, // Assume auto-renew for tests
-        premiumTier: premiumTier,
-      });
-
-      logger.info(`DEV: User ${uid} granted simulated ${premiumTier} status.`);
-      return {success: true, message: "Simulated purchase successful."};
-    }
-
-
-    if (!purchaseToken) {
-      throw new HttpsError(
-        "invalid-argument",
-        "Missing required parameter: purchaseToken.",
-      );
-    }
-
 
     try {
       // In production, always verify with Google Play
-      const subscriptionProductId = "premium_uyelik_1ay";
+      const subscriptionProductId = planToSubscriptionIdMap[productId];
+       if (!subscriptionProductId) {
+            throw new HttpsError('invalid-argument', `Invalid productId: ${productId}. No matching subscription ID found.`);
+       }
+
 
       const response =
         await androidpublisher.purchases.subscriptions.get({
@@ -221,15 +192,19 @@ export const checkSubscriptionStatuses = onSchedule("every 24 hours", async (eve
   }
 
   const promises = snapshot.docs.map(async (doc) => {
-    const user = doc.data() as UserRecord & {
+    const user = doc.data() as {
       purchaseToken: string,
-      subscriptionId: string // This is the Base Plan ID
+      subscriptionId: string // This is the Base Plan ID, e.g. 'monthly-base'
     };
     logger.info(`Processing expired subscription for user ${doc.id}`);
 
     try {
-      const subscriptionProductId = "premium_uyelik_1ay";
-      // It's good practice to re-verify with Google before downgrading
+        const subscriptionProductId = planToSubscriptionIdMap[user.subscriptionId];
+        if (!subscriptionProductId || !user.purchaseToken) {
+             logger.warn(`User ${doc.id} has invalid subscription data. Downgrading.`, { subId: user.subscriptionId });
+             return doc.ref.update({ isPremium: false, premiumTier: null, autoRenewing: false });
+        }
+      
       const response =
         await androidpublisher.purchases.subscriptions.get({
           packageName: "app.be.match", // Replace with your package name
