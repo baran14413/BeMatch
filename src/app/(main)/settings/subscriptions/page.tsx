@@ -3,43 +3,101 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import Link from 'next/link';
 import { useLanguage } from "@/context/language-context";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { mainSubscriptionPackage } from '@/config/subscriptions';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
+import { subscriptionPackages, type SubscriptionPackage } from '@/config/subscriptions';
 import { useGooglePlayBilling } from '@/hooks/useGooglePlayBilling';
 import { useToast } from '@/hooks/use-toast';
 
-const FeatureListItem = ({ children }: { children: React.ReactNode }) => (
-    <li className="flex items-start gap-3">
-        <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0 text-green-500" />
-        <span className="text-muted-foreground">{children}</span>
+const FeatureListItem = ({ text, included }: { text: string, included: boolean }) => (
+    <li className={cn("flex items-start gap-3", !included && "text-muted-foreground/50 line-through")}>
+        {included ? 
+            <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0 text-green-500" /> : 
+            <XCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+        }
+        <span>{text}</span>
     </li>
 );
 
-type Period = 'weekly' | 'monthly' | 'yearly';
+
+const PackageCard = ({
+    pkg,
+    onPurchase,
+    isLoading,
+    isPurchasingThis
+}:{
+    pkg: SubscriptionPackage,
+    onPurchase: (productId: string) => void,
+    isLoading: boolean,
+    isPurchasingThis: boolean
+}) => {
+    return (
+        <Card className={cn(
+            "flex flex-col w-full max-w-md mx-auto transition-all",
+             pkg.isPopular ? "border-2 border-primary/50 ring-2 ring-primary shadow-lg" : ""
+        )}>
+            {pkg.isPopular && (
+                <Badge 
+                    className="absolute -top-3 left-1/2 -translate-x-1/2 text-sm py-1" 
+                    style={{ backgroundColor: pkg.colors.badge, color: 'white' }}
+                >
+                    En Popüler
+                </Badge>
+            )}
+            <CardHeader className="items-center text-center">
+                 <CardTitle 
+                    className="text-4xl font-bold tracking-tight"
+                    style={{ color: pkg.colors.from }}
+                >
+                    {pkg.name}
+                </CardTitle>
+                <CardDescription>{pkg.description}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 space-y-8">
+                <div className="text-center">
+                    <span className="text-4xl font-bold">{pkg.price}</span>
+                    <span className="text-muted-foreground">{pkg.period}</span>
+                </div>
+                <ul className="space-y-4">
+                    {pkg.features.map((feature, i) => (
+                        <FeatureListItem key={i} text={feature.text} included={feature.included} />
+                    ))}
+                </ul>
+            </CardContent>
+            <CardFooter className="flex-col gap-2 mt-4">
+                <Button 
+                    className="w-full h-12 text-lg font-bold"
+                    style={{ background: `linear-gradient(to right, ${pkg.colors.from}, ${pkg.colors.to})`, color: 'white' }}
+                    onClick={() => onPurchase(pkg.productId)}
+                    disabled={isLoading}
+                >
+                    {isPurchasingThis ? <Loader2 className="animate-spin" /> : `Hemen Başla`}
+                </Button>
+            </CardFooter>
+        </Card>
+    );
+};
+
 
 export default function SubscriptionsPage() {
     const { t } = useLanguage();
     const { toast } = useToast();
-    const [selectedPeriod, setSelectedPeriod] = useState<Period>('monthly');
+    const [purchasingId, setPurchasingId] = useState<string | null>(null);
     const { purchase, isReady, state, error } = useGooglePlayBilling();
 
-    const currentPrice = mainSubscriptionPackage.pricing.find(p => p.period === selectedPeriod);
     const isLoading = state === 'PURCHASING' || state === 'LOADING';
 
-    const handlePurchase = async () => {
-        if (!currentPrice) return;
-        const result = await purchase(currentPrice.productId);
+    const handlePurchase = async (productId: string) => {
+        setPurchasingId(productId);
+        const result = await purchase(productId);
         if (result?.success) {
             toast({
                 title: 'Satın Alma Başarılı!',
-                description: `BeMatch Gold aboneliğiniz başarıyla başlatıldı.`,
+                description: `BeMatch aboneliğiniz başarıyla başlatıldı.`,
             });
         } else if (error?.code !== 'USER_CANCELLED') {
              toast({
@@ -48,6 +106,7 @@ export default function SubscriptionsPage() {
                 description: error?.message || 'Bilinmeyen bir hata oluştu.',
             });
         }
+        setPurchasingId(null);
     };
     
     return (
@@ -65,59 +124,20 @@ export default function SubscriptionsPage() {
                     </div>
                 </header>
                 
-                <div className="px-4 md:px-8 pb-8 flex justify-center pb-[calc(env(safe-area-inset-bottom,0rem)+2rem)]">
-                    <Card className="flex flex-col border-2 border-primary/50 ring-2 ring-primary shadow-lg w-full max-w-md">
-                        <CardHeader className="items-center text-center">
-                             <CardTitle 
-                                className="text-4xl font-bold tracking-tight"
-                                style={{ color: mainSubscriptionPackage.colors.from }}
-                            >
-                                {mainSubscriptionPackage.name}
-                            </CardTitle>
-                            <CardDescription>Tüm premium özelliklere erişin.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex-1 space-y-8">
-                            <RadioGroup value={selectedPeriod} onValueChange={(value: string) => setSelectedPeriod(value as Period)} className="grid grid-cols-3 gap-2">
-                                {mainSubscriptionPackage.pricing.map((p) => (
-                                    <Label
-                                        key={p.period}
-                                        htmlFor={p.productId}
-                                        className={cn(
-                                            "relative flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-all",
-                                            selectedPeriod === p.period && "border-primary ring-2 ring-primary/50"
-                                        )}
-                                    >
-                                        <RadioGroupItem value={p.period} id={p.productId} className="sr-only" />
-                                        {p.badge && (
-                                            <Badge variant="destructive" className="absolute -top-3 text-xs">{p.badge}</Badge>
-                                        )}
-                                        <span className="font-semibold text-sm">{t(`subscriptionsPage.${p.period}`)}</span>
-                                        <span className="text-xs text-muted-foreground">{p.price}</span>
-                                    </Label>
-                                ))}
-                            </RadioGroup>
-                            
-                            <ul className="space-y-4">
-                                {mainSubscriptionPackage.features.map((feature, i) => (
-                                    <FeatureListItem key={i}>
-                                        {t(feature.text)}
-                                    </FeatureListItem>
-                                ))}
-                            </ul>
-                        </CardContent>
-                        <CardFooter className="flex-col gap-2">
-                            <Button 
-                                className="w-full h-12 text-lg font-bold"
-                                style={{ background: `linear-gradient(to right, ${mainSubscriptionPackage.colors.from}, ${mainSubscriptionPackage.colors.to})`, color: 'white' }}
-                                onClick={handlePurchase}
-                                disabled={!isReady || isLoading}
-                            >
-                                {isLoading ? <Loader2 className="animate-spin" /> : `${currentPrice?.price} ile Abone Ol`}
-                            </Button>
-                            {!isReady && error && <p className="text-xs text-destructive">{error.message}</p>}
-                            <p className="text-xs text-muted-foreground text-center pt-2">Satın alma işleminiz Google Play üzerinden güvenli bir şekilde gerçekleştirilecektir.</p>
-                        </CardFooter>
-                    </Card>
+                <div className="px-4 md:px-8 pb-8 space-y-8 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start pb-[calc(env(safe-area-inset-bottom,0rem)+2rem)]">
+                   {subscriptionPackages.map(pkg => (
+                       <PackageCard 
+                          key={pkg.id} 
+                          pkg={pkg}
+                          onPurchase={handlePurchase}
+                          isLoading={isLoading}
+                          isPurchasingThis={isLoading && purchasingId === pkg.productId}
+                        />
+                   ))}
+                </div>
+                 <div className="px-4 md:px-8 pb-8 text-center">
+                    {!isReady && error && <p className="text-xs text-destructive">{error.message}</p>}
+                    <p className="text-xs text-muted-foreground pt-2">Satın alma işleminiz Google Play üzerinden güvenli bir şekilde gerçekleştirilecektir.</p>
                 </div>
             </div>
         </ScrollArea>
