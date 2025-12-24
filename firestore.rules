@@ -8,10 +8,6 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    function isAdmin() {
-        return request.auth != null && request.auth.token.role == 'admin';
-    }
-
     // --- HIZ SINIRLAMA FONKSİYONU (RATE LIMITING) ---
     // Belirtilen süreden daha kısa aralıklarla işlem yapılmasını engeller.
     // path: Kullanıcının doküman yolu (örn: /databases/$(database)/documents/users/$(userId))
@@ -31,13 +27,10 @@ service cloud.firestore {
     // --- KULLANICI İŞLEMLERİ ---
     match /users/{userId} {
       allow read: if request.auth != null;
-      // Adminler her şeyi yazabilir.
       // Kullanıcılar sadece kendi profilini yazabilir.
-      allow write: if isAdmin() || (
-        isOwner(userId) &&
+      allow write: if isOwner(userId) &&
         // Kullanıcının kendi profilini çok sık güncellemesini engelle
-        !isRateLimited(/databases/$(database)/documents/users/$(userId), 'updatedAt', 1)
-      );
+        !isRateLimited(/databases/$(database)/documents/users/$(userId), 'updatedAt', 1);
 
       // Kullanıcı kendi alt koleksiyonlarını (örn: ayarlar, vb.) okuyup yazabilir.
       match /{document=**} {
@@ -98,9 +91,9 @@ service cloud.firestore {
       }
       
       // GET: Allow reading a match document if the user's ID is in the matchId, to check for existence before creation.
-      allow get: if isAdmin() || (request.auth != null && request.auth.uid in matchId.split('_'));
-      // LIST, UPDATE, DELETE: Participant or Admin can perform these actions on existing documents.
-      allow list, update, delete: if isParticipant() || isAdmin();
+      allow get: if request.auth != null && request.auth.uid in matchId.split('_');
+      // LIST, UPDATE, DELETE: Participant can perform these actions on existing documents.
+      allow list, update, delete: if isParticipant();
       
       // CREATE: Sadece `userCanCreate` fonksiyonu true dönerse oluşturulabilir.
       allow create: if userCanCreate();
@@ -108,21 +101,21 @@ service cloud.firestore {
 
       // --- MESAJ İŞLEMLERİ ---
       match /messages/{messageId} {
-        // Okuma ve yazma: Üst eşleşme belgesindeki katılımcılardan biri veya Admin ise izin ver.
+        // Okuma ve yazma: Üst eşleşme belgesindeki katılımcılardan biri ise izin ver.
         // Hız Sınırlama: Mesaj yazma kuralına da hız sınırı ekleyerek spam önlenir.
-        allow read: if get(/databases/$(database)/documents/matches/$(matchId)).data.users.hasAny([request.auth.uid]) || isAdmin();
-        allow write: if (get(/databases/$(database)/documents/matches/$(matchId)).data.users.hasAny([request.auth.uid]) 
-                      && !isRateLimited(/databases/$(database)/documents/users/$(request.auth.uid), 'lastMessageTimestamp', 1)) 
-                      || isAdmin();
+        allow read: if get(/databases/$(database)/documents/matches/$(matchId)).data.users.hasAny([request.auth.uid]);
+        allow write: if get(/databases/$(database)/documents/matches/$(matchId)).data.users.hasAny([request.auth.uid]) 
+                      && !isRateLimited(/databases/$(database)/documents/users/$(request.auth.uid), 'lastMessageTimestamp', 1);
       }
     }
 
 
     // --- DİĞER KOLEKSİYONLAR ---
-    // Raporlama: Oturumu açık olan herkes rapor oluşturabilir. Sadece Admin ve Moderatörler okuyabilir/güncelleyebilir.
+    // Raporlama: Oturumu açık olan herkes rapor oluşturabilir.
     match /reports/{reportId} {
       allow create: if request.auth != null && request.resource.data.reporterId == request.auth.uid;
-      allow read, update: if request.auth != null && request.auth.token.role in ['admin', 'moderator'];
+      // Raporları okuma/yazma şimdilik kısıtlı
+      allow read, update, delete: if false;
     }
 
     // Silinen Kullanıcılar: Kullanıcı sadece kendi silinme kaydını yazabilir.
