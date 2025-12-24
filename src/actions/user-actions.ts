@@ -12,7 +12,7 @@ export async function getAllUsers(): Promise<UserProfile[]> {
   const { db: adminDb } = admin;
 
   try {
-    const usersSnapshot = await adminDb.collection('users').orderBy('createdAt', 'desc').limit(50).get();
+    const usersSnapshot = await adminDb.collection('users').orderBy('name', 'asc').limit(50).get();
     if (usersSnapshot.empty) {
       return [];
     }
