@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'framer-motion';
 import { motion, useMotionValue, useTransform, PanInfo, AnimatePresence, animate } from 'framer-motion';
 import { X, Star, Heart, Rewind } from 'lucide-react';
 import { useLanguage } from '@/context/language-context';
@@ -193,14 +193,13 @@ export default function DiscoverPage() {
       .filter(p => {
         const isNotSelf = p.id !== user.uid;
         const isInAgeRange = p.age >= minAge && p.age <= maxAge;
-        const hasAvatar = !!p.avatarUrl;
         
         let interestMatch = true;
         if (interestedIn && interestedIn !== 'everyone') {
             interestMatch = p.gender === interestedIn;
         }
 
-        return isNotSelf && isInAgeRange && interestMatch && hasAvatar;
+        return isNotSelf && isInAgeRange && interestMatch;
       })
       .map(p => {
         const distance = getDistanceInKm(currentLat!, currentLon!, p.latitude!, p.longitude!);
