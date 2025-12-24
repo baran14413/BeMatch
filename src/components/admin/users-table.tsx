@@ -1,3 +1,4 @@
+'use client';
 import {
   Table,
   TableBody,
@@ -17,9 +18,47 @@ import {
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuTrigger,
+    DropdownMenuSub,
+    DropdownMenuSubTrigger,
+    DropdownMenuSubContent,
+    DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu"
+import { useFirestore } from '@/firebase';
+import { doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { add } from 'date-fns';
+
+type PremiumTier = 'plus' | 'gold' | 'platinum';
 
 export default function UsersTable({ users }: { users: UserProfile[] }) {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+
+  const handleGivePremium = async (userId: string, tier: PremiumTier) => {
+    if (!firestore) return;
+    
+    const userDocRef = doc(firestore, 'users', userId);
+    const expiryDate = add(new Date(), { months: 1 });
+    
+    try {
+      await updateDoc(userDocRef, {
+        premiumTier: tier,
+        premiumExpiresAt: Timestamp.fromDate(expiryDate),
+      });
+      toast({
+        title: 'Premium Verildi!',
+        description: `Kullanıcıya ${tier.toUpperCase()} paketi başarıyla tanımlandı.`,
+      });
+    } catch (error) {
+      console.error('Error giving premium:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Hata',
+        description: 'Premium verilirken bir sorun oluştu.',
+      });
+    }
+  };
+
   return (
     <Table>
       <TableHeader>
@@ -62,7 +101,22 @@ export default function UsersTable({ users }: { users: UserProfile[] }) {
                   <DropdownMenuLabel>Eylemler</DropdownMenuLabel>
                   <DropdownMenuItem>Profili Görüntüle</DropdownMenuItem>
                   <DropdownMenuItem>Rolü Değiştir</DropdownMenuItem>
-                  <DropdownMenuItem>Premium Ver</DropdownMenuItem>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>Premium Ver</DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => handleGivePremium(user.id, 'plus')}>
+                          PLUS
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleGivePremium(user.id, 'gold')}>
+                          GOLD
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleGivePremium(user.id, 'platinum')}>
+                          PLATINUM
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
                 </DropdownMenuContent>
               </DropdownMenu>
             </TableCell>

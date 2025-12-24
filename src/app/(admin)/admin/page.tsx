@@ -1,12 +1,14 @@
+'use server'; // Make this a server component to fetch data
 import AdminDashboardClient from "@/components/admin/admin-dashboard";
 import { getAllUsers } from "@/actions/user-actions"
 import { getAllReports } from "@/actions/report-actions"
 import { getAllMatches } from "@/actions/match-actions"
-import { isFuture, subMonths } from 'date-fns';
+import { subMonths } from 'date-fns';
 import type { UserProfile, Report, Match } from '@/lib/data';
 
 export default async function AdminDashboard() {
     // --- Data Fetching (Server-Side) ---
+    // Fetch all data on the server using admin actions
     const users: UserProfile[] = await getAllUsers();
     const reports: Report[] = await getAllReports();
     const matches: Match[] = await getAllMatches();
@@ -22,7 +24,7 @@ export default async function AdminDashboard() {
     const oneMonthAgo = subMonths(new Date(), 1);
     const matchesLastMonth = matches.filter(m => {
         if (!m.timestamp) return false;
-        // Firestore timestamp can be a string, convert it
+        // Firestore timestamp can be a string (if serialized) or an object
         const matchDate = new Date(m.timestamp);
         return matchDate > oneMonthAgo;
     }).length;
@@ -38,5 +40,5 @@ export default async function AdminDashboard() {
             premiumPercentage={premiumPercentage}
             matchesLastMonth={matchesLastMonth}
         />
-    )
+    );
 }
