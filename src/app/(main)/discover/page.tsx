@@ -393,7 +393,7 @@ export default function DiscoverPage() {
             onContinue={() => setNewlyMatchedProfile(null)}
         />
     )}
-    <div className="flex flex-col h-full bg-gray-50 dark:bg-black">
+    <div className="flex flex-col h-full bg-gray-50 dark:bg-black pb-[env(safe-area-inset-bottom,0rem)]">
       <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden">
         <div className="w-full max-w-sm h-full relative">
           <AnimatePresence>
