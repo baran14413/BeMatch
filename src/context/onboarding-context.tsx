@@ -43,7 +43,7 @@ const initialFormData: FormData = {
     dateOfBirth: undefined,
     age: 0,
     gender: '',
-    interestedIn: '',
+    interestedIn: 'everyone',
     goal: '',
     interests: [],
     location: '',

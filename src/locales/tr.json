@@ -279,7 +279,8 @@
             "showMe": "Bana şunları göster",
             "men": "Erkekler",
             "women": "Kadınlar",
-            "everyone": "Herkes"
+            "everyone": "Herkes",
+            "everyoneDescription": "Sana kadın ve erkek profiller karışık gösterilecektir."
         },
         "stepGoalsTitle": "Burada ne arıyorsunuz?",
         "goals": {

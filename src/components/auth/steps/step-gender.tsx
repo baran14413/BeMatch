@@ -22,6 +22,7 @@ export default function StepGender() {
   ];
   
   useEffect(() => {
+    // "Everyone" is now the default, so the step is valid if a gender is chosen.
     setStepValid(!!formData.gender && !!formData.interestedIn);
   }, [formData.gender, formData.interestedIn, setStepValid]);
 
@@ -34,7 +35,7 @@ export default function StepGender() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <p className="font-semibold text-center mb-3">{t('onboarding.gender.yourGender')}</p>
         <div className="space-y-3">
@@ -53,17 +54,22 @@ export default function StepGender() {
        <div>
         <p className="font-semibold text-center mb-3">{t('onboarding.interestedIn.showMe')}</p>
         <div className="space-y-3">
-        {interests.map((interest) => (
-            <Button
-            key={interest.id}
-            onClick={() => handleSelectInterest(interest.id as 'woman' | 'man' | 'everyone')}
-            variant={formData.interestedIn === interest.id ? 'default' : 'outline'}
-            className={cn('w-full justify-center h-12 text-base')}
-            >
-            {interest.label}
-            </Button>
-        ))}
+            {interests.map((interest) => (
+                <Button
+                key={interest.id}
+                onClick={() => handleSelectInterest(interest.id as 'woman' | 'man' | 'everyone')}
+                variant={formData.interestedIn === interest.id ? 'default' : 'outline'}
+                className={cn('w-full justify-center h-12 text-base')}
+                >
+                {interest.label}
+                </Button>
+            ))}
         </div>
+        {formData.interestedIn === 'everyone' && (
+            <p className="text-center text-sm text-muted-foreground mt-3">
+                {t('onboarding.interestedIn.everyoneDescription')}
+            </p>
+        )}
       </div>
     </div>
   );

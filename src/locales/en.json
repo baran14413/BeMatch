@@ -279,7 +279,8 @@
             "showMe": "Show me",
             "men": "Men",
             "women": "Women",
-            "everyone": "Everyone"
+            "everyone": "Everyone",
+            "everyoneDescription": "You will be shown profiles of both men and women."
         },
         "stepGoalsTitle": "What are you looking for here?",
         "goals": {
