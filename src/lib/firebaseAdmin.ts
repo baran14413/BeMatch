@@ -28,6 +28,9 @@ export function getFirebaseAdmin(): FirebaseAdminApp {
         const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
         if (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_CLIENT_EMAIL || !privateKey) {
+            console.warn("Firebase Admin credentials not found in environment variables. Admin features will be disabled during build.");
+            // Return a dummy object or throw a specific error that can be caught later
+            // For now, we'll throw to make it clear why admin features might fail at runtime.
             throw new Error("Missing Firebase Admin credentials in environment variables.");
         }
 
@@ -51,8 +54,9 @@ export function getFirebaseAdmin(): FirebaseAdminApp {
 
   } catch (error: any) {
     // If initialization fails, log the error for debugging purposes.
+    // We re-throw the error so that server actions that depend on this will fail,
+    // which is the correct behavior if admin SDK can't be initialized.
     console.error("Firebase Admin SDK Initialization Error:", error.message);
-    // Re-throw a more user-friendly error to be surfaced in the application logs.
     throw new Error(`Failed to initialize Firebase Admin SDK: ${error.message}. Check your environment variables and private key format.`);
   }
 }
