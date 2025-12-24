@@ -28,8 +28,6 @@ export default function UsersTable({ users }: { users: UserProfile[] }) {
           <TableHead>Email</TableHead>
           <TableHead>Rol</TableHead>
           <TableHead>Premium</TableHead>
-          <TableHead>Ülke</TableHead>
-          <TableHead>IP Adresi</TableHead>
            <TableHead><span className="sr-only">Eylemler</span></TableHead>
         </TableRow>
       </TableHeader>
@@ -52,8 +50,6 @@ export default function UsersTable({ users }: { users: UserProfile[] }) {
              <TableCell>
               {user.premiumTier ? <Badge>{user.premiumTier.toUpperCase()}</Badge> : '-'}
             </TableCell>
-            <TableCell>{user.country || '-'}</TableCell>
-            <TableCell>{user.ipAddress || '-'}</TableCell>
             <TableCell>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
