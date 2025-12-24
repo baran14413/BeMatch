@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, Users, Shield, Settings, Heart } from 'lucide-react';
+import { Home, Users, Shield, Settings, Heart, Bot } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
@@ -11,6 +11,7 @@ const navLinks = [
   { href: '/admin', label: 'Gösterge Paneli', icon: Home },
   { href: '/admin/users', label: 'Kullanıcılar', icon: Users },
   { href: '/admin/safety', label: 'Güvenlik Raporları', icon: Shield },
+  { href: '/admin/mock-profiles', label: 'Sahte Profiller', icon: Bot },
   { href: '/admin/settings', label: 'Sistem Ayarları', icon: Settings },
 ];
 
