@@ -142,7 +142,7 @@
         },
         "subscriptionId": {
             "type": "string",
-            "description": "The product ID of the user's current subscription (e.g., 'gold_monthly')."
+            "description": "The product ID of the user's current subscription (e.g., 'monthly-base')."
         },
         "purchaseToken": {
             "type": "string",
@@ -159,7 +159,7 @@
         },
         "premiumTier": {
             "type": "string",
-            "enum": ["plus", "gold", "platinum"],
+            "enum": ["plus", "gold", "platinum", "weekly"],
             "description": "The premium subscription tier of the user."
         },
         "premiumExpiresAt": {

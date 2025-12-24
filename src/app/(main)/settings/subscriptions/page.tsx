@@ -55,7 +55,7 @@ const PackageCard = ({
                 >
                     {pkg.name}
                 </CardTitle>
-                <CardDescription>{t(pkg.description)}</CardDescription>
+                <CardDescription>{pkg.description}</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 space-y-8">
                 <div className="text-center">

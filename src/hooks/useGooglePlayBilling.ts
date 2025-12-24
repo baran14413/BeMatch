@@ -112,11 +112,15 @@ export function useGooglePlayBilling() {
 
     try {
       // 1. Initiate the purchase flow via Digital Goods API
-      await (billingService as any).purchase({ itemIds: [productId] }); // purchase method is not in official type
+      // The Digital Goods API's purchase method is not standard, we cast to any to use it.
+      // The `productId` here should correspond to the Base Plan ID in Google Play.
+      await (billingService as any).purchase({ itemIds: [productId] });
       
       // 2. After a successful client-side purchase, list purchases to get the token
       const purchases = await billingService.listPurchases();
-      const newPurchase = purchases.find(p => p.itemId === productId);
+      // Find the purchase that corresponds to the product family, not the specific plan ID.
+      // This is a simplification; a real app might need more logic if multiple products are sold.
+      const newPurchase = purchases[purchases.length - 1];
 
       if (!newPurchase) {
         throw new Error('Purchase completed, but could not find purchase token.');
@@ -128,10 +132,11 @@ export function useGooglePlayBilling() {
       const functions = getFunctions(firebaseApp);
       const verifySubscription = httpsCallable(functions, 'verifySubscription');
       
+      // The backend function needs the base plan ID to know which subscription was bought.
       const verificationResult = await verifySubscription({
         purchaseToken,
-        productId,
-        packageName: 'app.be.match', // Replace with your actual package name
+        productId, // Send the specific plan ID to the backend.
+        packageName: 'app.be.match',
       });
       
       const data = verificationResult.data as { success: boolean; message?: string };

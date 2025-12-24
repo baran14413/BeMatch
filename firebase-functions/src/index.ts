@@ -13,7 +13,7 @@ const db = getFirestore();
 // --- TYPES ---
 interface VerifySubscriptionParams {
   purchaseToken: string;
-  productId: string;
+  productId: string; // This will be the Base Plan ID, e.g., 'monthly-base'
   packageName: string;
 }
 
@@ -31,6 +31,11 @@ interface SubscriptionPurchase {
   orderId: string;
   purchaseType: number; // 0: Test, 1: Promo, 2: Rewarded
   acknowledgementState: number; // 0: Yet to be acknowledged, 1: Acknowledged
+  // This field contains the base plan ID.
+  lineItems: {
+    productId: string;
+    // ... other line item properties
+  }[];
 }
 
 
@@ -66,7 +71,7 @@ export const verifySubscription = onCall(
     const {uid} = request.auth;
     const {
       purchaseToken,
-      productId,
+      productId, // This is the Base Plan ID from the client
       packageName,
     } = request.data as VerifySubscriptionParams;
 
@@ -79,10 +84,15 @@ export const verifySubscription = onCall(
 
     try {
       // 1. Call Google Play Developer API to validate the purchase
+      // We need to figure out the main subscription product ID from the base plan ID.
+      // For this app, let's assume all plans belong to a single product.
+      // A more robust solution might require a mapping.
+      const subscriptionProductId = "premium_uyelik_1ay"; // Main product ID
+
       const response =
         await androidpublisher.purchases.subscriptions.get({
           packageName: packageName,
-          subscriptionId: productId,
+          subscriptionId: subscriptionProductId,
           token: purchaseToken,
         });
 
@@ -104,10 +114,20 @@ export const verifySubscription = onCall(
       if (subscription.acknowledgementState !== 1) {
         await androidpublisher.purchases.subscriptions.acknowledge({
           packageName: packageName,
-          subscriptionId: productId,
+          subscriptionId: subscriptionProductId,
           token: purchaseToken,
         });
-        logger.info(`Subscription ${productId} acknowledged for user ${uid}.`);
+        logger.info(`Subscription ${subscriptionProductId} acknowledged.`);
+      }
+
+      // Determine the tier from the sent productId (base plan id)
+      let premiumTier = null;
+      if (productId.includes("yearly")) {
+        premiumTier = "platinum";
+      } else if (productId.includes("monthly")) {
+        premiumTier = "gold";
+      } else if (productId.includes("weekly")) {
+        premiumTier = "weekly"; // Or a 'plus'/'basic' tier
       }
 
       // 4. Update the user's document in Firestore
@@ -117,14 +137,14 @@ export const verifySubscription = onCall(
 
       await userRef.update({
         isPremium: true,
-        subscriptionId: productId,
+        subscriptionId: productId, // Store the specific base plan ID
         purchaseToken: purchaseToken, // Save for future status checks
-        expiryDate: expiryDate,
+        premiumExpiresAt: expiryDate,
         autoRenewing: subscription.autoRenewing,
-        premiumTier: productId, // Assuming productId matches tier name e.g., 'gold'
+        premiumTier: premiumTier,
       });
 
-      logger.info(`User ${uid} successfully granted premium status.`);
+      logger.info(`User ${uid} successfully granted ${premiumTier} status.`);
       return {success: true};
     } catch (error: any) {
       logger.error("Error verifying subscription:", error);
@@ -151,7 +171,7 @@ export const checkScheduledSubscriptionStatus = onCall(async () => {
   const expiredQuery = db
     .collection("users")
     .where("isPremium", "==", true)
-    .where("expiryDate", "<=", now);
+    .where("premiumExpiresAt", "<=", now);
 
   const snapshot = await expiredQuery.get();
 
@@ -163,16 +183,17 @@ export const checkScheduledSubscriptionStatus = onCall(async () => {
   const promises = snapshot.docs.map(async (doc) => {
     const user = doc.data() as UserRecord & {
       purchaseToken: string,
-      subscriptionId: string
+      subscriptionId: string // This is the Base Plan ID
     };
     logger.info(`Processing expired subscription for user ${doc.id}`);
 
     try {
+      const subscriptionProductId = "premium_uyelik_1ay";
       // It's good practice to re-verify with Google before downgrading
       const response =
         await androidpublisher.purchases.subscriptions.get({
           packageName: "app.be.match", // Replace with your package name
-          subscriptionId: user.subscriptionId,
+          subscriptionId: subscriptionProductId,
           token: user.purchaseToken,
         });
 
@@ -183,7 +204,7 @@ export const checkScheduledSubscriptionStatus = onCall(async () => {
       // If Google says it's still active, update our DB and skip downgrade
       if (googleExpiry > now) {
         logger.info(`Subscription for ${doc.id} renewed. Updating expiry.`);
-        return doc.ref.update({expiryDate: googleExpiry});
+        return doc.ref.update({premiumExpiresAt: googleExpiry});
       }
     } catch (error: any) {
       // If the token is invalid (404/410), it confirms the subscription is dead.
