@@ -6,6 +6,9 @@ import VoiceNote from './voice-note';
 import { Heart, MapPin } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLanguage } from '@/context/language-context';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { Card, CardContent } from '@/components/ui/card';
+import { AnimatePresence, motion } from 'framer-motion';
 
 type ProfileDetailsProps = {
   profile: UserProfile;
@@ -33,45 +36,58 @@ export default function ProfileDetails({ profile }: ProfileDetailsProps) {
   const renderMedia = (url: string, index: number) => {
     const id = `media-${index}`;
     return (
-      <div
-        key={id}
-        className="relative w-full aspect-[3/4] rounded-lg overflow-hidden snap-center"
-        onDoubleClick={(e) => handleDoubleClick(e, id)}
-      >
-        <Image src={url} alt={`${profile.name}'s photo ${index + 1}`} fill className="object-cover" />
-        {likedItems.has(id) && (
-          <div className="absolute top-3 right-3 bg-black/50 p-2 rounded-full">
-            <Heart className="w-5 h-5 text-red-500 fill-current" />
-          </div>
-        )}
-        {showLike?.id === id && (
-          <div
-            className="absolute animate-in fade-in zoom-in-50"
-            style={{ left: showLike.x - 24, top: showLike.y - 24, pointerEvents: 'none' }}
-          >
-            <Heart className="w-12 h-12 text-white/90 fill-red-500/80" />
-          </div>
-        )}
-      </div>
+       <CarouselItem key={id}>
+        <div className="p-1">
+          <Card className="overflow-hidden border-0">
+            <CardContent className="relative w-full aspect-[3/4] p-0">
+              <Image src={url} alt={`${profile.name}'s photo ${index + 1}`} fill className="object-cover" />
+               <AnimatePresence>
+                 {showLike?.id === id && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1.5, transition: { duration: 0.4, ease: 'easeOut' } }}
+                      exit={{ opacity: 0, scale: 0, transition: { duration: 0.3 } }}
+                      className="absolute"
+                      style={{ left: showLike.x - 24, top: showLike.y - 24, pointerEvents: 'none' }}
+                    >
+                      <Heart className="w-12 h-12 text-white/90 fill-red-500/80" />
+                    </motion.div>
+                )}
+               </AnimatePresence>
+            </CardContent>
+          </Card>
+        </div>
+      </CarouselItem>
     );
   };
 
   return (
-    <ScrollArea className="flex-1 w-full">
-        <div className="p-6 pt-0 space-y-8 snap-start">
-            <div className="text-center pt-4">
-                <h2 className="text-2xl font-bold">{profile.name}, {profile.age}</h2>
-                 <div className="flex items-center justify-center gap-2 mt-1 text-muted-foreground">
-                    <MapPin className="w-4 h-4" />
-                    <p>{profile.location}</p>
-                </div>
-                 {profile.distance !== undefined && profile.distance > 0 && (
-                    <p className="text-sm mt-1 text-muted-foreground">{t('discover.distanceAway', { distance: profile.distance })}</p>
-                )}
-            </div>
-            
-            {profile.imageUrls.map((url, index) => renderMedia(url, index))}
+    <div className='flex flex-col h-full'>
+      <div className="p-6 pb-2 text-center">
+          <h2 className="text-2xl font-bold">{profile.name}, {profile.age}</h2>
+            <div className="flex items-center justify-center gap-2 mt-1 text-muted-foreground">
+              <MapPin className="w-4 h-4" />
+              <p>{profile.location}</p>
+          </div>
+            {profile.distance !== undefined && profile.distance > 0 && (
+              <p className="text-sm mt-1 text-muted-foreground">{t('discover.distanceAway', { distance: profile.distance })}</p>
+          )}
+      </div>
 
+       <Carousel className="w-full">
+            <CarouselContent>
+                 {profile.imageUrls.map((url, index) => renderMedia(url, index))}
+            </CarouselContent>
+            {profile.imageUrls.length > 1 && (
+                <>
+                    <CarouselPrevious className="left-6" />
+                    <CarouselNext className="right-6"/>
+                </>
+            )}
+        </Carousel>
+
+    <ScrollArea className="flex-1 w-full px-6 pt-6">
+        <div className="space-y-8 pb-8">
             <div className="relative">
               <h3 className="text-lg font-semibold">{t('discover.aboutMe')}</h3>
               <p className="text-foreground/80 mt-1">{profile.bio}</p>
@@ -99,14 +115,19 @@ export default function ProfileDetails({ profile }: ProfileDetailsProps) {
                   <Heart className="w-5 h-5 text-red-500 fill-current" />
                   </div>
               )}
-              {showLike?.id === id && (
-                  <div
-                      className="absolute animate-in fade-in zoom-in-50"
-                      style={{ left: showLike.x - 24, top: showLike.y - 24, pointerEvents: 'none' }}
-                  >
-                      <Heart className="w-12 h-12 text-foreground/80 fill-red-500/80" />
-                  </div>
-                  )}
+               <AnimatePresence>
+                {showLike?.id === id && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1.5, transition: { duration: 0.4, ease: 'easeOut' } }}
+                        exit={{ opacity: 0, scale: 0, transition: { duration: 0.3 } }}
+                        className="absolute"
+                        style={{ left: showLike.x - 24, top: showLike.y - 24, pointerEvents: 'none' }}
+                    >
+                        <Heart className="w-12 h-12 text-foreground/80 fill-red-500/80" />
+                    </motion.div>
+                )}
+               </AnimatePresence>
               </div>
           );
           })}
@@ -125,5 +146,6 @@ export default function ProfileDetails({ profile }: ProfileDetailsProps) {
           )}
       </div>
     </ScrollArea>
+    </div>
   );
 }
