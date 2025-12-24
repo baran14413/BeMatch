@@ -1,7 +1,9 @@
 'use server';
 
-import { adminDb } from '@/lib/firebaseAdmin';
+import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import type { UserProfile } from '@/lib/data';
+
+const { db: adminDb } = getFirebaseAdmin();
 
 export async function getAllUsers(): Promise<UserProfile[]> {
   try {
@@ -14,16 +16,16 @@ export async function getAllUsers(): Promise<UserProfile[]> {
         const data = doc.data();
         const user = { id: doc.id, ...data } as UserProfile;
         // Convert any Timestamp objects to serializable format (ISO string)
-        if (data.createdAt) {
+        if (data.createdAt && data.createdAt.toDate) {
             user.createdAt = data.createdAt.toDate().toISOString();
         }
-         if (data.premiumExpiresAt) {
+         if (data.premiumExpiresAt && data.premiumExpiresAt.toDate) {
             user.premiumExpiresAt = data.premiumExpiresAt.toDate().toISOString();
         }
-        if (data.boostExpiresAt) {
+        if (data.boostExpiresAt && data.boostExpiresAt.toDate) {
             user.boostExpiresAt = data.boostExpiresAt.toDate().toISOString();
         }
-        if (data.passwordLastUpdatedAt) {
+        if (data.passwordLastUpdatedAt && data.passwordLastUpdatedAt.toDate) {
             user.passwordLastUpdatedAt = data.passwordLastUpdatedAt.toDate().toISOString();
         }
         return user;

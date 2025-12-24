@@ -1,7 +1,9 @@
 'use server';
 
-import { adminDb } from '@/lib/firebaseAdmin';
+import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import type { Report } from '@/lib/data';
+
+const { db: adminDb } = getFirebaseAdmin();
 
 export async function getAllReports(): Promise<Report[]> {
   try {
@@ -14,7 +16,7 @@ export async function getAllReports(): Promise<Report[]> {
         const data = doc.data();
         const report = { id: doc.id, ...data } as Report;
         // Convert Timestamp to a serializable format (ISO string)
-        if (data.timestamp) {
+        if (data.timestamp && data.timestamp.toDate) {
             report.timestamp = data.timestamp.toDate().toISOString();
         }
         return report;
