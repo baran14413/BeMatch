@@ -26,6 +26,18 @@ const statusVariant: { [key: string]: 'default' | 'secondary' | 'destructive' } 
   resolved: 'destructive',
 };
 
+const formatDate = (timestamp: any, locale: string) => {
+    if (!timestamp) return '-';
+    // Firestore timestamp objesi ise toDate() metodu olacaktır.
+    // Sunucu tarafından serialize edilmiş ISO string ise, new Date() ile parse edilebilir.
+    try {
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        return formatDistanceToNow(date, { addSuffix: true, locale: locale === 'tr' ? tr : enUS });
+    } catch (e) {
+        return '-';
+    }
+}
+
 export default function ReportsTable({ reports }: { reports: Report[] }) {
   return (
     <Table>
@@ -48,7 +60,7 @@ export default function ReportsTable({ reports }: { reports: Report[] }) {
             <TableCell>
               <Badge variant={statusVariant[report.status]}>{report.status}</Badge>
             </TableCell>
-            <TableCell>{formatDistanceToNow(new Date(report.timestamp), { addSuffix: true, locale: tr })}</TableCell>
+            <TableCell>{formatDate(report.timestamp, 'tr')}</TableCell>
              <TableCell>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
