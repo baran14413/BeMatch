@@ -15,6 +15,8 @@ interface DigitalGoodsService {
     purchaseToken: string,
     type?: 'purchase' | 'subscription'
   ): Promise<void>;
+  // The purchase method is not officially in the spec but used by Chrome
+  purchase(options: { itemIds: string[] }): Promise<void>;
 }
 
 interface ItemDetails {
@@ -54,16 +56,8 @@ export function useGooglePlayBilling() {
   const [error, setError] = useState<BillingError | null>(null);
   const [itemDetails, setItemDetails] = useState<ItemDetails | null>(null);
 
-  const isDevelopment = process.env.NODE_ENV === 'development';
-
   // Initialize the Digital Goods Service
   useEffect(() => {
-    // If in development, we don't need the real API. We'll simulate it.
-    if (isDevelopment) {
-        setState('READY');
-        return;
-    }
-    
     setState('LOADING');
     if (window.getDigitalGoodsService) {
       window.getDigitalGoodsService('https://play.google.com/billing')
@@ -72,7 +66,7 @@ export function useGooglePlayBilling() {
             setBillingService(service);
             setState('READY');
           } else {
-            setError({ code: 'NOT_SUPPORTED', message: 'Digital Goods API is not supported in this context.' });
+            setError({ code: 'NOT_SUPPORTED', message: 'Digital Goods API is not supported in this context (e.g. not in a TWA).' });
             setState('ERROR');
           }
         })
@@ -85,10 +79,9 @@ export function useGooglePlayBilling() {
       setError({ code: 'NOT_SUPPORTED', message: 'Digital Goods API not available on this device.' });
       setState('ERROR');
     }
-  }, [isDevelopment]);
+  }, []);
 
   const getProductDetails = useCallback(async (productId: string) => {
-    if (isDevelopment) return null; // No need to fetch details in dev
     if (!billingService) {
       console.warn('Billing service not ready.');
       return null;
@@ -106,42 +99,43 @@ export function useGooglePlayBilling() {
       setState('ERROR');
       return null;
     }
-  }, [billingService, isDevelopment]);
+  }, [billingService]);
 
   const purchase = useCallback(async (productId: string) => {
     setState('PURCHASING');
     setError(null);
 
-    let purchaseToken = `dev_token_${Date.now()}`; // Default fake token for development
-
-    // --- REAL PURCHASE FLOW (Production) ---
-    if (!isDevelopment) {
-      if (!billingService) {
-        setError({ code: 'NOT_SUPPORTED', message: 'Billing service is not available.' });
-        setState('ERROR');
-        return;
-      }
-      try {
-        await (billingService as any).purchase({ itemIds: [productId] });
-        const purchases = await billingService.listPurchases();
-        const newPurchase = purchases[purchases.length - 1];
-        if (!newPurchase) {
-          throw new Error('Purchase completed, but could not find purchase token.');
-        }
-        purchaseToken = newPurchase.purchaseToken;
-      } catch (err: any) {
-         console.error('Purchase flow failed:', err);
-        if (err.name === 'AbortError' || err.message?.includes('cancelled')) {
-            setError({ code: 'USER_CANCELLED', message: 'Purchase was cancelled by the user.' });
-        } else {
-            setError({ code: 'PAYMENT_FAILED', message: `Purchase failed: ${err.message}` });
-        }
-        setState('ERROR');
-        return { success: false };
-      }
+    if (!billingService) {
+      setError({ code: 'NOT_SUPPORTED', message: 'Billing service is not available.' });
+      setState('ERROR');
+      return;
     }
 
-    // --- VERIFICATION FLOW (Both Dev and Prod) ---
+    let purchaseToken: string;
+
+    try {
+      // The 'purchase' method is an extension used by Chrome for PWAs.
+      await (billingService as any).purchase({ itemIds: [productId] });
+      // After purchase, we need to get the purchase token to verify on the backend.
+      const purchases = await billingService.listPurchases();
+      const newPurchase = purchases[purchases.length - 1]; // Assuming the latest one is the new one
+      if (!newPurchase) {
+        throw new Error('Purchase completed, but could not find purchase token.');
+      }
+      purchaseToken = newPurchase.purchaseToken;
+    } catch (err: any) {
+      console.error('Purchase flow failed:', err);
+      // 'AbortError' is a standard DOMException name for user cancellations.
+      if (err.name === 'AbortError' || err.message?.includes('cancelled')) {
+          setError({ code: 'USER_CANCELLED', message: 'Purchase was cancelled by the user.' });
+      } else {
+          setError({ code: 'PAYMENT_FAILED', message: `Purchase failed: ${err.message}` });
+      }
+      setState('ERROR');
+      return { success: false };
+    }
+
+    // --- VERIFICATION FLOW ---
     try {
       const functions = getFunctions(firebaseApp);
       const verifySubscription = httpsCallable(functions, 'verifySubscription');
@@ -150,7 +144,6 @@ export function useGooglePlayBilling() {
         purchaseToken,
         productId,
         packageName: 'app.be.match',
-        isDevelopment: isDevelopment, // Pass the environment flag to the backend
       });
       
       const data = verificationResult.data as { success: boolean; message?: string };
@@ -168,8 +161,7 @@ export function useGooglePlayBilling() {
        setState('ERROR');
        return { success: false };
     }
-
-  }, [billingService, firebaseApp, isDevelopment]);
+  }, [billingService, firebaseApp]);
 
   return {
     state,

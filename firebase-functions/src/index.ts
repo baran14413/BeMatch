@@ -1,5 +1,5 @@
 
-import {onCall, HttpsError} from "firebase-functions/v2/https";
+import {onCall, HttpsError} from "firebase-functions/v2/ons";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 import {google} from "googleapis";
@@ -15,7 +15,6 @@ interface VerifySubscriptionParams {
   purchaseToken: string;
   productId: string; // This will be the Base Plan ID, e.g., 'monthly-base'
   packageName: string;
-  isDevelopment?: boolean; // Flag for development environment simulation
 }
 
 // Google Play API SubscriptionPurchase type (simplified)
@@ -58,7 +57,7 @@ const androidpublisher = google.androidpublisher({
  */
 export const verifySubscription = onCall(
   {
-    // Disable App Check for development simulations
+    // Enable App Check in production
     enforceAppCheck: process.env.NODE_ENV === "production",
   },
   async (request) => {
@@ -75,7 +74,6 @@ export const verifySubscription = onCall(
       purchaseToken,
       productId, // This is the Base Plan ID from the client
       packageName,
-      isDevelopment,
     } = request.data as VerifySubscriptionParams;
 
     if (!purchaseToken || !productId || !packageName) {
@@ -86,51 +84,41 @@ export const verifySubscription = onCall(
     }
 
     try {
-      let expiryTimeMillis: string;
-      let autoRenewing = true;
+      // In production, always verify with Google Play
+      const subscriptionProductId = "premium_uyelik_1ay"; // Main product ID in Play Console
 
-      // --- SIMULATION FOR DEVELOPMENT ---
-      if (isDevelopment) {
-        logger.info("Running in development simulation mode.");
-        // Create a fake expiry date 1 hour from now for testing
-        expiryTimeMillis = (Date.now() + (60 * 60 * 1000)).toString();
-      } else {
-        // --- PRODUCTION LOGIC ---
-        const subscriptionProductId = "premium_uyelik_1ay"; // Main product ID in Play Console
+      const response =
+        await androidpublisher.purchases.subscriptions.get({
+          packageName: packageName,
+          subscriptionId: subscriptionProductId,
+          token: purchaseToken,
+        });
 
-        const response =
-          await androidpublisher.purchases.subscriptions.get({
-            packageName: packageName,
-            subscriptionId: subscriptionProductId,
-            token: purchaseToken,
-          });
+      const subscription: SubscriptionPurchase = response.data;
+      logger.info("Google Play API Response:", subscription);
 
-        const subscription: SubscriptionPurchase = response.data;
-        logger.info("Google Play API Response:", subscription);
-
-        if (
-          response.status !== 200 ||
-          (subscription.paymentState !== 1 && subscription.paymentState !== 2)
-        ) {
-          throw new HttpsError(
-            "failed-precondition",
-            "Purchase is not valid or payment has not been received.",
-          );
-        }
-
-        if (subscription.acknowledgementState !== 1) {
-          await androidpublisher.purchases.subscriptions.acknowledge({
-            packageName: packageName,
-            subscriptionId: subscriptionProductId,
-            token: purchaseToken,
-          });
-          logger.info(`Subscription ${subscriptionProductId} acknowledged.`);
-        }
-        expiryTimeMillis = subscription.expiryTimeMillis;
-        autoRenewing = subscription.autoRenewing;
+      if (
+        response.status !== 200 ||
+        (subscription.paymentState !== 1 && subscription.paymentState !== 2)
+      ) {
+        throw new HttpsError(
+          "failed-precondition",
+          "Purchase is not valid or payment has not been received.",
+        );
       }
 
-      // --- COMMON LOGIC FOR BOTH DEV AND PROD ---
+      if (subscription.acknowledgementState !== 1) {
+        await androidpublisher.purchases.subscriptions.acknowledge({
+          packageName: packageName,
+          subscriptionId: subscriptionProductId,
+          token: purchaseToken,
+        });
+        logger.info(`Subscription ${subscriptionProductId} acknowledged.`);
+      }
+
+      const expiryTimeMillis = subscription.expiryTimeMillis;
+      const autoRenewing = subscription.autoRenewing;
+
       let premiumTier: "weekly" | "gold" | "platinum" | null = null;
       if (productId.includes("yearly")) {
         premiumTier = "platinum";
@@ -217,7 +205,6 @@ export const checkScheduledSubscriptionStatus = onCall(async () => {
       }
     } catch (error: any) {
       // If the token is invalid (404/410), it confirms the subscription is dead.
-      // This also handles dev tokens that don't exist in Play Console.
       logger.warn(`Could not re-verify token for ${doc.id}. Proceeding ` +
         "with downgrade.", {error: error.message});
     }
