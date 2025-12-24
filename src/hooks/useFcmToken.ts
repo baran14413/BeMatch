@@ -5,7 +5,7 @@ import { isSupported } from 'firebase/messaging/sw';
 import { useFirebase } from '@/firebase';
 
 export function useFcmToken() {
-  const { firebaseApp, user } = useFirebase();
+  const { firebaseApp } = useFirebase();
   const [fcmToken, setFcmToken] = useState<string | null>(null);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | null>(null);
   const [isNotificationSupported, setIsNotificationSupported] = useState<boolean>(false);
@@ -22,10 +22,10 @@ export function useFcmToken() {
         if (Notification.permission === 'granted') {
           const messaging = getMessaging(firebaseApp);
           
-          // Register the service worker
+          // Explicitly register the service worker.
           const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
           
-          // Wait for the service worker to be active.
+          // Ensure the service worker is active before trying to get the token.
           await navigator.serviceWorker.ready;
 
           const currentToken = await getToken(messaging, {
