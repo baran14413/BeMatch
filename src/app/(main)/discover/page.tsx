@@ -318,8 +318,11 @@ export default function DiscoverPage() {
     // If it's a mock profile and the user liked them, initiate an AI chat.
     if (swipedProfile.isSystemAccount && (swipeType === 'like' || swipeType === 'superlike')) {
         try {
-            const userProfileString = `Name: ${currentUserProfile.name}, Age: ${currentUserProfile.age}, Bio: ${currentUserProfile.bio}, Interests: ${currentUserProfile.interests?.join(', ')}`;
-            
+            // Construct profile string safely, handling undefined fields
+            const bioPart = currentUserProfile.bio ? `, Bio: ${currentUserProfile.bio}` : '';
+            const interestsPart = (currentUserProfile.interests && currentUserProfile.interests.length > 0) ? `, Interests: ${currentUserProfile.interests.join(', ')}` : '';
+            const userProfileString = `Name: ${currentUserProfile.name}, Age: ${currentUserProfile.age}${bioPart}${interestsPart}`;
+
             const result = await generateAiIcebreaker({
                 userProfile: userProfileString,
                 mockProfileName: swipedProfile.name,
