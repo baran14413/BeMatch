@@ -29,19 +29,39 @@ export default function AdminLayout({
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   useEffect(() => {
+    // Wait until both user and profile data are loaded before checking role
     if (!isUserLoading && !isProfileLoading) {
-      if (!user || userProfile?.role !== 'admin') {
+      if (!user) {
+        // If no user is logged in, redirect to the discover page.
+        router.replace('/discover');
+      } else if (userProfile?.role !== 'admin') {
+        // If the user is logged in but is not an admin, redirect.
+        console.log(`User ${user.uid} with role '${userProfile?.role}' is not an admin. Redirecting.`);
         router.replace('/discover');
       }
     }
   }, [user, isUserLoading, userProfile, isProfileLoading, router]);
 
+  // Determine the overall loading state
   const isLoading = isUserLoading || isProfileLoading;
 
-  if (isLoading || userProfile?.role !== 'admin') {
+  // Show a loading screen while authentication and profile data are being fetched.
+  if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Yetkiler kontrol ediliyor...</span>
+      </div>
+    );
+  }
+  
+  // After loading, if the user is not an admin, they will be redirected by the useEffect.
+  // We can render a fallback loading state here as well to prevent a flash of content.
+  if (userProfile?.role !== 'admin') {
+     return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Yönlendiriliyor...</span>
       </div>
     );
   }
