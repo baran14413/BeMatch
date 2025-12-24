@@ -104,6 +104,18 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
 
     try {
+      // Get IP and country info
+      let ipAddress = 'N/A';
+      let country = 'N/A';
+      try {
+        const geoResponse = await fetch('https://ipapi.co/json/');
+        const geoData = await geoResponse.json();
+        ipAddress = geoData.ip;
+        country = `${geoData.country_name}, ${geoData.country_code}`;
+      } catch (geoError) {
+        console.warn("Could not fetch geolocation data:", geoError);
+      }
+      
       // 1. Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
@@ -139,7 +151,9 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
           voiceNoteUrl: '',
           globalMode: true,
           maxDistance: formData.maxDistance,
-          ageRange: [18, 55]
+          ageRange: [18, 55],
+          ipAddress: ipAddress,
+          country: country
       };
       
       await setDoc(userDocRef, initialProfileData);

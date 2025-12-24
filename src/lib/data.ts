@@ -89,6 +89,9 @@ export interface UserProfile {
   // Admin
   role?: 'admin' | 'moderator' | 'support' | 'user';
   createdAt?: any;
+  // Registration info
+  ipAddress?: string;
+  country?: string;
 }
 
 export type Match = {

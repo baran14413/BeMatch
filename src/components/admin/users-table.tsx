@@ -25,9 +25,11 @@ export default function UsersTable({ users }: { users: UserProfile[] }) {
       <TableHeader>
         <TableRow>
           <TableHead>Kullanıcı</TableHead>
+          <TableHead>Email</TableHead>
           <TableHead>Rol</TableHead>
           <TableHead>Premium</TableHead>
-          <TableHead>Email</TableHead>
+          <TableHead>Ülke</TableHead>
+          <TableHead>IP Adresi</TableHead>
            <TableHead><span className="sr-only">Eylemler</span></TableHead>
         </TableRow>
       </TableHeader>
@@ -43,13 +45,15 @@ export default function UsersTable({ users }: { users: UserProfile[] }) {
                 <div className="font-medium">{user.name}</div>
               </div>
             </TableCell>
+            <TableCell>{user.email}</TableCell>
             <TableCell>
               <Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'}>{user.role || 'user'}</Badge>
             </TableCell>
              <TableCell>
               {user.premiumTier ? <Badge>{user.premiumTier.toUpperCase()}</Badge> : '-'}
             </TableCell>
-            <TableCell>{user.email}</TableCell>
+            <TableCell>{user.country || '-'}</TableCell>
+            <TableCell>{user.ipAddress || '-'}</TableCell>
             <TableCell>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
