@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/context/language-context';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-const MAX_PHOTOS = 3;
+const MAX_PHOTOS = 6;
 
 export default function StepPhotos() {
   const { formData, updateFormData, setStepValid } = useOnboardingContext();

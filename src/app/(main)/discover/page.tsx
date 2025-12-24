@@ -168,7 +168,6 @@ export default function DiscoverPage() {
     if (!firestore || !user) return null;
     return query(
         collection(firestore, 'users'),
-        orderBy('createdAt', 'desc'),
         limit(50)
     );
   }, [firestore, user]);
