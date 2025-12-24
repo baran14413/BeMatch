@@ -100,8 +100,8 @@ export default function ProfilePage() {
             </div>
             <div className="text-center pt-2">
               <div className="flex items-center gap-2">
-                <h1 className="text-3xl font-bold">{userProfile.name}</h1>
-                {isPremium && <Crown className="w-7 h-7 text-yellow-400 fill-yellow-400" />}
+                <h1 className="text-2xl font-bold">{userProfile.name}</h1>
+                {isPremium && <Crown className="w-6 h-6 text-yellow-400 fill-yellow-400" />}
               </div>
             </div>
           </div>
