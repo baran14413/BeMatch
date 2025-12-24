@@ -216,7 +216,7 @@ export default function DiscoverPage() {
       })
       .map(p => {
         // Don't calculate distance for mock profiles unless they have lat/lon
-        const distance = p.latitude && p.longitude ? getDistanceInKm(currentLat!, currentLon!, p.latitude!, p.longitude!) : undefined;
+        const distance = (p.latitude && p.longitude && currentLat && currentLon) ? getDistanceInKm(currentLat, currentLon, p.latitude, p.longitude) : undefined;
         const isBoosted = p.boostExpiresAt && isFuture((p.boostExpiresAt as Timestamp).toDate());
         return { ...p, distance, isBoosted };
       })
@@ -318,6 +318,16 @@ export default function DiscoverPage() {
     // If it's a mock profile and the user liked them, initiate an AI chat.
     if (swipedProfile.isSystemAccount && (swipeType === 'like' || swipeType === 'superlike')) {
         try {
+            // Check if a match already exists to prevent duplicate messages
+            const matchId = [currentUserProfile.id, swipedProfile.id].sort().join('_');
+            const matchRef = doc(firestore, 'matches', matchId);
+            const matchDoc = await getDoc(matchRef);
+
+            if (matchDoc.exists()) {
+                console.log(`Match with ${swipedProfile.name} already exists. Skipping AI message.`);
+                return;
+            }
+
             // Construct profile string safely, handling undefined fields
             const bioPart = currentUserProfile.bio ? `, Bio: ${currentUserProfile.bio}` : '';
             const interestsPart = (currentUserProfile.interests && currentUserProfile.interests.length > 0) ? `, Interests: ${currentUserProfile.interests.join(', ')}` : '';
@@ -330,10 +340,7 @@ export default function DiscoverPage() {
             });
 
             if (result.icebreaker) {
-                const matchId = [currentUserProfile.id, swipedProfile.id].sort().join('_');
-                const matchRef = doc(firestore, 'matches', matchId);
                 const messageRef = doc(collection(firestore, 'matches', matchId, 'messages'));
-
                 const batch = writeBatch(firestore);
                 
                 const userInfoKey = `user_info_${currentUserProfile.id}`;

@@ -56,6 +56,8 @@ import ProfileDetails from '@/components/discover/profile-details';
 import { generateAiChatResponse } from '@/app/actions';
 
 const BEMATCH_SYSTEM_ID = 'bematch_system_account';
+const AI_CHAT_MESSAGE_LIMIT = 4;
+
 
 const ChatLoader = () => (
   <div className="flex flex-col h-screen overflow-hidden bg-black">
@@ -414,8 +416,8 @@ export default function ChatPage() {
 
     const lastMessage = messages[messages.length - 1];
     
-    // If the last message is from the user, trigger the AI response.
-    if (lastMessage.senderId === user.uid) {
+    // If the last message is from the user, and we haven't hit the message limit, trigger AI response.
+    if (lastMessage.senderId === user.uid && messages.length < AI_CHAT_MESSAGE_LIMIT) {
         
         const triggerAiResponse = async () => {
             if (!currentUserProfile || !matchProfile) return;
