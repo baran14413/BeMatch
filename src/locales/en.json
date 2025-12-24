@@ -331,7 +331,9 @@
             "successTitle": "Account created!",
             "successDescription": "Welcome to BeMatch.",
             "errorTitle": "Registration Error",
-            "errorDescription": "Please check your information and try again."
+            "errorDescription": "Please check your information and try again.",
+            "emailInUse": "This email address is already in use.",
+            "checkingEmail": "Checking email..."
         }
     },
     "login": {
@@ -448,7 +450,9 @@
             "unblockError": "Failed to unblock user.",
             "userReported": "User reported.",
             "verifyEmailPrompt": "For your security, please verify your email.",
-            "resendEmailButton": "Resend Email"
+            "resendEmailButton": "Resend Email",
+            "emailInUse": "This email address is already in use.",
+            "checkingEmail": "Checking email..."
         },
         "deleteModal": {
             "title": "Are you sure you want to delete the message?",

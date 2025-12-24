@@ -331,7 +331,9 @@
             "successTitle": "Hesap oluşturuldu!",
             "successDescription": "BeMatch'e hoş geldiniz.",
             "errorTitle": "Kayıt sırasında hata oluştu",
-            "errorDescription": "Lütfen bilgilerinizi kontrol edip tekrar deneyin."
+            "errorDescription": "Lütfen bilgilerinizi kontrol edip tekrar deneyin.",
+            "emailInUse": "Bu e-posta adresi zaten kullanılıyor.",
+            "checkingEmail": "E-posta kontrol ediliyor..."
         }
     },
     "login": {
@@ -448,7 +450,9 @@
             "unblockError": "Engeli kaldırma işlemi başarısız oldu.",
             "userReported": "Kullanıcı şikayet edildi.",
             "verifyEmailPrompt": "Güvenliğiniz için lütfen e-postanızı doğrulayın.",
-            "resendEmailButton": "E-postayı Tekrar Gönder"
+            "resendEmailButton": "E-postayı Tekrar Gönder",
+            "emailInUse": "Bu e-posta adresi zaten kullanılıyor.",
+            "checkingEmail": "E-posta kontrol ediliyor..."
         },
         "deleteModal": {
             "title": "Mesajı Silmek İstediğine Emin misin?",
