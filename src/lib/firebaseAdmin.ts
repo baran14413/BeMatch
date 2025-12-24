@@ -36,6 +36,7 @@ export function getFirebaseAdmin(): FirebaseAdminApp | null {
   
   // If serviceAccount is null (file not found), log a specific warning and return null.
   if (!serviceAccount) {
+    // This check runs on the server, so the log will appear in your server console/terminal.
     console.warn(
         'Firebase Admin initialization skipped: "serviceAccountKey.json" not found in the project root. Admin features will be disabled.'
     );

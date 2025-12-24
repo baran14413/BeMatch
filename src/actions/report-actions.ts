@@ -4,6 +4,11 @@ import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import type { Report } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 
+const ADMIN_NOT_INITIALIZED_ERROR = { 
+    success: false, 
+    message: "Firebase Admin SDK'sı başlatılmadı. Lütfen sunucu yapılandırmasını kontrol edin." 
+};
+
 export async function getAllReports(): Promise<Report[]> {
   const admin = getFirebaseAdmin();
   if (!admin) {
@@ -38,7 +43,7 @@ export async function getAllReports(): Promise<Report[]> {
 export async function updateReportStatus(reportId: string, status: 'pending' | 'reviewed' | 'resolved') {
     const admin = getFirebaseAdmin();
     if (!admin) {
-        return { success: false, message: "Firebase Admin SDK'sı başlatılmadı. Lütfen sunucu yapılandırmasını kontrol edin." };
+        return ADMIN_NOT_INITIALIZED_ERROR;
     }
     const { db } = admin;
 

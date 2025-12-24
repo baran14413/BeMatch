@@ -4,6 +4,11 @@ import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import type { UserProfile } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 
+const ADMIN_NOT_INITIALIZED_ERROR = { 
+    success: false, 
+    message: "Firebase Admin SDK'sı başlatılmadı. Lütfen sunucu yapılandırmasını kontrol edin." 
+};
+
 export async function getAllUsers(): Promise<UserProfile[]> {
   const admin = getFirebaseAdmin();
   if (!admin) {
@@ -63,7 +68,7 @@ export async function getUser(uid: string): Promise<UserProfile | null> {
 export async function updateUserRole(uid: string, role: string) {
     const admin = getFirebaseAdmin();
     if (!admin) {
-        return { success: false, message: "Firebase Admin SDK'sı başlatılmadı. Lütfen sunucu yapılandırmasını kontrol edin." };
+        return ADMIN_NOT_INITIALIZED_ERROR;
     }
     const { auth, db } = admin;
 
@@ -87,7 +92,7 @@ export async function updateUserRole(uid: string, role: string) {
 export async function banUserAccount(uid: string, currentStatus: boolean) {
     const admin = getFirebaseAdmin();
     if (!admin) {
-        return { success: false, message: "Firebase Admin SDK'sı başlatılmadı. Lütfen sunucu yapılandırmasını kontrol edin." };
+        return ADMIN_NOT_INITIALIZED_ERROR;
     }
     const { auth, db } = admin;
     const newBanStatus = !currentStatus;
@@ -111,7 +116,7 @@ export async function banUserAccount(uid: string, currentStatus: boolean) {
 export async function deleteUserAccount(uid: string) {
     const admin = getFirebaseAdmin();
     if (!admin) {
-        return { success: false, message: "Firebase Admin SDK'sı başlatılmadı. Lütfen sunucu yapılandırmasını kontrol edin." };
+        return ADMIN_NOT_INITIALIZED_ERROR;
     }
     const { auth, db } = admin;
 
