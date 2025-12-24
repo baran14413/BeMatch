@@ -80,7 +80,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [isStepValid, setStepValid] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
 
   const router = useRouter();
   const auth = useAuth();
@@ -109,11 +109,15 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
 
     const batch = writeBatch(firestore);
 
+    const welcomeMessage = locale === 'tr' 
+        ? `Merhaba ${userName}! Harika bir başlangıç yapman için buradayız. Profilini tamamladın, şimdi etrafındaki harika insanları keşfetme zamanı. Bol şans!`
+        : `Hi ${userName}! We're here to help you get off to a great start. You've completed your profile, now it's time to discover the amazing people around you. Good luck!`;
+
     // Create Match document
     batch.set(matchRef, {
         users: [userId, BEMATCH_SYSTEM_ID],
         timestamp: serverTimestamp(),
-        lastMessage: "BeMatch'e hoş geldin!",
+        lastMessage: locale === 'tr' ? "BeMatch'e hoş geldin!" : "Welcome to BeMatch!",
         [`user_info_${userId}`]: {
             name: userName,
             avatarUrl: userAvatar,
@@ -127,7 +131,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     // Create welcome message
     batch.set(messagesColRef, {
         senderId: BEMATCH_SYSTEM_ID,
-        text: `Merhaba ${userName}! Harika bir başlangıç yapman için buradayız. Profilini tamamladın, şimdi etrafındaki harika insanları keşfetme zamanı. Bol şans!`,
+        text: welcomeMessage,
         timestamp: serverTimestamp(),
         isRead: false,
     });

@@ -16,17 +16,6 @@ import {
 import { Label, Pie, PieChart, Cell } from "recharts"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
-// --- Static Data for Charts (as it was before) ---
-const areaChartData = [
-  { name: 'Jan', newUsers: 120, activeUsers: 200 },
-  { name: 'Feb', newUsers: 180, activeUsers: 250 },
-  { name: 'Mar', newUsers: 250, activeUsers: 320 },
-  { name: 'Apr', newUsers: 210, activeUsers: 350 },
-  { name: 'May', newUsers: 310, activeUsers: 420 },
-  { name: 'Jun', newUsers: 290, activeUsers: 450 },
-  { name: 'Jul', newUsers: 380, activeUsers: 500 },
-];
-
 // --- DonutChart Component (Client-Side) ---
 const DonutChart = ({ value, label, color }: { value: number, label: string, color: string }) => {
     const chartData = [{ name: 'value', value: value }, { name: 'rest', value: 100 - value }];
@@ -106,6 +95,7 @@ interface AdminDashboardClientProps {
     premiumUsers: number;
     premiumPercentage: number;
     matchesLastMonth: number;
+    userGrowthData: { name: string; newUsers: number }[];
 }
 
 export default function AdminDashboardClient({
@@ -115,7 +105,8 @@ export default function AdminDashboardClient({
     totalMatches,
     premiumUsers,
     premiumPercentage,
-    matchesLastMonth
+    matchesLastMonth,
+    userGrowthData,
 }: AdminDashboardClientProps) {
     return (
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
@@ -191,22 +182,17 @@ export default function AdminDashboardClient({
              <CardContent>
                 <div className="h-[250px] w-full">
                 <ChartContainer config={{}} className="h-full w-full">
-                    <AreaChart data={areaChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                    <AreaChart data={userGrowthData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                         <defs>
                             <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8}/>
                                 <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                            </linearGradient>
-                             <linearGradient id="colorPv" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor="#82ca9d" stopOpacity={0}/>
                             </linearGradient>
                         </defs>
                         <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
                         <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
                         <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}/>
                         <Area type="monotone" dataKey="newUsers" name="Yeni Kullanıcılar" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorUv)" />
-                         <Area type="monotone" dataKey="activeUsers" name="Aktif Kullanıcılar" stroke="#82ca9d" fillOpacity={1} fill="url(#colorPv)" />
                     </AreaChart>
                 </ChartContainer>
                 </div>

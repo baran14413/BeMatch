@@ -2,9 +2,9 @@
 import { useMemo } from 'react';
 import AdminDashboardClient from "@/components/admin/admin-dashboard";
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, Timestamp } from 'firebase/firestore';
 import type { UserProfile, Report, Match } from '@/lib/data';
-import { subMonths, isValid, parseISO } from 'date-fns';
+import { subMonths, isValid, parseISO, format, startOfMonth, endOfMonth, eachMonthOfInterval, getMonth } from 'date-fns';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -59,16 +59,19 @@ export default function AdminDashboard() {
     const isLoading = isLoadingUsers || isLoadingReports || isLoadingMatches;
 
     // Memoize the calculation of statistics
-    const stats = useMemo(() => {
+    const { stats, userGrowthData } = useMemo(() => {
         if (isLoading || !users || !reports || !matches) {
             return {
-                totalUsers: 0,
-                totalReports: 0,
-                pendingReports: 0,
-                totalMatches: 0,
-                premiumUsers: 0,
-                premiumPercentage: 0,
-                matchesLastMonth: 0,
+                stats: {
+                    totalUsers: 0,
+                    totalReports: 0,
+                    pendingReports: 0,
+                    totalMatches: 0,
+                    premiumUsers: 0,
+                    premiumPercentage: 0,
+                    matchesLastMonth: 0,
+                },
+                userGrowthData: [],
             };
         }
 
@@ -88,7 +91,7 @@ export default function AdminDashboard() {
             return isValid(matchDate) && matchDate > oneMonthAgo;
         }).length;
         
-        return {
+        const calculatedStats = {
             totalUsers,
             totalReports,
             pendingReports,
@@ -97,6 +100,51 @@ export default function AdminDashboard() {
             premiumPercentage,
             matchesLastMonth,
         };
+
+        // Calculate user growth data
+        const usersByMonth: { [key: string]: number } = {};
+        if (users.length > 0) {
+            const firstUserDate = users.reduce((earliest, user) => {
+                const userDate = user.createdAt?.toDate ? user.createdAt.toDate() : parseISO(user.createdAt);
+                return userDate < earliest ? userDate : earliest;
+            }, new Date());
+
+            const allMonths = eachMonthOfInterval({
+                start: startOfMonth(firstUserDate),
+                end: endOfMonth(new Date())
+            });
+
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+            // Initialize all months to 0
+            allMonths.forEach(month => {
+                const monthKey = format(month, 'yyyy-MM');
+                usersByMonth[monthKey] = 0;
+            });
+            
+            users.forEach(user => {
+                if (user.createdAt) {
+                    const userDate = user.createdAt?.toDate ? user.createdAt.toDate() : parseISO(user.createdAt);
+                    if (isValid(userDate)) {
+                        const monthKey = format(userDate, 'yyyy-MM');
+                        usersByMonth[monthKey] = (usersByMonth[monthKey] || 0) + 1;
+                    }
+                }
+            });
+        }
+        
+        const calculatedUserGrowthData = Object.entries(usersByMonth)
+            .map(([monthKey, count]) => {
+                const [year, monthNum] = monthKey.split('-');
+                return {
+                    name: `${format(new Date(parseInt(year), parseInt(monthNum) - 1), 'MMM')}`,
+                    newUsers: count
+                };
+            })
+            .sort((a,b) => new Date(a.name).getMonth() - new Date(b.name).getMonth());
+            
+        return { stats: calculatedStats, userGrowthData: calculatedUserGrowthData };
+
 
     }, [isLoading, users, reports, matches]);
 
@@ -113,6 +161,7 @@ export default function AdminDashboard() {
             premiumUsers={stats.premiumUsers}
             premiumPercentage={stats.premiumPercentage}
             matchesLastMonth={stats.matchesLastMonth}
+            userGrowthData={userGrowthData}
         />
     );
 }
