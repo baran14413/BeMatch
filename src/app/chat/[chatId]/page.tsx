@@ -314,16 +314,15 @@ export default function ChatPage() {
     setIsLoading(true);
     
     let unsubscribeUser: () => void = () => {};
-    let unsubscribeMatch: () => void = () => {};
     
     const matchDocRef = doc(firestore, 'matches', chatId);
-    unsubscribeMatch = onSnapshot(matchDocRef, (docSnap) => {
+    
+    const unsubscribeMatch = onSnapshot(matchDocRef, (docSnap) => {
         if (docSnap.exists()) {
             const match = { id: docSnap.id, ...docSnap.data() } as Match;
             setMatchData(match);
             const otherUserId = match.users.find(uid => uid !== user.uid);
             
-            // Handle typing status
             if (otherUserId && match.typing) {
                 setIsOtherUserTyping(!!match.typing[otherUserId]);
             }
