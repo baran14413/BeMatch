@@ -3,7 +3,7 @@ import { createContext, useContext, useState, ReactNode, useEffect } from 'react
 import { useRouter } from 'next/navigation';
 import { useAuth, useFirestore, useStorage, useUser } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, Timestamp, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, Timestamp, updateDoc, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
@@ -73,6 +73,8 @@ interface OnboardingContextType {
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
 
+const BEMATCH_SYSTEM_ID = 'bematch_system_account';
+
 export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<FormData>(initialFormData);
@@ -99,6 +101,45 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const updateFormData = (data: Partial<FormData>) => {
     setFormData((prev) => ({ ...prev, ...data }));
   };
+
+  const createWelcomeChat = async (userId: string, userName: string, userAvatar: string) => {
+    const matchId = [userId, BEMATCH_SYSTEM_ID].sort().join('_');
+    const matchRef = doc(firestore, 'matches', matchId);
+    const messagesColRef = doc(firestore, 'matches', matchId, 'messages', uuidv4());
+
+    const batch = writeBatch(firestore);
+
+    // Create Match document
+    batch.set(matchRef, {
+        users: [userId, BEMATCH_SYSTEM_ID],
+        timestamp: serverTimestamp(),
+        lastMessage: "BeMatch'e hoş geldin!",
+        [`user_info_${userId}`]: {
+            name: userName,
+            avatarUrl: userAvatar,
+        },
+        [`user_info_${BEMATCH_SYSTEM_ID}`]: {
+            name: "BeMatch",
+            avatarUrl: 'https://images.unsplash.com/photo-1580473828758-718abc902934?w=500',
+        },
+    });
+
+    // Create welcome message
+    batch.set(messagesColRef, {
+        senderId: BEMATCH_SYSTEM_ID,
+        text: `Merhaba ${userName}! Harika bir başlangıç yapman için buradayız. Profilini tamamladın, şimdi etrafındaki harika insanları keşfetme zamanı. Bol şans!`,
+        timestamp: serverTimestamp(),
+        isRead: false,
+    });
+
+    try {
+        await batch.commit();
+    } catch(error) {
+        console.error("Welcome chat creation failed:", error);
+        // We don't need to block the user flow for this, so just log the error.
+    }
+  };
+
 
   const handleRegister = async () => {
     setIsLoading(true);
@@ -171,6 +212,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
           });
       }
 
+      // 5. Create the welcome chat
+      await createWelcomeChat(user.uid, initialProfileData.name, photoURLs[0] || '');
 
       toast({
         title: t('onboarding.toasts.successTitle'),
