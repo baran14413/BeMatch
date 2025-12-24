@@ -38,7 +38,7 @@ export async function getAllReports(): Promise<Report[]> {
 export async function updateReportStatus(reportId: string, status: 'pending' | 'reviewed' | 'resolved') {
     const admin = getFirebaseAdmin();
     if (!admin) {
-        throw new Error("Firebase Admin not initialized.");
+        return { success: false, message: "Firebase Admin SDK'sı başlatılmadı. Lütfen sunucu yapılandırmasını kontrol edin." };
     }
     const { db } = admin;
 
@@ -47,7 +47,7 @@ export async function updateReportStatus(reportId: string, status: 'pending' | '
         await reportRef.update({ status });
         
         revalidatePath('/admin/safety');
-        return { success: true, message: `Report status updated to ${status}.` };
+        return { success: true, message: `Rapor durumu ${status} olarak güncellendi.` };
 
     } catch (error: any) {
         console.error("Error updating report status:", error);
