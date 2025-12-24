@@ -11,8 +11,8 @@
         "aboutMe": "About Me",
         "myVoiceNote": "My Voice Note",
         "tutorial": {
-            "previous": "PREVIOUS PHOTO",
-            "next": "NEXT PHOTO"
+            "previous": "PASS",
+            "next": "LIKE"
         }
     },
     "likes": {

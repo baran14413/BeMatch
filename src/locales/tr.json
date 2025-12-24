@@ -11,8 +11,8 @@
         "aboutMe": "Hakkımda",
         "myVoiceNote": "Sesli notum",
         "tutorial": {
-            "previous": "ÖNCEKİ FOTOĞRAF",
-            "next": "SONRAKİ FOTOĞRAF"
+            "previous": "GEÇ",
+            "next": "BEĞEN"
         }
     },
     "likes": {

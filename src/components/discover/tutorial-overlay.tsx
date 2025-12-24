@@ -34,9 +34,8 @@ const TutorialItem = ({ side, text }: { side: 'left' | 'right'; text: string }) 
     >
       <motion.div
         animate={{
-            scale: [1, 1.1, 1],
-            y: [0, -5, 0],
-            transition: { delay: 1, duration: 1.5, repeat: Infinity, ease: "easeInOut" }
+            translateX: isLeft ? [-5, 5, -5] : [5, -5, 5],
+            transition: { delay: 1, duration: 2, repeat: Infinity, ease: "easeInOut" }
         }}
       >
         <HandIcon />
@@ -52,11 +51,9 @@ export default function TutorialOverlay() {
   return (
     <div className="absolute inset-0 pointer-events-none z-50">
         <div className="absolute inset-0 bg-black/20"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-full w-[1px] border-l-2 border-dashed border-white/50"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[80%] w-[1px] border-l-2 border-dashed border-white/50"></div>
         <TutorialItem side="left" text={t('discover.tutorial.previous')} />
         <TutorialItem side="right" text={t('discover.tutorial.next')} />
     </div>
   );
 }
-
-    

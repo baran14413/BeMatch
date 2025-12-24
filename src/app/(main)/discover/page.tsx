@@ -255,10 +255,8 @@ export default function DiscoverPage() {
     if (isMobile && profiles && profiles.length > 0) {
       const hasSeenTutorial = localStorage.getItem('hasSeenSwipeTutorial');
       if (!hasSeenTutorial) {
-        setShowTutorial(true);
         const timer = setTimeout(() => {
-          setShowTutorial(false);
-          localStorage.setItem('hasSeenSwipeTutorial', 'true');
+          setShowTutorial(true);
         }, 4000);
         return () => clearTimeout(timer);
       }
@@ -307,6 +305,10 @@ export default function DiscoverPage() {
   };
 
   const handleSwipe = useCallback(async (direction: SwipeDirection, triggeredByButton: boolean = false) => {
+    if (showTutorial) {
+        setShowTutorial(false);
+        localStorage.setItem('hasSeenSwipeTutorial', 'true');
+    }
     if (visibleStack.length === 0 || !user || !firestore || !currentUserProfile) return;
 
     const swipedProfile = visibleStack[visibleStack.length - 1];
@@ -452,7 +454,7 @@ export default function DiscoverPage() {
           }));
       });
 
-  }, [visibleStack, user, firestore, currentUserProfile, toast, t, router, locale]);
+  }, [visibleStack, user, firestore, currentUserProfile, toast, t, router, locale, showTutorial]);
 
   if (isMobile === undefined) {
     return null;
@@ -528,7 +530,6 @@ export default function DiscoverPage() {
                     </motion.div>
                   );
                 })}
-                {showTutorial && <TutorialOverlay />}
               </>
             ) : (
               <div className="flex items-center justify-center h-full">
@@ -537,6 +538,7 @@ export default function DiscoverPage() {
             )}
           </AnimatePresence>
         </div>
+        {showTutorial && <TutorialOverlay />}
       </div>
       
       <Sheet open={!!detailsProfile} onOpenChange={(isOpen) => !isOpen && setDetailsProfile(null)}>
