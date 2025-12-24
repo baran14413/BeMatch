@@ -10,6 +10,7 @@ const pwaConfig = withPWA({
 });
 
 const nextConfig: NextConfig = {
+  output: 'export', // This ensures `next build` creates the 'out' directory
   /* config options here */
   typescript: {
     ignoreBuildErrors: true,
@@ -18,6 +19,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    unoptimized: true, // Required for static export
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       {
