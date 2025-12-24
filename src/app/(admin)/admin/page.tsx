@@ -104,33 +104,34 @@ export default function AdminDashboard() {
         // Calculate user growth data
         const usersByMonth: { [key: string]: number } = {};
         if (users.length > 0) {
-            const firstUserDate = users.reduce((earliest, user) => {
-                const userDate = user.createdAt?.toDate ? user.createdAt.toDate() : parseISO(user.createdAt);
-                return userDate < earliest ? userDate : earliest;
-            }, new Date());
-
-            const allMonths = eachMonthOfInterval({
-                start: startOfMonth(firstUserDate),
-                end: endOfMonth(new Date())
-            });
-
-            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-            // Initialize all months to 0
-            allMonths.forEach(month => {
-                const monthKey = format(month, 'yyyy-MM');
-                usersByMonth[monthKey] = 0;
-            });
+            const usersWithCreationDate = users.filter(u => u.createdAt);
             
-            users.forEach(user => {
-                if (user.createdAt) {
-                    const userDate = user.createdAt?.toDate ? user.createdAt.toDate() : parseISO(user.createdAt);
+            if (usersWithCreationDate.length > 0) {
+                const firstUserDate = usersWithCreationDate.reduce((earliest, user) => {
+                    // This check is now safe because we filtered users without createdAt
+                    const userDate = user.createdAt?.toDate ? user.createdAt.toDate() : parseISO(user.createdAt!);
+                    return userDate < earliest ? userDate : earliest;
+                }, new Date());
+
+                const allMonths = eachMonthOfInterval({
+                    start: startOfMonth(firstUserDate),
+                    end: endOfMonth(new Date())
+                });
+
+                // Initialize all months to 0
+                allMonths.forEach(month => {
+                    const monthKey = format(month, 'yyyy-MM');
+                    usersByMonth[monthKey] = 0;
+                });
+                
+                usersWithCreationDate.forEach(user => {
+                    const userDate = user.createdAt?.toDate ? user.createdAt.toDate() : parseISO(user.createdAt!);
                     if (isValid(userDate)) {
                         const monthKey = format(userDate, 'yyyy-MM');
                         usersByMonth[monthKey] = (usersByMonth[monthKey] || 0) + 1;
                     }
-                }
-            });
+                });
+            }
         }
         
         const calculatedUserGrowthData = Object.entries(usersByMonth)
