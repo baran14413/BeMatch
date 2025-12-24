@@ -2,7 +2,6 @@ import 'server-only';
 import * as admin from 'firebase-admin';
 
 // Debug log to check if environment variables are loaded by Next.js
-// This helps in diagnosing deployment issues.
 if (process.env.NODE_ENV === 'development') {
     console.log('Firebase Admin Env Check:', {
         PROJECT_ID: process.env.FIREBASE_PROJECT_ID ? 'LOADED' : 'MISSING',
@@ -60,6 +59,7 @@ function getFirebaseAdmin(): FirebaseAdminApp {
 
   } catch (error: any) {
     console.error("Firebase Admin SDK Initialization Error:", error.message);
+    // Re-throw a more user-friendly error to be caught by the page.
     throw new Error(`Failed to initialize Firebase Admin SDK: ${error.message}. Check your environment variables and private key format.`);
   }
 }
