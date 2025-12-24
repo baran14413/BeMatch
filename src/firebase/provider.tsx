@@ -197,15 +197,27 @@ export const useFirebaseApp = (): FirebaseApp => {
 
 type MemoFirebase <T> = T & {__memo?: boolean};
 
+/**
+ * A custom hook that functions like `useMemo`, but adds a marker to the memoized
+ * object. This marker is used by other custom hooks (`useCollection`, `useDoc`) to
+ * enforce that queries and references passed to them are properly memoized,
+ * preventing infinite re-render loops.
+ *
+ * @template T The type of the value to be memoized.
+ * @param {() => T} factory The function that computes the value.
+ * @param {DependencyList} deps An array of dependencies. `useMemoFirebase` will only
+ * recompute the memoized value when one of the dependencies has changed.
+ * @returns {T} The memoized value.
+ */
 export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
     const memoized = useMemo(factory, deps);
-    if (typeof memoized !== 'object' || memoized === null) return memoized;
-
-    // This is a hack to ensure that the memoized value is not a new object instance on every render.
-    // It's not a perfect solution, but it's a good enough heuristic for now.
-    // We can't use Object.is because it will always be false for new object instances.
-    // So we add a property to the object to mark it as memoized.
-    (memoized as MemoFirebase<T>).__memo = true;
+    
+    // Only mark non-null objects. Primitives don't need marking as they are compared by value.
+    if (typeof memoized === 'object' && memoized !== null) {
+        // This is a "marker" property to ensure that the object instance is stable across renders.
+        // Other hooks can check for this property to verify that they are receiving a memoized value.
+        (memoized as MemoFirebase<T>).__memo = true;
+    }
     
     return memoized;
 }
