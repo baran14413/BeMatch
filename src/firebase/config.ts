@@ -1,9 +1,9 @@
 export const firebaseConfig = {
-  "projectId": "bematch-f168d",
-  "appId": "1:137528078260:web:9bbd45115bd2aaf8200ce1",
-  "apiKey": "AIzaSyCtj9XvTW2aiumZhrR3OXQk3U3sh01ffRQ",
-  "authDomain": "bematch-f168d.firebaseapp.com",
-  "measurementId": "G-B9HD1ESD1H",
-  "storageBucket": "bematch-f168d.firebasestorage.app",
-  "messagingSenderId": "137528078260"
+  apiKey: "AIzaSyBTYHLORHg_HuLzAg74XCanqLE82e92NJI",
+  authDomain: "bematch-new.firebaseapp.com",
+  projectId: "bematch-new",
+  storageBucket: "bematch-new.firebasestorage.app",
+  messagingSenderId: "108504362423",
+  appId: "1:108504362423:web:3781383a547a09590d8c32",
+  measurementId: "G-P6LCQY34GB"
 };

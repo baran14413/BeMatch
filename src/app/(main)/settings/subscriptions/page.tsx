@@ -110,7 +110,7 @@ export default function SubscriptionsPage() {
                     </div>
                 </header>
                 
-                <div className="px-4 md:px-8 pb-8 grid gap-8 md:grid-cols-1 lg:grid-cols-3 items-start pb-[calc(env(safe-area-inset-bottom,0rem)+2rem)]">
+                <div className="px-4 md:px-8 pb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start pb-[calc(env(safe-area-inset-bottom,0rem)+2rem)]">
                     {subscriptionPackages.map((pkg) => (
                         <SubscriptionCard key={pkg.id} pkg={pkg} />
                     ))}
