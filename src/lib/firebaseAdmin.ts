@@ -44,8 +44,8 @@ function getFirebaseAdmin(): FirebaseAdminApp {
             credential: admin.credential.cert({
                 projectId,
                 clientEmail,
-                // The key is passed directly. Firebase Admin SDK handles the parsing.
-                privateKey,
+                // Sanitize the private key by replacing escaped newlines with actual newlines.
+                privateKey: privateKey.replace(/\\n/g, '\n'),
             }),
         });
     }
