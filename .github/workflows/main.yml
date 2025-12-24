@@ -1,18 +1,35 @@
-name: Auto commit and push
+name: Firebase Studio CI
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
-  commit:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Commit and push if it's necessary
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --staged --quiet || git commit -m 'Automated commit' && git push
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      # Gelecekte buraya test veya dağıtım adımları eklenebilir.
+      # Örneğin:
+      # - name: Run tests
+      #   run: npm test
+      #
+      # - name: Deploy to Firebase
+      #   uses: w9jds/firebase-action@master
+      #   with:
+      #     args: deploy --only hosting
+      #   env:
+      #     FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
