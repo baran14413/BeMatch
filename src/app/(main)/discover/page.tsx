@@ -19,7 +19,8 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { isToday, isFuture } from 'date-fns';
 import ItIsAMatch from '@/components/discover/it-is-a-match';
-import { generateAiIcebreaker } from '@/app/actions';
+import { generateAiIcebreaker } from '@/ai/flows/generate-ai-icebreaker';
+import { mockProfiles } from '@/lib/mock-profiles';
 
 
 type SwipeDirection = 'left' | 'right' | 'up';
@@ -177,10 +178,10 @@ export default function DiscoverPage() {
   const { data: profiles, isLoading: isLoadingProfiles } = useCollection<UserProfile>(usersQuery);
 
   const filteredAndSortedProfiles = useMemo(() => {
-    // This part should be updated to not rely on a separate mock-profiles file
-    const combinedProfiles = [...(profiles || [])];
+    // Combine real profiles from Firestore with mock profiles
+    const combinedProfiles = [...(profiles || []), ...mockProfiles];
 
-    if (!currentUserProfile || !user) return combinedProfiles;
+    if (!currentUserProfile || !user) return [];
 
     const {
         ageRange = [18, 55],
@@ -193,11 +194,15 @@ export default function DiscoverPage() {
 
     const [minAge, maxAge] = ageRange;
     
+    // Ensure uniqueness, giving priority to real profiles over mock profiles with the same ID
     const uniqueProfiles = Array.from(new Map(combinedProfiles.map(p => [p.id, p])).values());
 
     return uniqueProfiles
       .filter(p => {
         const isNotSelf = p.id !== user.uid;
+        // For mock profiles, age/interest checks can be bypassed if desired
+        if (p.isSystemAccount) return isNotSelf;
+
         const isInAgeRange = p.age >= minAge && p.age <= maxAge;
         
         let interestMatch = true;
@@ -210,17 +215,23 @@ export default function DiscoverPage() {
         return isNotSelf && isInAgeRange && interestMatch && hasAvatar;
       })
       .map(p => {
-        const distance = getDistanceInKm(currentLat!, currentLon!, p.latitude!, p.longitude!);
+        // Don't calculate distance for mock profiles unless they have lat/lon
+        const distance = p.latitude && p.longitude ? getDistanceInKm(currentLat!, currentLon!, p.latitude!, p.longitude!) : undefined;
         const isBoosted = p.boostExpiresAt && isFuture((p.boostExpiresAt as Timestamp).toDate());
         return { ...p, distance, isBoosted };
       })
       .filter(p => {
+          if (p.isSystemAccount) return true; // Always include mock accounts
           if (globalMode || p.distance === undefined) {
               return true;
           }
           return p.distance <= maxDistance;
       })
       .sort((a, b) => {
+        // Prioritize mock profiles to appear first if needed, or mix them in
+        if (a.isSystemAccount && !b.isSystemAccount) return -1;
+        if (!a.isSystemAccount && b.isSystemAccount) return 1;
+
         if (a.isBoosted && !b.isBoosted) return -1;
         if (!a.isBoosted && b.isBoosted) return 1;
         if (a.distance === undefined && b.distance === undefined) return 0;
@@ -321,16 +332,19 @@ export default function DiscoverPage() {
                 const messageRef = doc(collection(firestore, 'matches', matchId, 'messages'));
 
                 const batch = writeBatch(firestore);
+                
+                const userInfoKey = `user_info_${currentUserProfile.id}`;
+                const swipedInfoKey = `user_info_${swipedProfile.id}`;
 
                 batch.set(matchRef, {
                     users: [currentUserProfile.id, swipedProfile.id],
                     timestamp: serverTimestamp(),
                     lastMessage: result.icebreaker,
-                    [`user_info_${currentUserProfile.id}`]: {
+                    [userInfoKey]: {
                         name: currentUserProfile.name,
                         avatarUrl: currentUserProfile.avatarUrl,
                     },
-                    [`user_info_${swipedProfile.id}`]: {
+                    [swipedInfoKey]: {
                         name: swipedProfile.name,
                         avatarUrl: swipedProfile.avatarUrl,
                     },
@@ -341,6 +355,7 @@ export default function DiscoverPage() {
                     text: result.icebreaker,
                     timestamp: serverTimestamp(),
                     isRead: false,
+                    isAiGenerated: true,
                 });
 
                 await batch.commit();
@@ -392,15 +407,18 @@ export default function DiscoverPage() {
             const matchId = [user.uid, swipedProfile.id].sort().join('_');
             const matchRef = doc(firestore, 'matches', matchId);
             
+            const userInfoKey = `user_info_${user.uid}`;
+            const swipedInfoKey = `user_info_${swipedProfile.id}`;
+
             const matchData = {
                 users: [user.uid, swipedProfile.id],
                 timestamp: serverTimestamp(),
                 lastMessage: t('discover.newMatch'),
-                [`user_info_${user.uid}`]: {
+                [userInfoKey]: {
                     name: currentUserProfile.name,
                     avatarUrl: currentUserProfile.avatarUrl,
                 },
-                [`user_info_${swipedProfile.id}`]: {
+                [swipedInfoKey]: {
                     name: swipedProfile.name,
                     avatarUrl: swipedProfile.avatarUrl,
                 },
