@@ -1,8 +1,9 @@
+
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
 import Link from 'next/link';
 import { useLanguage } from "@/context/language-context";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { subscriptionPackages, PricingPlan } from '@/config/subscriptions';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { useGooglePlayBilling } from '@/hooks/useGooglePlayBilling';
+import { useToast } from '@/hooks/use-toast';
 
 const FeatureListItem = ({ children, included }: { children: React.ReactNode, included: boolean }) => (
     <li className={cn("flex items-start gap-3", !included && "opacity-50")}>
@@ -23,9 +26,29 @@ type Period = 'weekly' | 'monthly' | 'yearly';
 
 const SubscriptionCard = ({ pkg }: { pkg: typeof subscriptionPackages[0] }) => {
     const { t } = useLanguage();
+    const { toast } = useToast();
     const [selectedPeriod, setSelectedPeriod] = useState<Period>('monthly');
+    const { purchase, isReady, state, error } = useGooglePlayBilling();
 
     const currentPrice = pkg.pricing.find(p => p.period === selectedPeriod);
+    const isLoading = state === 'PURCHASING' || state === 'LOADING';
+
+    const handlePurchase = async () => {
+        if (!currentPrice) return;
+        const result = await purchase(currentPrice.productId);
+        if (result?.success) {
+            toast({
+                title: 'Purchase Successful!',
+                description: `You have successfully subscribed to ${pkg.name}.`,
+            });
+        } else {
+             toast({
+                variant: 'destructive',
+                title: 'Purchase Failed',
+                description: error?.message || 'An unknown error occurred.',
+            });
+        }
+    };
 
     return (
         <Card 
@@ -46,7 +69,7 @@ const SubscriptionCard = ({ pkg }: { pkg: typeof subscriptionPackages[0] }) => {
                 </CardTitle>
                 {currentPrice && (
                     <div className="flex items-baseline gap-1 relative h-10">
-                        <span className="text-4xl font-bold">{currentPrice.price}₺</span>
+                        <span className="text-4xl font-bold">{currentPrice.price}</span>
                         <span className="text-muted-foreground">/ {t(`subscriptionsPage.${selectedPeriod}`)}</span>
                         {currentPrice.badge && (
                                 <Badge variant="destructive" className="absolute -right-12 -top-2">{currentPrice.badge}</Badge>
@@ -67,7 +90,7 @@ const SubscriptionCard = ({ pkg }: { pkg: typeof subscriptionPackages[0] }) => {
                         >
                             <RadioGroupItem value={p.period} id={`${pkg.id}-${p.period}`} className="sr-only" />
                             <span className="font-semibold text-sm">{t(`subscriptionsPage.${p.period}`)}</span>
-                            <span className="text-xs text-muted-foreground">{p.price}₺</span>
+                            <span className="text-xs text-muted-foreground">{p.price}</span>
                         </Label>
                     ))}
                 </RadioGroup>
@@ -84,8 +107,10 @@ const SubscriptionCard = ({ pkg }: { pkg: typeof subscriptionPackages[0] }) => {
                 <Button 
                     className="w-full h-12 text-lg font-bold"
                     style={{ background: `linear-gradient(to right, ${pkg.colors.from}, ${pkg.colors.to})`, color: 'white' }}
+                    onClick={handlePurchase}
+                    disabled={!isReady || isLoading}
                 >
-                    {t('subscriptionsPage.choosePlan')}
+                    {isLoading ? <Loader2 className="animate-spin" /> : t('subscriptionsPage.choosePlan')}
                 </Button>
             </CardFooter>
         </Card>
@@ -94,6 +119,7 @@ const SubscriptionCard = ({ pkg }: { pkg: typeof subscriptionPackages[0] }) => {
 
 export default function SubscriptionsPage() {
     const { t } = useLanguage();
+    const { isReady, error } = useGooglePlayBilling();
 
     return (
         <ScrollArea className="h-full">
@@ -109,6 +135,14 @@ export default function SubscriptionsPage() {
                         <p className="text-muted-foreground">{t('subscriptionsPage.description')}</p>
                     </div>
                 </header>
+                
+                {!isReady && (
+                    <div className="px-4 md:px-8 text-center">
+                        <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+                        <p className="text-muted-foreground">Connecting to billing service...</p>
+                        {error && <p className="text-destructive mt-2">{error.message}</p>}
+                    </div>
+                )}
                 
                 <div className="px-4 md:px-8 pb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start pb-[calc(env(safe-area-inset-bottom,0rem)+2rem)]">
                     {subscriptionPackages.map((pkg) => (

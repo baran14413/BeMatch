@@ -136,6 +136,27 @@
                 "type": "number"
             }
         },
+        "isPremium": {
+          "type": "boolean",
+          "description": "Indicates if the user has an active premium subscription."
+        },
+        "subscriptionId": {
+            "type": "string",
+            "description": "The product ID of the user's current subscription (e.g., 'gold_monthly')."
+        },
+        "purchaseToken": {
+            "type": "string",
+            "description": "The Google Play purchase token for the current subscription, used for validation."
+        },
+        "expiryDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The expiration date of the user's current subscription."
+        },
+        "autoRenewing": {
+            "type": "boolean",
+            "description": "Indicates if the subscription is set to auto-renew."
+        },
         "premiumTier": {
             "type": "string",
             "enum": ["plus", "gold", "platinum"],
@@ -154,6 +175,14 @@
         "superLikes": {
             "type": "number",
             "description": "The number of Super Likes a user has."
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role in the system (e.g., admin, user)."
+        },
+        "isBanned": {
+          "type": "boolean",
+          "description": "Indicates if the user account is banned from accessing the application."
         }
       },
       "required": [
@@ -418,13 +447,34 @@
     "customClaims": {
       "role": {
         "type": "string",
-        "enum": ["user"]
+        "enum": ["admin", "moderator", "support", "user"]
       }
     },
     "roles": {
+      "admin": {
+        "name": "Yönetici",
+        "description": "Tüm yönetici paneli özelliklerine tam erişime sahiptir.",
+        "permissions": ["*"]
+      },
+      "moderator": {
+        "name": "Moderatör",
+        "description": "Kullanıcıları yönetebilir ve rapor edilen içerikleri inceleyebilir.",
+        "permissions": [
+          "/admin/users",
+          "/admin/safety",
+          "/admin/audit-logs"
+        ]
+      },
+      "support": {
+        "name": "Destek",
+        "description": "Destek biletlerine yardımcı olmak için kullanıcı bilgilerini görüntüleyebilir.",
+        "permissions": [
+          "/admin/users"
+        ]
+      },
       "user": {
-        "name": "User",
-        "description": "Standard user with no admin panel access.",
+        "name": "Kullanıcı",
+        "description": "Yönetici paneli erişimi olmayan standart kullanıcı.",
         "permissions": []
       }
     }

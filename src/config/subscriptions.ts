@@ -1,4 +1,6 @@
+
 export type PricingPlan = {
+  productId: string; // Add the Google Play Product ID here
   period: 'weekly' | 'monthly' | 'yearly';
   price: string;
   badge?: string;
@@ -10,7 +12,7 @@ export type SubscriptionFeature = {
 };
 
 export type SubscriptionPackage = {
-  id: string;
+  id: string; // e.g., 'plus', 'gold', 'platinum'
   name: string;
   tierLevel: number;
   isPopular: boolean;
@@ -43,9 +45,9 @@ export const subscriptionPackages: SubscriptionPackage[] = [
       { text: 'subscriptionsPage.features.priorityLikes', included: false },
     ],
     pricing: [
-      { period: 'weekly', price: '69.99' },
-      { period: 'monthly', price: '199.99', badge: '≈%30' },
-      { period: 'yearly', price: '1,199.99', badge: 'En Avantajlı' },
+      { productId: 'plus_weekly', period: 'weekly', price: '69.99' },
+      { productId: 'plus_monthly', period: 'monthly', price: '199.99', badge: '≈%30' },
+      { productId: 'plus_yearly', period: 'yearly', price: '1,199.99', badge: 'En Avantajlı' },
     ],
   },
   {
@@ -66,9 +68,9 @@ export const subscriptionPackages: SubscriptionPackage[] = [
       { text: 'subscriptionsPage.features.priorityLikes', included: false },
     ],
     pricing: [
-      { period: 'weekly', price: '119.99' },
-      { period: 'monthly', price: '349.99' },
-      { period: 'yearly', price: '2,399.99', badge: 'En Popüler' },
+      { productId: 'gold_weekly', period: 'weekly', price: '119.99' },
+      { productId: 'gold_monthly', period: 'monthly', price: '349.99' },
+      { productId: 'gold_yearly', period: 'yearly', price: '2,399.99', badge: 'En Popüler' },
     ],
   },
   {
@@ -86,9 +88,9 @@ export const subscriptionPackages: SubscriptionPackage[] = [
       { text: 'subscriptionsPage.features.superLikesWeeklyVip', included: true },
     ],
     pricing: [
-      { period: 'weekly', price: '199.99' },
-      { period: 'monthly', price: '599.99' },
-      { period: 'yearly', price: '4,199.99', badge: 'VIP' },
+      { productId: 'platinum_weekly', period: 'weekly', price: '199.99' },
+      { productId: 'platinum_monthly', period: 'monthly', price: '599.99' },
+      { productId: 'platinum_yearly', period: 'yearly', price: '4,199.99', badge: 'VIP' },
     ],
   },
 ];
