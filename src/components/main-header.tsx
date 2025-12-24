@@ -7,20 +7,31 @@ import { cn } from '@/lib/utils';
 import { useLanguage } from '@/context/language-context';
 import { useUnreadMessages } from '@/hooks/use-unread-messages';
 import { useNewLikes } from '@/hooks/use-new-likes';
+import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import type { UserProfile } from '@/lib/data';
+import { doc } from 'firebase/firestore';
 
 const MainHeader = () => {
     const pathname = usePathname();
     const { t } = useLanguage();
+    const { user } = useUser();
+    const firestore = useFirestore();
     const unreadState = useUnreadMessages();
     const hasUnreadMessages = Object.values(unreadState).some(hasUnread => hasUnread);
     const hasNewLikes = useNewLikes();
+
+    const userDocRef = useMemoFirebase(() => {
+        if (!user) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [user, firestore]);
+    const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+    const isAdmin = userProfile?.role === 'admin';
 
     const navLinks = [
         { href: '/discover', icon: Sparkles, label: t('discover.title') },
         { href: '/likes', icon: Heart, label: t('likes.title'), hasNotification: hasNewLikes },
         { href: '/lounge', icon: MessageCircle, label: t('lounge.title'), hasNotification: hasUnreadMessages },
         { href: '/profile', icon: CircleUserRound, label: t('profile.title') },
-        { href: '/admin', icon: Shield, label: 'Admin' },
     ];
     
     return (
@@ -45,6 +56,13 @@ const MainHeader = () => {
                         </Button>
                     )
                 })}
+                {isAdmin && (
+                    <Button key="/admin" variant="ghost" size="icon" asChild>
+                        <Link href="/admin" aria-label="Admin" className="relative">
+                            <Shield className={cn("w-6 h-6", pathname.startsWith('/admin') ? "text-primary" : "text-muted-foreground")} />
+                        </Link>
+                    </Button>
+                )}
             </div>
         </header>
     )

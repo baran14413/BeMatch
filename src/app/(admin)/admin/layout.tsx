@@ -4,15 +4,49 @@ import AdminSidebar from '@/components/admin/admin-sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetTrigger, SheetContent } from '@/components/ui/sheet';
-import { Search, Bell, Menu, CircleUserRound } from 'lucide-react';
+import { Search, Bell, Menu, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { UserProfile } from '@/lib/data';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+  const router = useRouter();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
+  useEffect(() => {
+    if (!isUserLoading && !isProfileLoading) {
+      if (!user || userProfile?.role !== 'admin') {
+        router.replace('/discover');
+      }
+    }
+  }, [user, isUserLoading, userProfile, isProfileLoading, router]);
+
+  const isLoading = isUserLoading || isProfileLoading;
+
+  if (isLoading || userProfile?.role !== 'admin') {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       <div className="hidden border-r bg-primary text-primary-foreground md:block">
@@ -56,8 +90,8 @@ export default function AdminLayout({
             <span className="sr-only">Bildirimler</span>
           </Button>
            <Avatar className="h-9 w-9">
-            <AvatarImage src="https://images.unsplash.com/photo-1557053910-d9eadeed1c58?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHBvcnRyYWl0fGVufDB8fHx8MTc2NDcwNjIzNXww&ixlib=rb-4.1.0&q=80&w=1080" alt="Admin" />
-            <AvatarFallback>A</AvatarFallback>
+            <AvatarImage src={userProfile?.avatarUrl} alt="Admin" />
+            <AvatarFallback>{userProfile?.name?.charAt(0)}</AvatarFallback>
           </Avatar>
         </header>
         <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 overflow-auto">

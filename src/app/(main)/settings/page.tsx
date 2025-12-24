@@ -4,11 +4,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ChevronRight, Heart, LogOut, MapPin, Shield, ShieldCheck, SlidersHorizontal, Smartphone, User, Wallet, GalleryHorizontal, Crown } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/context/language-context";
-import { useAuth, useUser } from "@/firebase";
+import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { doc } from 'firebase/firestore';
+import type { UserProfile } from '@/lib/data';
 
 const SettingsSection = ({ title, children }: { title: string, children: React.ReactNode }) => (
     <div className="space-y-4">
@@ -51,9 +53,16 @@ export default function SettingsPage() {
     const { t } = useLanguage();
     const auth = useAuth();
     const { user: authUser } = useUser();
+    const firestore = useFirestore();
     const router = useRouter();
     const { toast } = useToast();
-    const { data: userProfile } = useDoc(doc(useFirestore(), 'users', authUser?.uid || ''));
+
+    const userDocRef = useMemoFirebase(() => {
+        if (!authUser) return null;
+        return doc(firestore, 'users', authUser.uid);
+    }, [authUser, firestore]);
+    const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+
     const isAdmin = userProfile?.role === 'admin';
 
     const handleLogout = async () => {

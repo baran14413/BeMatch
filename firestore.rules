@@ -18,7 +18,7 @@ service cloud.firestore {
       if (!lastActionTime) {
         return false;
       }
-      return request.time - lastActionTime < duration(0, 0, duration, 0, 0);
+      return request.time - lastActionTime < duration;
     }
 
     // --- USER OPERATIONS ---
@@ -37,7 +37,6 @@ service cloud.firestore {
     match /users/{targetUserId}/likedBy/{likerId} {
       allow read: if isAdmin() || (request.auth != null && (request.auth.uid == targetUserId || request.auth.uid == likerId));
       allow create: if isOwner(likerId)
-                      && !isRateLimited(/databases/$(database)/documents/users/$(likerId), 'lastSwipeTimestamp', 1)
                       && request.resource.data.likerId == likerId
                       && request.resource.data.likerName is string
                       && request.resource.data.likerAvatar is string;
@@ -63,7 +62,6 @@ service cloud.firestore {
         return request.auth != null 
                 && userId in request.resource.data.users
                 && exists(/databases/$(database)/documents/users/$(userId)/likedBy/$(otherUserId))
-                && !isRateLimited(/databases/$(database)/documents/users/$(userId), 'lastMatchTimestamp', 5)
                 && denormalizedSelf.name is string
                 && denormalizedSelf.avatarUrl is string
                 && denormalizedOther.name is string
