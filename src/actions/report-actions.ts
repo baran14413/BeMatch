@@ -2,6 +2,7 @@
 
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import type { Report } from '@/lib/data';
+import { revalidatePath } from 'next/cache';
 
 export async function getAllReports(): Promise<Report[]> {
   const admin = getFirebaseAdmin();
@@ -31,4 +32,25 @@ export async function getAllReports(): Promise<Report[]> {
     // In a real app, you might want to throw the error or handle it differently
     return [];
   }
+}
+
+
+export async function updateReportStatus(reportId: string, status: 'pending' | 'reviewed' | 'resolved') {
+    const admin = getFirebaseAdmin();
+    if (!admin) {
+        throw new Error("Firebase Admin not initialized.");
+    }
+    const { db } = admin;
+
+    try {
+        const reportRef = db.collection('reports').doc(reportId);
+        await reportRef.update({ status });
+        
+        revalidatePath('/admin/safety');
+        return { success: true, message: `Report status updated to ${status}.` };
+
+    } catch (error: any) {
+        console.error("Error updating report status:", error);
+        return { success: false, message: error.message };
+    }
 }

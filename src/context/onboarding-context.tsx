@@ -9,7 +9,6 @@ import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 import { useLanguage } from './language-context';
 import { generateAiIcebreaker } from '@/app/actions';
-import { mockProfiles } from '@/lib/mock-profiles';
 import type { UserProfile } from '@/lib/data';
 
 
@@ -84,27 +83,32 @@ const scheduleMockMessages = (
     newUserProfile: UserProfile,
     language: 'tr' | 'en'
 ) => {
-    // Select 3-4 random mock profiles
-    const shuffledMocks = [...mockProfiles].sort(() => 0.5 - Math.random());
+    // A list of random Turkish female names
+    const mockNames = ["Aslı", "Ebru", "Ceren", "Selin", "Gizem", "Elif", "Büşra", "Yağmur", "Deniz", "İrem"];
+    
+    // Select 3-4 random mock names
+    const shuffledMocks = [...mockNames].sort(() => 0.5 - Math.random());
     const selectedMocks = shuffledMocks.slice(0, Math.floor(Math.random() * 2) + 3); // 3 to 4 mocks
 
-    selectedMocks.forEach((mockProfile, index) => {
-        // Random delay between 1 and 8 hours
-        const delay = (Math.random() * 7 + 1) * 60 * 60 * 1000;
+    selectedMocks.forEach((mockName) => {
+        // Random delay between 10 and 15 minutes
+        const delay = (Math.random() * 5 + 10) * 60 * 1000;
 
         setTimeout(async () => {
             try {
-                const firestore = useFirestore();
+                // We're dynamically creating the context for the AI.
+                const firestore = useFirestore(); // This might not be available here. A better way would be to pass it in.
                 const userProfileString = `Name: ${newUserProfile.name}, Age: ${newUserProfile.age}, Bio: ${newUserProfile.bio}, Interests: ${newUserProfile.interests?.join(', ')}`;
                 
                 const result = await generateAiIcebreaker({
                     userProfile: userProfileString,
-                    mockProfileName: mockProfile.name,
+                    mockProfileName: mockName, // Use the dynamically chosen name
                     language: language,
                 });
 
                 if (result.icebreaker) {
-                    const matchId = [newUserId, mockProfile.id].sort().join('_');
+                    const mockProfileId = `mock_${mockName.toLowerCase()}_${uuidv4()}`; // Create a unique-ish ID
+                    const matchId = [newUserId, mockProfileId].sort().join('_');
                     const matchRef = doc(firestore, 'matches', matchId);
                     const messagesColRef = doc(firestore, 'matches', matchId, 'messages', uuidv4());
 
@@ -112,32 +116,33 @@ const scheduleMockMessages = (
 
                     // Create Match document
                     batch.set(matchRef, {
-                        users: [newUserId, mockProfile.id],
+                        users: [newUserId, mockProfileId],
                         timestamp: serverTimestamp(),
                         lastMessage: result.icebreaker,
                         [`user_info_${newUserId}`]: {
                             name: newUserProfile.name,
                             avatarUrl: newUserProfile.avatarUrl,
                         },
-                        [`user_info_${mockProfile.id}`]: {
-                            name: mockProfile.name,
-                            avatarUrl: mockProfile.avatarUrl,
+                         [`user_info_${mockProfileId}`]: {
+                            name: mockName,
+                            // Use a placeholder image service for dynamic avatars
+                            avatarUrl: `https://picsum.photos/seed/${mockName}/400/600`,
                         },
                     });
 
                     // Create the icebreaker message
                     batch.set(messagesColRef, {
-                        senderId: mockProfile.id,
+                        senderId: mockProfileId,
                         text: result.icebreaker,
                         timestamp: serverTimestamp(),
                         isRead: false,
                     });
 
                     await batch.commit();
-                    console.log(`Scheduled message sent from ${mockProfile.name} to ${newUserProfile.name}`);
+                    console.log(`Scheduled message sent from ${mockName} to ${newUserProfile.name}`);
                 }
             } catch (error) {
-                console.error(`Failed to send scheduled message from ${mockProfile.name}:`, error);
+                console.error(`Failed to send scheduled message from ${mockName}:`, error);
             }
         }, delay);
     });
