@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -55,8 +54,16 @@ export function useGooglePlayBilling() {
   const [error, setError] = useState<BillingError | null>(null);
   const [itemDetails, setItemDetails] = useState<ItemDetails | null>(null);
 
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
   // Initialize the Digital Goods Service
   useEffect(() => {
+    // If in development, we don't need the real API. We'll simulate it.
+    if (isDevelopment) {
+        setState('READY');
+        return;
+    }
+    
     setState('LOADING');
     if (window.getDigitalGoodsService) {
       window.getDigitalGoodsService('https://play.google.com/billing')
@@ -78,9 +85,10 @@ export function useGooglePlayBilling() {
       setError({ code: 'NOT_SUPPORTED', message: 'Digital Goods API not available on this device.' });
       setState('ERROR');
     }
-  }, []);
+  }, [isDevelopment]);
 
   const getProductDetails = useCallback(async (productId: string) => {
+    if (isDevelopment) return null; // No need to fetch details in dev
     if (!billingService) {
       console.warn('Billing service not ready.');
       return null;
@@ -98,45 +106,51 @@ export function useGooglePlayBilling() {
       setState('ERROR');
       return null;
     }
-  }, [billingService]);
+  }, [billingService, isDevelopment]);
 
   const purchase = useCallback(async (productId: string) => {
-    if (!billingService) {
-      setError({ code: 'NOT_SUPPORTED', message: 'Billing service is not available.' });
-      setState('ERROR');
-      return;
-    }
-    
     setState('PURCHASING');
     setError(null);
 
-    try {
-      // 1. Initiate the purchase flow via Digital Goods API
-      // The Digital Goods API's purchase method is not standard, we cast to any to use it.
-      // The `productId` here should correspond to the Base Plan ID in Google Play.
-      await (billingService as any).purchase({ itemIds: [productId] });
-      
-      // 2. After a successful client-side purchase, list purchases to get the token
-      const purchases = await billingService.listPurchases();
-      // Find the purchase that corresponds to the product family, not the specific plan ID.
-      // This is a simplification; a real app might need more logic if multiple products are sold.
-      const newPurchase = purchases[purchases.length - 1];
+    let purchaseToken = `dev_token_${Date.now()}`; // Default fake token for development
 
-      if (!newPurchase) {
-        throw new Error('Purchase completed, but could not find purchase token.');
+    // --- REAL PURCHASE FLOW (Production) ---
+    if (!isDevelopment) {
+      if (!billingService) {
+        setError({ code: 'NOT_SUPPORTED', message: 'Billing service is not available.' });
+        setState('ERROR');
+        return;
       }
-      
-      const { purchaseToken } = newPurchase;
+      try {
+        await (billingService as any).purchase({ itemIds: [productId] });
+        const purchases = await billingService.listPurchases();
+        const newPurchase = purchases[purchases.length - 1];
+        if (!newPurchase) {
+          throw new Error('Purchase completed, but could not find purchase token.');
+        }
+        purchaseToken = newPurchase.purchaseToken;
+      } catch (err: any) {
+         console.error('Purchase flow failed:', err);
+        if (err.name === 'AbortError' || err.message?.includes('cancelled')) {
+            setError({ code: 'USER_CANCELLED', message: 'Purchase was cancelled by the user.' });
+        } else {
+            setError({ code: 'PAYMENT_FAILED', message: `Purchase failed: ${err.message}` });
+        }
+        setState('ERROR');
+        return { success: false };
+      }
+    }
 
-      // 3. Call backend function for verification and fulfillment
+    // --- VERIFICATION FLOW (Both Dev and Prod) ---
+    try {
       const functions = getFunctions(firebaseApp);
       const verifySubscription = httpsCallable(functions, 'verifySubscription');
       
-      // The backend function needs the base plan ID to know which subscription was bought.
       const verificationResult = await verifySubscription({
         purchaseToken,
-        productId, // Send the specific plan ID to the backend.
+        productId,
         packageName: 'app.be.match',
+        isDevelopment: isDevelopment, // Pass the environment flag to the backend
       });
       
       const data = verificationResult.data as { success: boolean; message?: string };
@@ -145,24 +159,17 @@ export function useGooglePlayBilling() {
         throw new Error(data.message || 'Backend verification failed.');
       }
       
-      // Backend verification is successful. The user's premium status is updated in Firestore.
-      // The UI will update automatically via Firestore listeners.
       setState('READY');
       return { success: true };
 
     } catch (err: any) {
-      console.error('Purchase flow failed:', err);
-      // Differentiate between user cancelling and other errors
-      if (err.name === 'AbortError' || err.message?.includes('cancelled')) {
-        setError({ code: 'USER_CANCELLED', message: 'Purchase was cancelled by the user.' });
-      } else {
-        setError({ code: 'PAYMENT_FAILED', message: `Purchase failed: ${err.message}` });
-      }
-      setState('ERROR');
-      return { success: false };
+       console.error('Verification flow failed:', err);
+       setError({ code: 'VERIFICATION_FAILED', message: `Verification failed: ${err.message}` });
+       setState('ERROR');
+       return { success: false };
     }
 
-  }, [billingService, firebaseApp]);
+  }, [billingService, firebaseApp, isDevelopment]);
 
   return {
     state,
