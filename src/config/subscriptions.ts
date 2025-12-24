@@ -1,20 +1,12 @@
-
-export type PricingPlan = {
-  productId: string; // Google Play Product ID
-  period: 'weekly' | 'monthly' | 'yearly';
-  price: string; // Display price, e.g., '89.99 TL'
-  badge?: string;
-};
-
 export type SubscriptionFeature = {
-  text: string;
+  text: string; // This will now be the translation key, e.g., 'subscriptionsPage.features.unlimitedLikes'
   included: boolean;
 };
 
 export type SubscriptionPackage = {
-  id: string; // e.g., 'gold'
-  name: string;
-  description: string;
+  id: string;
+  name: string; // This is the direct name like 'GOLD', not a key
+  description: string; // Translation key for description
   colors: {
     from: string;
     to: string;
@@ -22,12 +14,11 @@ export type SubscriptionPackage = {
   };
   features: SubscriptionFeature[];
   price: string;
-  period: string;
+  period: string; // Translation key for period, e.g., '/ay' -> 'subscriptionsPage.monthly'
   productId: string;
   isPopular?: boolean;
 };
 
-// We now have three distinct packages.
 export const subscriptionPackages: SubscriptionPackage[] = [
   {
     id: 'weekly',
@@ -35,7 +26,7 @@ export const subscriptionPackages: SubscriptionPackage[] = [
     description: 'Temel özelliklerle hızlı bir başlangıç yapın.',
     productId: 'weekly-base',
     price: '39.99 TL',
-    period: '/hafta',
+    period: 'subscriptionsPage.weekly',
     colors: {
       from: '#6b7280',
       to: '#4b5563',
@@ -43,7 +34,7 @@ export const subscriptionPackages: SubscriptionPackage[] = [
     },
     features: [
       { text: 'subscriptionsPage.features.unlimitedLikes', included: true },
-      { text: 'subscriptionsPage.features.unlimitedRewind', included: true },
+      { text: 'subscriptionsPage.features.unlimitedRewind', included: false },
       { text: 'subscriptionsPage.features.noAds', included: true },
       { text: 'subscriptionsPage.features.seeWhoLikesYou', included: false },
       { text: 'subscriptionsPage.features.superLikesWeeklyGold', included: false },
@@ -57,7 +48,7 @@ export const subscriptionPackages: SubscriptionPackage[] = [
     description: 'En popüler özelliklerle eşleşme şansını artır.',
     productId: 'monthly-base',
     price: '89.99 TL',
-    period: '/ay',
+    period: 'subscriptionsPage.monthly',
     isPopular: true,
     colors: {
       from: '#f59e0b',
@@ -70,7 +61,7 @@ export const subscriptionPackages: SubscriptionPackage[] = [
       { text: 'subscriptionsPage.features.noAds', included: true },
       { text: 'subscriptionsPage.features.seeWhoLikesYou', included: true },
       { text: 'subscriptionsPage.features.superLikesWeeklyGold', included: true },
-      { text: 'subscriptionsPage.features.boostMonthly', included: true },
+      { text: 'subscriptionsPage.features.boostMonthly', included: false },
       { text: 'subscriptionsPage.features.priorityLikes', included: false },
     ],
   },
@@ -80,7 +71,7 @@ export const subscriptionPackages: SubscriptionPackage[] = [
     description: 'Tüm ayrıcalıklardan yararlan ve zirveye oyna.',
     productId: 'yearly-base',
     price: '499.99 TL',
-    period: '/yıl',
+    period: 'subscriptionsPage.yearly',
     colors: {
       from: '#6d28d9',
       to: '#a78bfa',

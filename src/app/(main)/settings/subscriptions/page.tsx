@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +34,7 @@ const PackageCard = ({
     isLoading: boolean,
     isPurchasingThis: boolean
 }) => {
+    const { t } = useLanguage();
     return (
         <Card className={cn(
             "flex flex-col w-full max-w-md mx-auto transition-all",
@@ -45,7 +45,7 @@ const PackageCard = ({
                     className="absolute -top-3 left-1/2 -translate-x-1/2 text-sm py-1" 
                     style={{ backgroundColor: pkg.colors.badge, color: 'white' }}
                 >
-                    En Popüler
+                    {t('subscriptionsPage.mostPopular')}
                 </Badge>
             )}
             <CardHeader className="items-center text-center">
@@ -55,16 +55,16 @@ const PackageCard = ({
                 >
                     {pkg.name}
                 </CardTitle>
-                <CardDescription>{pkg.description}</CardDescription>
+                <CardDescription>{t(pkg.description)}</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 space-y-8">
                 <div className="text-center">
                     <span className="text-4xl font-bold">{pkg.price}</span>
-                    <span className="text-muted-foreground">{pkg.period}</span>
+                    <span className="text-muted-foreground">{t(pkg.period)}</span>
                 </div>
                 <ul className="space-y-4">
                     {pkg.features.map((feature, i) => (
-                        <FeatureListItem key={i} text={feature.text} included={feature.included} />
+                        <FeatureListItem key={i} text={t(feature.text)} included={feature.included} />
                     ))}
                 </ul>
             </CardContent>
@@ -75,7 +75,7 @@ const PackageCard = ({
                     onClick={() => onPurchase(pkg.productId)}
                     disabled={isLoading}
                 >
-                    {isPurchasingThis ? <Loader2 className="animate-spin" /> : `Hemen Başla`}
+                    {isPurchasingThis ? <Loader2 className="animate-spin" /> : t('subscriptionsPage.choosePlan')}
                 </Button>
             </CardFooter>
         </Card>
