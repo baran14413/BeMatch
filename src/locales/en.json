@@ -1,3 +1,4 @@
+
 {
     "discover": {
         "title": "Discover",
@@ -71,8 +72,8 @@
         "logout": "Log Out"
     },
     "subscriptionsPage": {
-        "title": "Premium Packages",
-        "description": "Upgrade your experience and get the most out of BeMatch.",
+        "title": "BeMatch GOLD",
+        "description": "Upgrade your experience and get access to all features.",
         "weekly": "Weekly",
         "monthly": "Monthly",
         "yearly": "Yearly",
@@ -82,14 +83,11 @@
             "noAds": "Ad-Free Experience",
             "unlimitedLikes": "Unlimited Likes",
             "unlimitedRewind": "Unlimited Rewinds",
-            "allPlus": "All PLUS features",
-            "hideProfile": "Hide Profile (Incognito Mode)",
-            "superLikesWeekly": "Super Likes per week",
-            "superLikesWeeklyGold": "More Super Likes per week",
-            "boostMonthly": "Free Profile Boost / month",
-            "passport": "Change Location (Passport)",
-            "allGold": "All GOLD features",
-            "priorityLikes": "Priority Likes (Seen first)"
+            "seeWhoLikesYou": "See Who Likes You",
+            "superLikesWeeklyGold": "5 Super Likes per week",
+            "boostMonthly": "1 Free Boost per month",
+            "passport": "Passport to any location",
+            "priorityLikes": "Priority Likes (be seen first)"
         }
     },
     "galleryPage": {

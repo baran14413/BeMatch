@@ -1,3 +1,4 @@
+
 {
     "discover": {
         "title": "Keşfet",
@@ -71,8 +72,8 @@
         "logout": "Çıkış Yap"
     },
     "subscriptionsPage": {
-        "title": "Premium Paketler",
-        "description": "Deneyimini bir üst seviyeye taşı ve BeMatch'in keyfini çıkar.",
+        "title": "BeMatch GOLD",
+        "description": "Deneyimini bir üst seviyeye taşı ve tüm özelliklere eriş.",
         "weekly": "Haftalık",
         "monthly": "Aylık",
         "yearly": "Yıllık",
@@ -82,14 +83,11 @@
             "noAds": "Reklamsız Deneyim",
             "unlimitedLikes": "Sınırsız Beğeni",
             "unlimitedRewind": "Sınırsız Geri Alma",
-            "allPlus": "Tüm PLUS özellikleri",
-            "hideProfile": "Profil Gizleme (Gizli Mod)",
-            "superLikesWeekly": "Haftalık Süper Beğeniler",
-            "superLikesWeeklyGold": "Haftalık Daha Fazla Süper Beğeni",
-            "boostMonthly": "Aylık Ücretsiz Profil Öne Çıkarma",
-            "passport": "Konum Değiştirme (Pasaport)",
-            "allGold": "Tüm GOLD özellikleri",
-            "priorityLikes": "Öncelikli Beğeniler (İlk sen görün)"
+            "seeWhoLikesYou": "Seni Kimlerin Beğendiğini Gör",
+            "superLikesWeeklyGold": "Haftada 5 Süper Beğeni",
+            "boostMonthly": "Ayda 1 Ücretsiz Boost",
+            "passport": "Pasaport ile Farklı Konumlarda Keşfet",
+            "priorityLikes": "Öncelikli Beğeniler (Listelerde üste çık)"
         }
     },
     "galleryPage": {
