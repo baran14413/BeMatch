@@ -9,7 +9,9 @@ import { LanguageProvider } from '@/context/language-context';
 import { FirebaseClientProvider, useFirebaseApp } from '@/firebase';
 import { PresenceProvider } from '@/context/presence-context';
 import { getPerformance } from 'firebase/performance';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { WifiOff } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -54,6 +56,47 @@ const FirebasePerformanceProvider = ({ children }: { children: React.ReactNode }
 }
 
 
+const OfflineBanner = () => {
+    const [isOffline, setIsOffline] = useState(false);
+
+    useEffect(() => {
+        const handleOffline = () => setIsOffline(true);
+        const handleOnline = () => setIsOffline(false);
+
+        window.addEventListener('offline', handleOffline);
+        window.addEventListener('online', handleOnline);
+
+        // Set initial state
+        if (typeof navigator.onLine !== 'undefined') {
+            setIsOffline(!navigator.onLine);
+        }
+
+        return () => {
+            window.removeEventListener('offline', handleOffline);
+            window.removeEventListener('online', handleOnline);
+        };
+    }, []);
+
+    return (
+        <AnimatePresence>
+            {isOffline && (
+                <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="bg-destructive text-destructive-foreground text-center text-sm font-medium overflow-hidden"
+                >
+                    <div className="p-2 flex items-center justify-center gap-2">
+                        <WifiOff className="w-4 h-4" />
+                        <span>Çevrimdışısınız. Bazı özellikler kullanılamayabilir.</span>
+                    </div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+};
+
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -65,6 +108,7 @@ export default function RootLayout({
         {/* We can manually set title and meta tags in the head for client components */}
         <title>BeMatch</title>
         <meta name="description" content="Mükemmel eşini bul." />
+        <link rel="manifest" href="/manifest.json" />
       </head>
       <body className={`${poppins.variable} font-body antialiased h-dvh`}>
         <ThemeProvider
@@ -74,6 +118,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <LanguageProvider>
+             <OfflineBanner />
             <FirebaseClientProvider>
                <FirebasePerformanceProvider>
                 <PresenceProvider>
