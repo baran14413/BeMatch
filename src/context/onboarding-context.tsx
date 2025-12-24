@@ -107,6 +107,10 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       // 1. Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
+      
+      // Force a token refresh to ensure the user is authenticated for subsequent Firestore writes.
+      // This is crucial to prevent permission errors right after registration.
+      await auth.currentUser?.getIdToken(true);
 
       const userDocRef = doc(firestore, 'users', user.uid);
       
