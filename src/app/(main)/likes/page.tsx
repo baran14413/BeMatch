@@ -146,8 +146,10 @@ export default function LikesGrid() {
     if (isLoading) {
         return <LikesGridSkeleton />;
     }
+    
+    const validLikes = likes?.filter(like => like.likerName && like.likerAvatar) || [];
 
-    if (!likes || likes.length === 0) {
+    if (validLikes.length === 0) {
         return (
              <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-8">
                 <p className="text-muted-foreground">{t('likes.noLikesYet')}</p>
@@ -159,7 +161,7 @@ export default function LikesGrid() {
         <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 relative">
                 {!isPremium && <BlurredLikesOverlay />}
-                {likes.map((like) => (
+                {validLikes.map((like) => (
                     <Card 
                         key={like.id} 
                         className={cn("aspect-[3/4] rounded-lg overflow-hidden relative group", !isPremium && "blur-md")}
