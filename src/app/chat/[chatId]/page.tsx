@@ -339,8 +339,10 @@ export default function ChatPage() {
                         setMatchProfile({ id: userDoc.id, ...userDoc.data() } as UserProfile);
                     } else {
                         // This case handles mock profiles which don't have a user document
-                        const mockInfo = match.user_info_mock;
-                        if(mockInfo) {
+                        const mockInfoKey = `user_info_${otherUserId}`;
+                        const mockInfo = (match as any)[mockInfoKey];
+
+                        if (mockInfo) {
                            setMatchProfile({
                                 id: otherUserId,
                                 name: mockInfo.name,
@@ -1093,7 +1095,7 @@ export default function ChatPage() {
                                 <p className="line-clamp-1 text-foreground/60">{editingMessage?.text || (replyingToMessage?.type === 'image' ? t('chat.lastMessagePhoto') : replyingToMessage?.text)}</p>
                             </div>
                         </div>
-                        <button type="button" className="p-1" onClick={editingMessage ? cancelEdit : cancelReply}>
+                        <button type="button" className="p-1" onClick={editingMessage ? cancelEdit() : cancelReply()}>
                             <X className="h-4 w-4" />
                         </button>
                     </div>
@@ -1246,3 +1248,5 @@ export default function ChatPage() {
     </>
   );
 }
+
+    

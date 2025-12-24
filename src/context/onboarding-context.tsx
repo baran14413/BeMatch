@@ -3,12 +3,12 @@ import { createContext, useContext, useState, ReactNode, useEffect, useCallback 
 import { useRouter } from 'next/navigation';
 import { useAuth, useFirestore, useStorage, useUser } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, Timestamp, updateDoc, writeBatch } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, Timestamp, updateDoc, writeBatch, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 import { useLanguage } from './language-context';
-import { generateAiIcebreaker } from '@/app/actions';
+import { generateAiIcebreaker } from '@/ai/flows/generate-ai-icebreaker';
 import type { UserProfile } from '@/lib/data';
 
 
@@ -110,22 +110,21 @@ const scheduleMockMessages = (
                     const batch = writeBatch(firestore);
 
                     const mockAvatar = `https://i.pravatar.cc/300?u=${mockName}`;
+                    
+                    const userInfoKey = `user_info_${newUserId}`;
+                    const mockInfoKey = `user_info_${mockProfileId}`;
 
                     batch.set(matchRef, {
                         users: [newUserId, mockProfileId],
                         timestamp: serverTimestamp(),
                         lastMessage: result.icebreaker,
-                        [`user_info_${newUserId}`]: {
+                        [userInfoKey]: {
                             name: newUserProfile.name,
                             avatarUrl: newUserProfile.avatarUrl,
                         },
-                        [`user_info_${mockProfileId}`]: {
+                        [mockInfoKey]: {
                             name: mockName,
                             avatarUrl: mockAvatar,
-                        },
-                        user_info_mock: { // Add this for easier retrieval in chat page
-                            name: mockName,
-                            avatarUrl: mockAvatar
                         }
                     });
 
@@ -134,6 +133,7 @@ const scheduleMockMessages = (
                         text: result.icebreaker,
                         timestamp: serverTimestamp(),
                         isRead: false,
+                        isAiGenerated: true,
                     });
 
                     await batch.commit();
@@ -182,16 +182,19 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     const welcomeMessage = locale === 'tr' 
         ? `Merhaba ${userName}! Harika bir başlangıç yapman için buradayız. Profilini tamamladın, şimdi etrafındaki harika insanları keşfetme zamanı. Bol şans!`
         : `Hi ${userName}! We're here to help you get off to a great start. You've completed your profile, now it's time to discover the amazing people around you. Good luck!`;
+        
+    const userInfoKey = `user_info_${userId}`;
+    const systemInfoKey = `user_info_${BEMATCH_SYSTEM_ID}`;
 
     batch.set(matchRef, {
         users: [userId, BEMATCH_SYSTEM_ID],
         timestamp: serverTimestamp(),
         lastMessage: locale === 'tr' ? "BeMatch'e hoş geldin!" : "Welcome to BeMatch!",
-        [`user_info_${userId}`]: {
+        [userInfoKey]: {
             name: userName,
             avatarUrl: userAvatar,
         },
-        [`user_info_${BEMATCH_SYSTEM_ID}`]: {
+        [systemInfoKey]: {
             name: "BeMatch",
             avatarUrl: 'https://images.unsplash.com/photo-1580473828758-718abc902934?w=500',
         },
@@ -354,3 +357,5 @@ export const useOnboardingContext = () => {
   }
   return context;
 };
+
+    
