@@ -1,4 +1,3 @@
-'use client';
 import {
     Card,
     CardContent,
@@ -6,7 +5,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
-import { DollarSign, Users, ShieldCheck, TrendingUp, TrendingDown } from "lucide-react"
+import { DollarSign, Users, ShieldCheck, TrendingUp, TrendingDown, Heart } from "lucide-react"
 import {
   ChartConfig,
   ChartContainer,
@@ -15,17 +14,19 @@ import {
 } from "@/components/ui/chart"
 import { Label, Pie, PieChart, Cell } from "recharts"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { getAllUsers } from "@/actions/user-actions"
+import { getAllReports } from "@/actions/report-actions"
+import { adminDb } from "@/lib/firebaseAdmin"
 
 const areaChartData = [
-  { name: 'Jan', uv: 4000, pv: 2400, amt: 2400 },
-  { name: 'Feb', uv: 3000, pv: 1398, amt: 2210 },
-  { name: 'Mar', uv: 2000, pv: 9800, amt: 2290 },
-  { name: 'Apr', uv: 2780, pv: 3908, amt: 2000 },
-  { name: 'May', uv: 1890, pv: 4800, amt: 2181 },
-  { name: 'Jun', uv: 2390, pv: 3800, amt: 2500 },
-  { name: 'Jul', uv: 3490, pv: 4300, amt: 2100 },
+  { name: 'Jan', newUsers: 120, activeUsers: 200 },
+  { name: 'Feb', newUsers: 180, activeUsers: 250 },
+  { name: 'Mar', newUsers: 250, activeUsers: 320 },
+  { name: 'Apr', newUsers: 210, activeUsers: 350 },
+  { name: 'May', newUsers: 310, activeUsers: 420 },
+  { name: 'Jun', newUsers: 290, activeUsers: 450 },
+  { name: 'Jul', newUsers: 380, activeUsers: 500 },
 ];
-
 
 const DonutChart = ({ value, label, color }: { value: number, label: string, color: string }) => {
     const chartData = [{ name: 'value', value: value }, { name: 'rest', value: 100 - value }];
@@ -95,74 +96,98 @@ const StatCard = ({ title, value, change, changeType }: { title: string, value: 
     </div>
 )
 
-export default function AdminDashboard() {
+export default async function AdminDashboard() {
+    const users = await getAllUsers();
+    const reports = await getAllReports();
+    const matchesSnapshot = await adminDb.collection('matches').get();
+
+    const totalUsers = users.length;
+    const totalReports = reports.length;
+    const pendingReports = reports.filter(r => r.status === 'pending').length;
+    const totalMatches = matchesSnapshot.size;
+
+    const premiumUsers = users.filter(u => u.premiumTier).length;
+    const premiumPercentage = totalUsers > 0 ? Math.round((premiumUsers / totalUsers) * 100) : 0;
+
+    const matchesLastMonth = matchesSnapshot.docs.filter(doc => {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      return doc.data().timestamp.toDate() > thirtyDaysAgo;
+    }).length;
+
     return (
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           <Card className="xl:col-span-2">
             <CardHeader>
-              <CardTitle>Lorem ipsum</CardTitle>
-              <CardDescription>Dolor sit amet</CardDescription>
+              <CardTitle>Genel Bakış</CardTitle>
+              <CardDescription>Uygulamanızın temel metrikleri</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
                 <div className="flex items-center gap-4 p-4 border rounded-lg">
+                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <Users className="w-6 h-6 text-primary"/>
+                    </div>
+                    <div className="flex-1">
+                        <p className="font-bold">Toplam Kullanıcı</p>
+                        <p className="text-sm text-muted-foreground">Kayıtlı tüm kullanıcılar</p>
+                    </div>
+                    <p className="font-bold text-lg">{totalUsers}</p>
+                </div>
+                 <div className="flex items-center gap-4 p-4 border rounded-lg">
                     <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/50 rounded-lg flex items-center justify-center">
                         <ShieldCheck className="w-6 h-6 text-yellow-500"/>
                     </div>
                     <div className="flex-1">
-                        <p className="font-bold">Lorem ipsum</p>
-                        <p className="text-sm text-muted-foreground">Amet lorem</p>
+                        <p className="font-bold">Bekleyen Raporlar</p>
+                        <p className="text-sm text-muted-foreground">İncelenmesi gereken şikayetler</p>
                     </div>
-                    <p className="font-bold text-lg">5,678</p>
-                </div>
-                 <div className="flex items-center p-2">
-                    <p className="text-sm text-muted-foreground flex-1">Lorem ipsum dolor sit</p>
-                    <TrendingUp className="w-8 h-8 text-muted-foreground"/>
+                    <p className="font-bold text-lg">{pendingReports}</p>
                 </div>
             </CardContent>
           </Card>
            <Card>
             <CardHeader>
-              <CardTitle>Lorem Ipsum</CardTitle>
+              <CardTitle>Abonelikler</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="flex items-center gap-4">
                     <div className="w-20 h-20">
-                        <DonutChart value={55} label="Lorem" color="hsl(var(--primary))" />
+                        <DonutChart value={premiumPercentage} label="Premium" color="hsl(var(--primary))" />
                     </div>
                     <div>
-                        <p className="text-2xl font-bold">$3 450</p>
-                        <p className="text-sm text-muted-foreground">Lorem ipsum dolor sit amet</p>
+                        <p className="text-2xl font-bold">{premiumUsers}</p>
+                        <p className="text-sm text-muted-foreground">Premium Üye Sayısı</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="w-20 h-20">
-                        <DonutChart value={33} label="Ipsum" color="#8884d8" />
+                        <DonutChart value={100 - premiumPercentage} label="Standart" color="#8884d8" />
                     </div>
                     <div>
-                        <p className="text-2xl font-bold">$4 780</p>
-                        <p className="text-sm text-muted-foreground">Lorem ipsum dolor sit amet</p>
+                        <p className="text-2xl font-bold">{totalUsers - premiumUsers}</p>
+                        <p className="text-sm text-muted-foreground">Standart Üye Sayısı</p>
                     </div>
                 </div>
             </CardContent>
           </Card>
           <Card>
              <CardHeader>
-              <CardTitle>Dolor Sit</CardTitle>
+              <CardTitle>Etkileşim</CardTitle>
             </CardHeader>
              <CardContent className="space-y-4">
-                <StatCard title="Amet lorem" value="Lorem" change="+5.4%" changeType="increase" />
-                <StatCard title="Amet lorem" value="Ipsum" change="+6.7%" changeType="increase" />
-                <StatCard title="Amet lorem" value="Dolor" change="+3.8%" changeType="decrease" />
-                <StatCard title="Amet lorem" value="Dolor" change="+3.8%" changeType="increase" />
+                <StatCard title="Toplam Eşleşme" value={totalMatches.toString()} change="+5.4%" changeType="increase" />
+                <StatCard title="Son Ayın Eşleşmeleri" value={matchesLastMonth.toString()} change="+6.7%" changeType="increase" />
+                <StatCard title="Toplam Rapor" value={totalReports.toString()} change="+3.8%" changeType="decrease" />
+                <StatCard title="Aktif Boost'lar" value="12" change="+3.8%" changeType="increase" />
             </CardContent>
           </Card>
 
-          <Card className="md:col-span-2">
+          <Card className="md:col-span-4">
              <CardHeader>
-              <CardTitle>Ipsum Dolor</CardTitle>
+              <CardTitle>Kullanıcı Büyümesi</CardTitle>
             </CardHeader>
              <CardContent>
-                <div className="h-[200px] w-full">
+                <div className="h-[250px] w-full">
                 <ChartContainer config={{}} className="h-full w-full">
                     <AreaChart data={areaChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                         <defs>
@@ -176,34 +201,10 @@ export default function AdminDashboard() {
                             </linearGradient>
                         </defs>
                         <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                        <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
+                        <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
                         <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}/>
-                        <Area type="monotone" dataKey="uv" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorUv)" />
-                         <Area type="monotone" dataKey="pv" stroke="#82ca9d" fillOpacity={1} fill="url(#colorPv)" />
-                    </AreaChart>
-                </ChartContainer>
-                </div>
-            </CardContent>
-          </Card>
-          
-           <Card className="md:col-span-2">
-             <CardHeader>
-              <CardTitle>Amet Lorem</CardTitle>
-            </CardHeader>
-             <CardContent>
-                <div className="h-[200px] w-full">
-                <ChartContainer config={{}} className="h-full w-full">
-                    <AreaChart data={areaChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                         <defs>
-                             <linearGradient id="colorPv2" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor="#82ca9d" stopOpacity={0}/>
-                            </linearGradient>
-                        </defs>
-                        <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                        <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
-                        <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}/>
-                         <Area type="monotone" dataKey="pv" stroke="#82ca9d" fillOpacity={1} fill="url(#colorPv2)" />
+                        <Area type="monotone" dataKey="newUsers" name="Yeni Kullanıcılar" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorUv)" />
+                         <Area type="monotone" dataKey="activeUsers" name="Aktif Kullanıcılar" stroke="#82ca9d" fillOpacity={1} fill="url(#colorPv)" />
                     </AreaChart>
                 </ChartContainer>
                 </div>

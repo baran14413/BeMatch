@@ -28,7 +28,7 @@ export default function AdminLayout({
                 className="shrink-0 md:hidden"
               >
                 <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle navigation menu</span>
+                <span className="sr-only">Navigasyon menüsünü aç</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="flex flex-col bg-primary text-primary-foreground border-none p-0">
@@ -41,7 +41,7 @@ export default function AdminLayout({
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder="Lorem ipsum..."
+                  placeholder="Ara..."
                   className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3 rounded-full"
                 />
               </div>
@@ -53,7 +53,7 @@ export default function AdminLayout({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
             </span>
-            <span className="sr-only">Toggle notifications</span>
+            <span className="sr-only">Bildirimler</span>
           </Button>
            <Avatar className="h-9 w-9">
             <AvatarImage src="https://images.unsplash.com/photo-1557053910-d9eadeed1c58?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHBvcnRyYWl0fGVufDB8fHx8MTc2NDcwNjIzNXww&ixlib=rb-4.1.0&q=80&w=1080" alt="Admin" />

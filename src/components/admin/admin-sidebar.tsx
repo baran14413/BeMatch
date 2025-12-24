@@ -8,11 +8,10 @@ import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 
 const navLinks = [
-  { href: '/admin', label: 'Ipsum dolor', icon: Home },
-  { href: '/admin/users', label: 'Sit amet', icon: Users },
-  { href: '/admin/safety', label: 'Lorem ipsum', icon: Shield },
-  { href: '/admin/settings', label: 'Dolor sit', icon: Settings },
-  { href: '/admin/matches', label: 'Amet lorem', icon: Heart },
+  { href: '/admin', label: 'Gösterge Paneli', icon: Home },
+  { href: '/admin/users', label: 'Kullanıcılar', icon: Users },
+  { href: '/admin/safety', label: 'Güvenlik Raporları', icon: Shield },
+  { href: '/admin/settings', label: 'Sistem Ayarları', icon: Settings },
 ];
 
 export default function AdminSidebar() {
@@ -22,13 +21,13 @@ export default function AdminSidebar() {
      <div className="flex h-full max-h-screen flex-col gap-2">
         <div className="flex h-14 items-center px-4 lg:h-[60px] lg:px-6">
           <Link href="/admin" className="flex items-center gap-2 font-semibold">
-            <div className='w-8 h-8 bg-white rounded-md flex items-center justify-center text-primary font-bold text-lg'>L</div>
-            <span className="text-xl">LOGO</span>
+            <div className='w-8 h-8 bg-white rounded-md flex items-center justify-center text-primary font-bold text-lg'>B</div>
+            <span className="text-xl">BeMatch Admin</span>
           </Link>
         </div>
         <div className="flex-1">
           <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-             <h3 className="px-3 py-2 text-primary-foreground/70 text-xs font-semibold uppercase">LOREM</h3>
+             <h3 className="px-3 py-2 text-primary-foreground/70 text-xs font-semibold uppercase">Yönetim</h3>
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (
@@ -50,14 +49,14 @@ export default function AdminSidebar() {
         <div className="mt-auto p-4">
           <Card className="bg-white/10 border-white/20 text-primary-foreground">
             <CardHeader className="p-2 pt-0 md:p-4">
-              <CardTitle>LOREM IPSUM</CardTitle>
+              <CardTitle>BeMatch GOLD</CardTitle>
               <CardDescription className="text-primary-foreground/70">
-                Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam
+                Uygulama deneyiminizi bir üst seviyeye taşıyın.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-2 pt-0 md:p-4 md:pt-0">
               <Button size="sm" className="w-full bg-yellow-400 text-black hover:bg-yellow-500">
-                LOREM
+                Yükselt
               </Button>
             </CardContent>
           </Card>
