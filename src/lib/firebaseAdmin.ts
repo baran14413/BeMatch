@@ -2,14 +2,10 @@
 import 'server-only';
 import * as admin from 'firebase-admin';
 
-// Debug log to check if environment variables are loaded by Next.js
-if (process.env.NODE_ENV === 'development') {
-    console.log('Firebase Admin Env Check:', {
-        PROJECT_ID: process.env.FIREBASE_PROJECT_ID ? 'LOADED' : 'MISSING',
-        CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL ? 'LOADED' : 'MISSING',
-        PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY ? 'LOADED' : 'MISSING',
-    });
-}
+// IMPORTANT: Ensure you have a 'serviceAccountKey.json' file in your project's root directory.
+// This file should be obtained from your Firebase project settings.
+// DO NOT commit this file to public version control. Add it to your .gitignore.
+import serviceAccount from '../../serviceAccountKey.json';
 
 interface FirebaseAdminApp {
   auth: admin.auth.Auth;
@@ -24,29 +20,14 @@ function getFirebaseAdmin(): FirebaseAdminApp {
   if (adminApp) {
     return adminApp;
   }
-
-  // Retrieve environment variables.
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-
-  // Throw a clear, descriptive error if any required variables are missing.
-  if (!privateKey || !clientEmail || !projectId) {
-    throw new Error(
-      'Missing Firebase Admin SDK environment variables. Ensure FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY are set in your environment.'
-    );
-  }
-
+  
   try {
     // Check if the default app is already initialized to prevent errors during hot-reloading.
     if (admin.apps.length === 0) {
         admin.initializeApp({
-            credential: admin.credential.cert({
-                projectId,
-                clientEmail,
-                // Sanitize the private key by replacing escaped newlines with actual newlines.
-                privateKey: privateKey.replace(/\\n/g, '\n'),
-            }),
+            // Use the imported service account object directly.
+            // This is the most reliable way to provide credentials.
+            credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
         });
     }
 
@@ -61,7 +42,7 @@ function getFirebaseAdmin(): FirebaseAdminApp {
   } catch (error: any) {
     console.error("Firebase Admin SDK Initialization Error:", error.message);
     // Re-throw a more user-friendly error to be caught by the page.
-    throw new Error(`Failed to initialize Firebase Admin SDK: ${error.message}. Check your environment variables and private key format.`);
+    throw new Error(`Failed to initialize Firebase Admin SDK: ${error.message}. Ensure your serviceAccountKey.json is valid.`);
   }
 }
 
