@@ -9,7 +9,25 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     if (usersSnapshot.empty) {
       return [];
     }
-    return usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
+    // Firestore Timestamps need to be serialized.
+    return usersSnapshot.docs.map(doc => {
+        const data = doc.data();
+        const user = { id: doc.id, ...data } as UserProfile;
+        // Convert any Timestamp objects to serializable format (ISO string)
+        if (data.createdAt) {
+            user.createdAt = data.createdAt.toDate().toISOString();
+        }
+         if (data.premiumExpiresAt) {
+            user.premiumExpiresAt = data.premiumExpiresAt.toDate().toISOString();
+        }
+        if (data.boostExpiresAt) {
+            user.boostExpiresAt = data.boostExpiresAt.toDate().toISOString();
+        }
+        if (data.passwordLastUpdatedAt) {
+            user.passwordLastUpdatedAt = data.passwordLastUpdatedAt.toDate().toISOString();
+        }
+        return user;
+    });
   } catch (error) {
     console.error('Error fetching users:', error);
     return [];

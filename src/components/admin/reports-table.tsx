@@ -48,7 +48,7 @@ export default function ReportsTable({ reports }: { reports: Report[] }) {
             <TableCell>
               <Badge variant={statusVariant[report.status]}>{report.status}</Badge>
             </TableCell>
-            <TableCell>{formatDistanceToNow(report.timestamp.toDate(), { addSuffix: true, locale: tr })}</TableCell>
+            <TableCell>{formatDistanceToNow(new Date(report.timestamp), { addSuffix: true, locale: tr })}</TableCell>
              <TableCell>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

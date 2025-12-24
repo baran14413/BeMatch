@@ -1,12 +1,9 @@
-'use server';
-import 'server-only';
+'server-only';
 import * as admin from 'firebase-admin';
 
-// IMPORTANT: Ensure you have a 'serviceAccountKey.json' file in your project's root directory.
-// This file should be obtained from your Firebase project settings.
-// DO NOT commit this file to public version control. Add it to your .gitignore.
 let serviceAccount: admin.ServiceAccount;
 try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   serviceAccount = require('../../serviceAccountKey.json');
 } catch (error) {
     console.error("Failed to load serviceAccountKey.json. Make sure the file exists in the root directory.", error);

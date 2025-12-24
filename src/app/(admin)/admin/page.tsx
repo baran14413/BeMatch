@@ -2,11 +2,12 @@ import AdminDashboardClient from "@/components/admin/admin-dashboard";
 import { getAllUsers } from "@/actions/user-actions"
 import { getAllReports } from "@/actions/report-actions"
 import { isFuture } from 'date-fns';
+import type { UserProfile, Report } from '@/lib/data';
 
 export default async function AdminDashboard() {
     // --- Data Fetching (Server-Side) ---
-    const users = await getAllUsers();
-    const reports = await getAllReports();
+    const users: UserProfile[] = await getAllUsers();
+    const reports: Report[] = await getAllReports();
     
     // --- Data Processing ---
     const totalUsers = users.length;

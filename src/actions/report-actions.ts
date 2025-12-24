@@ -9,7 +9,16 @@ export async function getAllReports(): Promise<Report[]> {
     if (reportsSnapshot.empty) {
       return [];
     }
-    return reportsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report));
+     // Firestore Timestamps need to be serialized before passing from server to client components.
+    return reportsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        const report = { id: doc.id, ...data } as Report;
+        // Convert Timestamp to a serializable format (ISO string)
+        if (data.timestamp) {
+            report.timestamp = data.timestamp.toDate().toISOString();
+        }
+        return report;
+    });
   } catch (error) {
     console.error('Error fetching reports:', error);
     // In a real app, you might want to throw the error or handle it differently

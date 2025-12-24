@@ -1,8 +1,9 @@
 import ReportsTable from '@/components/admin/reports-table';
 import { getAllReports } from '@/actions/report-actions';
+import type { Report } from '@/lib/data';
 
 export default async function AdminSafetyPage() {
-  const reports = await getAllReports();
+  const reports: Report[] = await getAllReports();
 
   return (
     <div>
