@@ -51,17 +51,17 @@ service cloud.firestore {
       
       function userCanCreate() {
         let userId = request.auth.uid;
-        let otherUserId = request.resource.data.users[1];
-        if (userId == request.resource.data.users[1]) {
-           otherUserId = request.resource.data.users[0];
-        }
+        // Find the other user's ID from the users array in the match document being created
+        let otherUserId = request.resource.data.users.filter(id => id != userId)[0];
         
         let denormalizedSelf = request.resource.data[('user_info_' + userId)];
         let denormalizedOther = request.resource.data[('user_info_' + otherUserId)];
 
         return request.auth != null 
                 && userId in request.resource.data.users
+                // Check if the other user has a 'like' document for the current user in their 'likedBy' subcollection
                 && exists(/databases/$(database)/documents/users/$(userId)/likedBy/$(otherUserId))
+                // Ensure denormalized data is present and correct for security
                 && denormalizedSelf.name is string
                 && denormalizedSelf.avatarUrl is string
                 && denormalizedOther.name is string
