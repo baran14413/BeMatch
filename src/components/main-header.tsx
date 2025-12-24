@@ -1,5 +1,5 @@
 'use client';
-import { Sparkles, MessageCircle, CircleUserRound, Heart } from 'lucide-react';
+import { Sparkles, MessageCircle, CircleUserRound, Heart, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from './ui/button';
 import { usePathname } from 'next/navigation';
@@ -20,6 +20,7 @@ const MainHeader = () => {
         { href: '/likes', icon: Heart, label: t('likes.title'), hasNotification: hasNewLikes },
         { href: '/lounge', icon: MessageCircle, label: t('lounge.title'), hasNotification: hasUnreadMessages },
         { href: '/profile', icon: CircleUserRound, label: t('profile.title') },
+        { href: '/admin', icon: Shield, label: 'Admin' },
     ];
     
     return (

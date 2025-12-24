@@ -1,10 +1,10 @@
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronRight, Heart, LogOut, MapPin, ShieldCheck, SlidersHorizontal, Smartphone, User, Wallet, GalleryHorizontal, Crown } from "lucide-react";
+import { ChevronRight, Heart, LogOut, MapPin, Shield, ShieldCheck, SlidersHorizontal, Smartphone, User, Wallet, GalleryHorizontal, Crown } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/context/language-context";
-import { useAuth } from "@/firebase";
+import { useAuth, useUser } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
@@ -50,8 +50,11 @@ const SettingsButton = ({ icon: Icon, label, onClick }: { icon: React.ElementTyp
 export default function SettingsPage() {
     const { t } = useLanguage();
     const auth = useAuth();
+    const { user: authUser } = useUser();
     const router = useRouter();
     const { toast } = useToast();
+    const { data: userProfile } = useDoc(doc(useFirestore(), 'users', authUser?.uid || ''));
+    const isAdmin = userProfile?.role === 'admin';
 
     const handleLogout = async () => {
         try {
@@ -80,6 +83,12 @@ export default function SettingsPage() {
             </header>
 
             <div className="p-4 md:p-8 md:pt-0 space-y-8 pb-[calc(env(safe-area-inset-bottom,0rem)+2rem)]">
+                {isAdmin && (
+                    <SettingsSection title="Yönetim">
+                         <SettingsItem icon={Shield} label="Admin Paneli" href="/admin" />
+                    </SettingsSection>
+                )}
+
                 <SettingsSection title={t('settings.account')}>
                     <SettingsItem icon={Crown} label={t('subscriptionsPage.title')} href="/settings/subscriptions" />
                     <SettingsItem icon={User} label={t('settings.personalInfo')} href="/settings/personal-info" />

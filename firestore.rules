@@ -3,73 +3,53 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    function isAdmin() {
+      return request.auth.token.role == 'admin';
+    }
 
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    // --- HIZ SINIRLAMA FONKSİYONU (RATE LIMITING) ---
-    // Belirtilen süreden daha kısa aralıklarla işlem yapılmasını engeller.
-    // path: Kullanıcının doküman yolu (örn: /databases/$(database)/documents/users/$(userId))
-    // field: Zaman damgasının tutulduğu alan (örn: 'lastSwipeTimestamp')
-    // duration: İki işlem arasında geçmesi gereken minimum süre (saniye)
+    // --- RATE LIMITING FUNCTION ---
     function isRateLimited(path, field, duration) {
       let lastActionTime = get(path).data[field];
-      // Eğer zaman damgası yoksa (ilk işlem), izin ver.
       if (!lastActionTime) {
         return false;
       }
-      // Son işlem ile şimdiki zaman arasındaki fark, belirtilen süreden büyükse izin ver.
       return request.time - lastActionTime < duration(0, 0, duration, 0, 0);
     }
 
-
-    // --- KULLANICI İŞLEMLERİ ---
+    // --- USER OPERATIONS ---
     match /users/{userId} {
+      // Admins can read any profile, users can read any profile (for discover)
       allow read: if request.auth != null;
-      // Kullanıcılar sadece kendi profilini yazabilir.
-      allow write: if isOwner(userId) &&
-        // Kullanıcının kendi profilini çok sık güncellemesini engelle
-        !isRateLimited(/databases/$(database)/documents/users/$(userId), 'updatedAt', 1);
-
-      // Kullanıcı kendi alt koleksiyonlarını (örn: ayarlar, vb.) okuyup yazabilir.
-      match /{document=**} {
-        allow read, write: if isOwner(userId);
-      }
+      // Admins can write to any profile, users can only write to their own
+      allow write: if isAdmin() || isOwner(userId);
+    }
+    
+    match /users/{userId}/{document=**} {
+        allow read, write: if isAdmin() || isOwner(userId);
     }
 
-
-    // --- BEĞENİ (SWIPE) İŞLEMLERİ ---
+    // --- SWIPE OPERATIONS ---
     match /users/{targetUserId}/likedBy/{likerId} {
-      allow read: if request.auth != null && (request.auth.uid == targetUserId || request.auth.uid == likerId);
-      
-      // Beğeni oluşturma (CREATE):
-      // 1. İşlemi yapan kendi ID'siyle yazmalı.
-      // 2. Hız sınırını (saniyede 1) aşmamalı.
-      // 3. Gönderilen veri (denormalize edilmiş) doğru formatta olmalı.
+      allow read: if isAdmin() || (request.auth != null && (request.auth.uid == targetUserId || request.auth.uid == likerId));
       allow create: if isOwner(likerId)
                       && !isRateLimited(/databases/$(database)/documents/users/$(likerId), 'lastSwipeTimestamp', 1)
                       && request.resource.data.likerId == likerId
                       && request.resource.data.likerName is string
                       && request.resource.data.likerAvatar is string;
-      
-      // Beğeniyi güncelleme veya silme (geri alma).
-      allow update, delete: if isOwner(likerId);
+      allow update, delete: if isAdmin() || isOwner(likerId);
     }
-    
 
-    // --- EŞLEŞME (MATCH) İŞLEMLERİ ---
+    // --- MATCH OPERATIONS ---
     match /matches/{matchId} {
       function isParticipant() {
         return request.auth != null && request.auth.uid in resource.data.users;
       }
       
-      // Eşleşme oluşturma koşulları:
-      // 1. Oturum açık olmalı.
-      // 2. Kullanıcı, oluşturulan eşleşmenin katılımcılarından biri olmalı.
-      // 3. Karşı tarafın daha önce beni beğenmiş olması GEREKLİ. (En önemli güvenlik kuralı)
-      // 4. Hız sınırını (5 saniyede 1) aşmamalı.
-      // 5. Denormalize edilen veriler doğru ve eksiksiz olmalı.
       function userCanCreate() {
         let userId = request.auth.uid;
         let otherUserId = request.resource.data.users[1];
@@ -90,39 +70,31 @@ service cloud.firestore {
                 && denormalizedOther.avatarUrl is string;
       }
       
-      // GET: Allow reading a match document if the user's ID is in the matchId, to check for existence before creation.
-      allow get: if request.auth != null && request.auth.uid in matchId.split('_');
-      // LIST, UPDATE, DELETE: Participant can perform these actions on existing documents.
-      allow list, update, delete: if isParticipant();
-      
-      // CREATE: Sadece `userCanCreate` fonksiyonu true dönerse oluşturulabilir.
-      allow create: if userCanCreate();
+      allow get: if isAdmin() || (request.auth != null && request.auth.uid in matchId.split('_'));
+      allow list: if isAdmin() || isParticipant();
+      allow update, delete: if isAdmin() || isParticipant();
+      allow create: if isAdmin() || userCanCreate();
 
-
-      // --- MESAJ İŞLEMLERİ ---
+      // --- MESSAGE OPERATIONS ---
       match /messages/{messageId} {
-        // Okuma ve yazma: Üst eşleşme belgesindeki katılımcılardan biri ise izin ver.
-        // Hız Sınırlama: Mesaj yazma kuralına da hız sınırı ekleyerek spam önlenir.
-        allow read: if get(/databases/$(database)/documents/matches/$(matchId)).data.users.hasAny([request.auth.uid]);
-        allow write: if get(/databases/$(database)/documents/matches/$(matchId)).data.users.hasAny([request.auth.uid]) 
-                      && !isRateLimited(/databases/$(database)/documents/users/$(request.auth.uid), 'lastMessageTimestamp', 1);
+        allow read, write: if isAdmin() || get(/databases/$(database)/documents/matches/$(matchId)).data.users.hasAny([request.auth.uid]);
       }
     }
 
-
-    // --- DİĞER KOLEKSİYONLAR ---
-    // Raporlama: Oturumu açık olan herkes rapor oluşturabilir.
+    // --- OTHER COLLECTIONS ---
     match /reports/{reportId} {
       allow create: if request.auth != null && request.resource.data.reporterId == request.auth.uid;
-      // Raporları okuma/yazma şimdilik kısıtlı
-      allow read, update, delete: if false;
+      allow read, update, delete: if isAdmin();
     }
-
-    // Silinen Kullanıcılar: Kullanıcı sadece kendi silinme kaydını yazabilir.
-    // Bu kayıtlar istemci tarafından okunamaz, sadece sunucu tarafı için log amaçlıdır.
+    
     match /deletedUsers/{userId} {
       allow write: if isOwner(userId);
-      allow read: if false; 
+      allow read: if isAdmin();
+    }
+    
+    match /systemSettings/maintenance {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }
