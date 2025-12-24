@@ -1,6 +1,20 @@
 'server-only';
 import * as admin from 'firebase-admin';
 
+// IMPORTANT: Create a 'serviceAccountKey.json' file in your project's root directory.
+// Go to your Firebase project settings -> Service accounts -> Generate new private key.
+let serviceAccount;
+try {
+  // This is the standard way to include the service account key in a secure server environment.
+  // Ensure the file path is correct and the file is present.
+  serviceAccount = require('../../../serviceAccountKey.json');
+} catch (e) {
+  console.warn(
+    'Firebase Admin initialization skipped: serviceAccountKey.json not found. Admin features will be disabled.'
+  );
+  serviceAccount = null;
+}
+
 // Define the structure for the cached Firebase Admin application instance.
 interface FirebaseAdminApp {
   auth: admin.auth.Auth;
@@ -22,25 +36,15 @@ export function getFirebaseAdmin(): FirebaseAdminApp | null {
     return adminApp;
   }
   
+  // If serviceAccount is null (file not found), return null immediately.
+  if (!serviceAccount) {
+    return null;
+  }
+  
   try {
-    const projectId = process.env.FIREBASE_PROJECT_ID;
-    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-    // IMPORTANT: Replace escaped newlines for the private key
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-
-    // If essential credentials are not present (especially during build), return null immediately.
-    if (!projectId || !clientEmail || !privateKey) {
-        console.warn("Firebase Admin credentials not found in environment variables. Admin features will be disabled during build.");
-        return null;
-    }
-
     if (admin.apps.length === 0) {
         admin.initializeApp({
-            credential: admin.credential.cert({
-                projectId: projectId,
-                clientEmail: clientEmail,
-                privateKey: privateKey,
-            }),
+            credential: admin.credential.cert(serviceAccount),
         });
     }
 
