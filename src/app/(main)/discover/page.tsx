@@ -193,13 +193,14 @@ export default function DiscoverPage() {
       .filter(p => {
         const isNotSelf = p.id !== user.uid;
         const isInAgeRange = p.age >= minAge && p.age <= maxAge;
+        const hasAvatar = !!p.avatarUrl;
         
         let interestMatch = true;
         if (interestedIn && interestedIn !== 'everyone') {
             interestMatch = p.gender === interestedIn;
         }
 
-        return isNotSelf && isInAgeRange && interestMatch;
+        return isNotSelf && isInAgeRange && interestMatch && hasAvatar;
       })
       .map(p => {
         const distance = getDistanceInKm(currentLat!, currentLon!, p.latitude!, p.longitude!);
