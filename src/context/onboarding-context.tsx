@@ -77,44 +77,40 @@ const OnboardingContext = createContext<OnboardingContextType | undefined>(undef
 
 const BEMATCH_SYSTEM_ID = 'bematch_system_account';
 
-// New function to schedule messages from mock profiles
 const scheduleMockMessages = (
+    firestore: any,
     newUserId: string,
     newUserProfile: UserProfile,
     language: 'tr' | 'en'
 ) => {
-    // A list of random Turkish female names
     const mockNames = ["Aslı", "Ebru", "Ceren", "Selin", "Gizem", "Elif", "Büşra", "Yağmur", "Deniz", "İrem"];
     
-    // Select 3-4 random mock names
     const shuffledMocks = [...mockNames].sort(() => 0.5 - Math.random());
-    const selectedMocks = shuffledMocks.slice(0, Math.floor(Math.random() * 2) + 3); // 3 to 4 mocks
+    const selectedMocks = shuffledMocks.slice(0, Math.floor(Math.random() * 2) + 3);
 
     selectedMocks.forEach((mockName) => {
-        // Random delay between 10 and 15 minutes
-        const delay = (Math.random() * 5 + 10) * 60 * 1000;
+        const delay = (Math.random() * 5 + 10) * 60 * 1000; // 10 to 15 minutes
 
         setTimeout(async () => {
             try {
-                // We're dynamically creating the context for the AI.
-                const firestore = useFirestore(); // This might not be available here. A better way would be to pass it in.
                 const userProfileString = `Name: ${newUserProfile.name}, Age: ${newUserProfile.age}, Bio: ${newUserProfile.bio}, Interests: ${newUserProfile.interests?.join(', ')}`;
                 
                 const result = await generateAiIcebreaker({
                     userProfile: userProfileString,
-                    mockProfileName: mockName, // Use the dynamically chosen name
+                    mockProfileName: mockName,
                     language: language,
                 });
 
                 if (result.icebreaker) {
-                    const mockProfileId = `mock_${mockName.toLowerCase()}_${uuidv4()}`; // Create a unique-ish ID
+                    const mockProfileId = `mock_${mockName.toLowerCase().replace(/ /g, '_')}`;
                     const matchId = [newUserId, mockProfileId].sort().join('_');
                     const matchRef = doc(firestore, 'matches', matchId);
-                    const messagesColRef = doc(firestore, 'matches', matchId, 'messages', uuidv4());
+                    const messageRef = doc(collection(firestore, 'matches', matchId, 'messages'));
 
                     const batch = writeBatch(firestore);
 
-                    // Create Match document
+                    const mockAvatar = `https://i.pravatar.cc/300?u=${mockName}`;
+
                     batch.set(matchRef, {
                         users: [newUserId, mockProfileId],
                         timestamp: serverTimestamp(),
@@ -123,15 +119,17 @@ const scheduleMockMessages = (
                             name: newUserProfile.name,
                             avatarUrl: newUserProfile.avatarUrl,
                         },
-                         [`user_info_${mockProfileId}`]: {
+                        [`user_info_${mockProfileId}`]: {
                             name: mockName,
-                            // Use a placeholder image service for dynamic avatars
-                            avatarUrl: `https://picsum.photos/seed/${mockName}/400/600`,
+                            avatarUrl: mockAvatar,
                         },
+                        user_info_mock: { // Add this for easier retrieval in chat page
+                            name: mockName,
+                            avatarUrl: mockAvatar
+                        }
                     });
 
-                    // Create the icebreaker message
-                    batch.set(messagesColRef, {
+                    batch.set(messageRef, {
                         senderId: mockProfileId,
                         text: result.icebreaker,
                         timestamp: serverTimestamp(),
@@ -139,7 +137,6 @@ const scheduleMockMessages = (
                     });
 
                     await batch.commit();
-                    console.log(`Scheduled message sent from ${mockName} to ${newUserProfile.name}`);
                 }
             } catch (error) {
                 console.error(`Failed to send scheduled message from ${mockName}:`, error);
@@ -166,7 +163,6 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const isLastStep = currentStep === 10;
 
   useEffect(() => {
-    // If the user logs out, reset the onboarding form state
     if (!user) {
       resetOnboarding();
     }
@@ -187,7 +183,6 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         ? `Merhaba ${userName}! Harika bir başlangıç yapman için buradayız. Profilini tamamladın, şimdi etrafındaki harika insanları keşfetme zamanı. Bol şans!`
         : `Hi ${userName}! We're here to help you get off to a great start. You've completed your profile, now it's time to discover the amazing people around you. Good luck!`;
 
-    // Create Match document
     batch.set(matchRef, {
         users: [userId, BEMATCH_SYSTEM_ID],
         timestamp: serverTimestamp(),
@@ -202,7 +197,6 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         },
     });
 
-    // Create welcome message
     batch.set(messagesColRef, {
         senderId: BEMATCH_SYSTEM_ID,
         text: welcomeMessage,
@@ -214,7 +208,6 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         await batch.commit();
     } catch(error) {
         console.error("Welcome chat creation failed:", error);
-        // We don't need to block the user flow for this, so just log the error.
     }
   }, [firestore, locale]);
 
@@ -223,17 +216,13 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
 
     try {
-      // 1. Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
       
-      // Force a token refresh to ensure the user is authenticated for subsequent Firestore writes.
-      // This is crucial to prevent permission errors right after registration.
       await auth.currentUser?.getIdToken(true);
 
       const userDocRef = doc(firestore, 'users', user.uid);
       
-      // 2. Create the user profile document in Firestore WITHOUT photo URLs first
       const initialProfileData = {
           id: user.uid,
           email: formData.email,
@@ -250,9 +239,9 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
           longitude: formData.longitude,
           interests: formData.interests,
           goal: formData.goal,
-          role: 'user', // Default role
-          avatarUrl: '', // Initially empty
-          imageUrls: [], // Initially empty
+          role: 'user',
+          avatarUrl: '',
+          imageUrls: [],
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
           prompts: [],
@@ -267,7 +256,6 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       
       await setDoc(userDocRef, initialProfileData);
 
-      // 3. Now that user is authenticated and doc exists, upload photos
       const uploadPhotos = async (userId: string, photos: string[]): Promise<string[]> => {
           const photoURLs: string[] = [];
           for (const photo of photos) {
@@ -282,7 +270,6 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       
       const photoURLs = await uploadPhotos(user.uid, formData.photos);
 
-      // 4. Update the user document with the photo URLs
       if (photoURLs.length > 0) {
           await updateDoc(userDocRef, {
               avatarUrl: photoURLs[0],
@@ -290,12 +277,10 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
           });
       }
 
-      // 5. Create the welcome chat from the system
       await createWelcomeChat(user.uid, initialProfileData.name, photoURLs[0] || '');
 
-      // 6. Schedule initial engagement messages from mock profiles
       const fullNewUserProfile = { ...initialProfileData, avatarUrl: photoURLs[0] || '', imageUrls: photoURLs } as UserProfile;
-      scheduleMockMessages(user.uid, fullNewUserProfile, locale);
+      scheduleMockMessages(firestore, user.uid, fullNewUserProfile, locale);
 
 
       toast({

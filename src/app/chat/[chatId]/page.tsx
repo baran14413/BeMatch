@@ -41,7 +41,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, Sheet, SheetContent } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -51,6 +51,7 @@ import VoiceMessagePlayer from '@/components/chat/voice-message-player';
 import { v4 as uuidv4 } from 'uuid';
 import { useLanguage } from '@/context/language-context';
 import TypingIndicator from '@/components/chat/typing-indicator';
+import ProfileDetails from '@/components/discover/profile-details';
 
 const BEMATCH_SYSTEM_ID = 'bematch_system_account';
 
@@ -225,6 +226,7 @@ export default function ChatPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<Message | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [currentPlaceholderIndex, setCurrentPlaceholderIndex] = useState(0);
+  const [showProfileDetails, setShowProfileDetails] = useState(false);
 
   // Typing indicator state
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -335,8 +337,18 @@ export default function ChatPage() {
                     if (userDoc.exists()) {
                         setMatchProfile({ id: userDoc.id, ...userDoc.data() } as UserProfile);
                     } else {
-                        toast({ variant: 'destructive', title: 'User not found' });
-                        router.push('/lounge');
+                        // This case handles mock profiles which don't have a user document
+                        const mockInfo = match.user_info_mock;
+                        if(mockInfo) {
+                           setMatchProfile({
+                                id: otherUserId,
+                                name: mockInfo.name,
+                                avatarUrl: mockInfo.avatarUrl,
+                           } as UserProfile)
+                        } else {
+                            toast({ variant: 'destructive', title: 'User not found' });
+                            router.push('/lounge');
+                        }
                     }
                     setIsLoading(false); 
                 }, (error) => {
@@ -801,6 +813,12 @@ export default function ChatPage() {
     if (!matchProfile || isBeMatchChat) return;
     router.push(`/report/${matchProfile.id}?matchId=${chatId}`);
   };
+  
+  const handleHeaderClick = () => {
+    if (matchProfile && !isBeMatchChat) {
+      setShowProfileDetails(true);
+    }
+  };
 
   if (isLoading || !user) {
     return <ChatLoader />;
@@ -819,29 +837,34 @@ export default function ChatPage() {
         <Button variant="ghost" size="icon" className="-ml-2 text-foreground" onClick={() => router.back()}>
           <ArrowLeft className="w-6 h-6" />
         </Button>
-        {!matchProfile ? (
-          <>
-            <Skeleton className="h-10 w-10 rounded-full" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-3 w-16" />
-            </div>
-          </>
-        ) : (
-          <>
-            <Avatar className="h-10 w-10 border-2 border-primary">
-              <AvatarImage src={matchProfile.avatarUrl} alt={matchProfile.name} className="object-cover" />
-              <AvatarFallback>{matchProfile.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-                <div className="flex items-center gap-1.5">
-                    <h2 className="text-lg font-bold text-foreground">{matchProfile.name}</h2>
-                    {isBeMatchChat && <BadgeCheck className="w-5 h-5 text-blue-500 fill-current" />}
+        <div
+            className="flex-1 flex items-center gap-3 cursor-pointer"
+            onClick={handleHeaderClick}
+            >
+            {!matchProfile ? (
+            <>
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-16" />
                 </div>
-              <p className="text-sm text-muted-foreground">{isBeMatchChat ? 'Official Account' : formatUserStatus(userStatus, t, locale)}</p>
-            </div>
-          </>
-        )}
+            </>
+            ) : (
+            <>
+                <Avatar className="h-10 w-10 border-2 border-primary">
+                <AvatarImage src={matchProfile.avatarUrl} alt={matchProfile.name} className="object-cover" />
+                <AvatarFallback>{matchProfile.name?.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                    <div className="flex items-center gap-1.5">
+                        <h2 className="text-lg font-bold text-foreground">{matchProfile.name}</h2>
+                        {isBeMatchChat && <BadgeCheck className="w-5 h-5 text-blue-500 fill-current" />}
+                    </div>
+                <p className="text-sm text-muted-foreground">{isBeMatchChat ? 'Official Account' : formatUserStatus(userStatus, t, locale)}</p>
+                </div>
+            </>
+            )}
+        </div>
         {!isBeMatchChat && (
             <div className="flex items-center gap-1">
             <Popover>
@@ -1214,6 +1237,11 @@ export default function ChatPage() {
             )}
         </DialogContent>
       </Dialog>
+       <Sheet open={showProfileDetails} onOpenChange={setShowProfileDetails}>
+        <SheetContent side="bottom" className="h-[90vh] rounded-t-2xl flex flex-col p-0">
+          {matchProfile && <ProfileDetails profile={matchProfile} />}
+        </SheetContent>
+      </Sheet>
     </>
   );
 }
