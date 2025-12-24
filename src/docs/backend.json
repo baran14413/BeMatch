@@ -158,6 +158,10 @@
         "role": {
           "type": "string",
           "description": "The user's role in the system (e.g., admin, user)."
+        },
+        "isBanned": {
+          "type": "boolean",
+          "description": "Indicates if the user account is banned from accessing the application."
         }
       },
       "required": [

@@ -88,6 +88,7 @@ export interface UserProfile {
   rewindCount?: number;
   // Admin
   role?: 'admin' | 'moderator' | 'support' | 'user';
+  isBanned?: boolean;
   createdAt?: any;
 }
 

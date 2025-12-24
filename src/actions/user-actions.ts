@@ -2,6 +2,7 @@
 
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import type { UserProfile } from '@/lib/data';
+import { revalidatePath } from 'next/cache';
 
 export async function getAllUsers(): Promise<UserProfile[]> {
   const admin = getFirebaseAdmin();
@@ -56,5 +57,78 @@ export async function getUser(uid: string): Promise<UserProfile | null> {
     } catch (error) {
         console.error(`Error fetching user ${uid}:`, error);
         return null;
+    }
+}
+
+export async function updateUserRole(uid: string, role: string) {
+    const admin = getFirebaseAdmin();
+    if (!admin) {
+        throw new Error("Firebase Admin not initialized.");
+    }
+    const { auth, db } = admin;
+
+    try {
+        // Set custom claim for auth token
+        await auth.setCustomUserClaims(uid, { role });
+        
+        // Update the role in the Firestore document for UI consistency
+        const userRef = db.collection('users').doc(uid);
+        await userRef.update({ role });
+        
+        revalidatePath('/admin/users');
+        return { success: true, message: `User role updated to ${role}.` };
+
+    } catch (error: any) {
+        console.error("Error updating user role:", error);
+        return { success: false, message: error.message };
+    }
+}
+
+export async function banUserAccount(uid: string, currentStatus: boolean) {
+    const admin = getFirebaseAdmin();
+    if (!admin) {
+        throw new Error("Firebase Admin not initialized.");
+    }
+    const { auth, db } = admin;
+    const newBanStatus = !currentStatus;
+
+    try {
+        // Disable/Enable user in Firebase Auth
+        await auth.updateUser(uid, { disabled: newBanStatus });
+
+        // Update the flag in Firestore
+        const userRef = db.collection('users').doc(uid);
+        await userRef.update({ isBanned: newBanStatus });
+
+        revalidatePath('/admin/users');
+        return { success: true, message: `User has been ${newBanStatus ? 'banned' : 'unbanned'}.` };
+    } catch (error: any) {
+        console.error("Error banning/unbanning user:", error);
+        return { success: false, message: error.message };
+    }
+}
+
+export async function deleteUserAccount(uid: string) {
+    const admin = getFirebaseAdmin();
+    if (!admin) {
+        throw new Error("Firebase Admin not initialized.");
+    }
+    const { auth, db } = admin;
+
+    try {
+        // Delete from Auth
+        await auth.deleteUser(uid);
+
+        // Delete from Firestore
+        await db.collection('users').doc(uid).delete();
+        
+        // You might want to also delete user-generated content here in a more complex app
+        
+        revalidatePath('/admin/users');
+        return { success: true, message: "User account permanently deleted." };
+
+    } catch (error: any) {
+        console.error("Error deleting user account:", error);
+        return { success: false, message: error.message };
     }
 }
