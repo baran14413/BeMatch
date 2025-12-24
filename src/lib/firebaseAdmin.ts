@@ -17,6 +17,14 @@ let adminApp: FirebaseAdminApp | undefined;
  * @returns {FirebaseAdminApp | null} The initialized Firebase Admin services or null.
  */
 export function getFirebaseAdmin(): FirebaseAdminApp | null {
+  // If we are in the build process on the server (e.g., Netlify), and env vars are not set,
+  // skip initialization to prevent build failure. The app will run fine in production
+  // because the env vars will be present there.
+  if (process.env.NODE_ENV === 'production' && !process.env.FIREBASE_PROJECT_ID) {
+    console.warn("Firebase Admin credentials not found. Skipping initialization during build process.");
+    return null;
+  }
+  
   // If the adminApp instance already exists, return it to avoid re-initialization.
   if (adminApp) {
     return adminApp;
@@ -28,10 +36,9 @@ export function getFirebaseAdmin(): FirebaseAdminApp | null {
     const projectId = process.env.FIREBASE_PROJECT_ID;
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
 
-    // If essential credentials are not present (e.g., during build), log a warning and return null.
+    // If essential credentials are not present, throw an error.
     if (!projectId || !clientEmail || !privateKey) {
-        console.warn("Firebase Admin credentials not found in environment variables. Admin features will be disabled during build.");
-        return null;
+        throw new Error("Firebase Admin credentials not found in environment variables.");
     }
 
     if (admin.apps.length === 0) {
