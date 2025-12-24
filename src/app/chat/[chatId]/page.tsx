@@ -56,7 +56,7 @@ import ProfileDetails from '@/components/discover/profile-details';
 import { generateAiChatResponse } from '@/app/actions';
 
 const BEMATCH_SYSTEM_ID = 'bematch_system_account';
-const AI_CHAT_MESSAGE_LIMIT = 4;
+const AI_CHAT_MESSAGE_LIMIT = 8;
 
 
 const ChatLoader = () => (
@@ -1211,7 +1211,7 @@ export default function ChatPage() {
                           }
                            if (e.key === 'Escape' && (editingMessage || replyingToMessage)) {
                               editingMessage ? cancelEdit() : cancelReply();
-                          }
+                           }
                       }}
                       maxLength={CHARACTER_LIMIT + 1}
                   />
@@ -1330,5 +1330,3 @@ export default function ChatPage() {
     </>
   );
 }
-
-    
