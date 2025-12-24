@@ -17,6 +17,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { getAllUsers } from "@/actions/user-actions"
 import { getAllReports } from "@/actions/report-actions"
 import { adminDb } from "@/lib/firebaseAdmin"
+import { Timestamp } from "firebase-admin/firestore";
 
 const areaChartData = [
   { name: 'Jan', newUsers: 120, activeUsers: 200 },
@@ -112,7 +113,8 @@ export default async function AdminDashboard() {
     const matchesLastMonth = matchesSnapshot.docs.filter(doc => {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      return doc.data().timestamp.toDate() > thirtyDaysAgo;
+      const timestamp = doc.data().timestamp as Timestamp;
+      return timestamp && typeof timestamp.toDate === 'function' ? timestamp.toDate() > thirtyDaysAgo : false;
     }).length;
 
     return (
