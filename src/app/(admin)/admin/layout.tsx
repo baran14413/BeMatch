@@ -3,7 +3,7 @@
 import AdminSidebar from '@/components/admin/admin-sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Sheet, SheetTrigger, SheetContent } from '@/components/ui/sheet';
+import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Search, Bell, Menu, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
@@ -86,6 +86,9 @@ export default function AdminLayout({
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="flex flex-col bg-primary text-primary-foreground border-none p-0">
+               <SheetHeader className="sr-only">
+                  <SheetTitle>Admin Navigation Menu</SheetTitle>
+              </SheetHeader>
               <AdminSidebar />
             </SheetContent>
           </Sheet>
