@@ -6,7 +6,7 @@ import * as admin from 'firebase-admin';
 let serviceAccount;
 try {
   // This is the standard way to include the service account key in a secure server environment.
-  serviceAccount = require('../../../serviceAccountKey.json');
+  serviceAccount = require('../../serviceAccountKey.json');
 } catch (e) {
   // Catch the error if the file doesn't exist, but don't log anything here.
   // The check below will provide a more informative message.
