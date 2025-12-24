@@ -5,6 +5,8 @@ import * as admin from "firebase-admin";
 import {google} from "googleapis";
 import {UserRecord} from "firebase-admin/auth";
 import {getFirestore, Timestamp} from "firebase-admin/firestore";
+import { onSchedule } from "firebase-functions/v2/scheduler";
+
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
@@ -15,6 +17,7 @@ interface VerifySubscriptionParams {
   purchaseToken: string;
   productId: string; // This will be the Base Plan ID, e.g., 'monthly-base'
   packageName: string;
+  isDevelopment?: boolean; // Flag for development environment
 }
 
 // Google Play API SubscriptionPurchase type (simplified)
@@ -74,18 +77,57 @@ export const verifySubscription = onCall(
       purchaseToken,
       productId, // This is the Base Plan ID from the client
       packageName,
+      isDevelopment,
     } = request.data as VerifySubscriptionParams;
 
-    if (!purchaseToken || !productId || !packageName) {
+    if (!productId || !packageName) {
       throw new HttpsError(
         "invalid-argument",
-        "Missing required parameters.",
+        "Missing required parameters (productId, packageName).",
+      );
+    }
+    
+    // --- DEVELOPMENT ONLY: SIMULATION LOGIC ---
+    if (isDevelopment && process.env.FUNCTIONS_EMULATOR === "true") {
+      logger.warn(`DEV MODE: Simulating purchase for user ${uid} ` +
+        `with product ${productId}`);
+      const expiryDate = new Date();
+      expiryDate.setMonth(expiryDate.getMonth() + 1); // Simulate 1 month
+
+      let premiumTier: "weekly" | "gold" | "platinum" | null = null;
+      if (productId.includes("yearly")) {
+        premiumTier = "platinum";
+      } else if (productId.includes("monthly")) {
+        premiumTier = "gold";
+      } else if (productId.includes("weekly")) {
+        premiumTier = "weekly";
+      }
+
+      await db.collection("users").doc(uid).update({
+        isPremium: true,
+        subscriptionId: productId,
+        purchaseToken: "dev_token",
+        premiumExpiresAt: Timestamp.fromDate(expiryDate),
+        autoRenewing: true, // Assume auto-renew for tests
+        premiumTier: premiumTier,
+      });
+
+      logger.info(`DEV: User ${uid} granted simulated ${premiumTier} status.`);
+      return {success: true, message: "Simulated purchase successful."};
+    }
+
+
+    if (!purchaseToken) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Missing required parameter: purchaseToken.",
       );
     }
 
+
     try {
       // In production, always verify with Google Play
-      const subscriptionProductId = "premium_uyelik_1ay"; // Main product ID in Play Console
+      const subscriptionProductId = "premium_uyelik_1ay";
 
       const response =
         await androidpublisher.purchases.subscriptions.get({
@@ -159,8 +201,9 @@ export const verifySubscription = onCall(
 /**
  * A scheduled function to check the status of all active subscriptions
  * and downgrade users whose subscriptions have expired or been cancelled.
+ * This function runs automatically every 24 hours.
  */
-export const checkScheduledSubscriptionStatus = onCall(async () => {
+export const checkSubscriptionStatuses = onSchedule("every 24 hours", async (event) => {
   logger.info("Running scheduled job to check subscription statuses.");
   const now = Timestamp.now();
 
@@ -201,7 +244,7 @@ export const checkScheduledSubscriptionStatus = onCall(async () => {
       // If Google says it's still active, update our DB and skip downgrade
       if (googleExpiry > now) {
         logger.info(`Subscription for ${doc.id} renewed. Updating expiry.`);
-        return doc.ref.update({premiumExpiresAt: googleExpiry});
+        return doc.ref.update({premiumExpiresAt: googleExpiry, autoRenewing: subscription.autoRenewing});
       }
     } catch (error: any) {
       // If the token is invalid (404/410), it confirms the subscription is dead.

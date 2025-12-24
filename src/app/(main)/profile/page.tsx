@@ -2,8 +2,8 @@
 import { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Crown, Settings, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Crown, Settings, ChevronLeft, ChevronRight, Pencil, Heart } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useLanguage } from '@/context/language-context';
@@ -13,6 +13,8 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import type { UserProfile } from '@/lib/data';
 import { doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { interestIcons } from '@/lib/interest-icons';
 
 export default function ProfilePage() {
   const { user, isUserLoading } = useUser();
@@ -60,9 +62,7 @@ export default function ProfilePage() {
                         </div>
                     </div>
                     <div className="flex-1 flex justify-end">
-                        <Link href="/settings" passHref>
-                           <Settings className="w-6 h-6 text-muted-foreground" />
-                        </Link>
+                       <Settings className="w-6 h-6 text-muted-foreground" />
                     </div>
                  </div>
                  <Card>
@@ -74,6 +74,7 @@ export default function ProfilePage() {
                         </div>
                     </CardContent>
                  </Card>
+                 <Skeleton className="h-20 w-full" />
                  <Skeleton className="h-20 w-full" />
             </div>
         </div>
@@ -114,17 +115,67 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* Bio */}
+        {userProfile.bio && (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-lg">{t('discover.aboutMe')}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-muted-foreground">{userProfile.bio}</p>
+                </CardContent>
+            </Card>
+        )}
+
+        {/* Interests */}
+        {(userProfile.interests && userProfile.interests.length > 0) && (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-lg">{t('interestsPage.title')}</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-wrap gap-2">
+                    {userProfile.interests.map(interest => {
+                        const Icon = interestIcons[interest];
+                        return (
+                            <Badge key={interest} variant="secondary" className="text-base py-1 px-3">
+                                {Icon && <Icon className="w-4 h-4 mr-2"/>}
+                                {t(`interests.${interest}`)}
+                            </Badge>
+                        );
+                    })}
+                </CardContent>
+            </Card>
+        )}
+
+        {/* Prompts */}
+        {(userProfile.prompts && userProfile.prompts.length > 0) && (
+            <div className="space-y-4">
+                 {userProfile.prompts.map((prompt, index) => (
+                    <Card key={index}>
+                        <CardHeader>
+                            <p className="text-sm font-semibold text-muted-foreground">{prompt.question}</p>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-lg">{prompt.answer}</p>
+                        </CardContent>
+                    </Card>
+                 ))}
+            </div>
+        )}
+
         {/* Photo Gallery */}
         <Card>
-          <CardContent className="p-4">
-             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">{t('profile.myPhotos')}</h3>
+          <CardHeader>
+             <div className="flex justify-between items-center">
+                <CardTitle className="text-lg">{t('profile.myPhotos')}</CardTitle>
                  <Link href="/settings/gallery" passHref>
                     <Button variant="ghost" size="icon" aria-label={t('settings.editGallery')}>
                         <Pencil className="w-5 h-5 text-muted-foreground" />
                     </Button>
                 </Link>
              </div>
+          </CardHeader>
+          <CardContent>
              {images.length > 0 ? (
                 <div className="grid grid-cols-3 gap-3">
                     {images.map((url, index) => (

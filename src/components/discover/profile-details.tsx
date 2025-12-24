@@ -7,6 +7,8 @@ import { Heart, MapPin } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLanguage } from '@/context/language-context';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Badge } from '../ui/badge';
+import { interestIcons } from '@/lib/interest-icons';
 
 type ProfileDetailsProps = {
   profile: UserProfile;
@@ -77,6 +79,23 @@ export default function ProfileDetails({ profile }: ProfileDetailsProps) {
             <div className="relative">
               <h3 className="text-lg font-semibold">{t('discover.aboutMe')}</h3>
               <p className="text-foreground/80 mt-1">{profile.bio}</p>
+            </div>
+          )}
+
+          {(profile.interests && profile.interests.length > 0) && (
+            <div>
+              <h3 className="text-lg font-semibold mb-2">{t('interestsPage.title')}</h3>
+              <div className="flex flex-wrap gap-2">
+                {profile.interests.map(interest => {
+                  const Icon = interestIcons[interest];
+                  return (
+                    <Badge key={interest} variant="secondary" className="text-base py-1 px-3">
+                      {Icon && <Icon className="w-4 h-4 mr-2"/>}
+                      {t(`interests.${interest}`)}
+                    </Badge>
+                  );
+                })}
+              </div>
             </div>
           )}
 
