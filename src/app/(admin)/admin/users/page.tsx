@@ -1,9 +1,8 @@
 import UsersTable from '@/components/admin/users-table';
-// import { getAllUsers } from '@/actions/user-actions';
+import { getAllUsers } from '@/actions/user-actions';
 
 export default async function AdminUsersPage() {
-  // const users = await getAllUsers();
-  const users: any[] = [];
+  const users = await getAllUsers();
 
   return (
     <div>
