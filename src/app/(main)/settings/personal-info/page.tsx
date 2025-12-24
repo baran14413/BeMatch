@@ -16,10 +16,10 @@ import { useToast } from '@/hooks/use-toast';
 import { sendEmailVerification } from 'firebase/auth';
 import { usePageVisibility } from '@/hooks/use-page-visibility';
 
-const InfoItem = ({ label, value }: { label: string, value: string }) => (
+const InfoItem = ({ label, value }: { label: string, value: string | React.ReactNode }) => (
     <div className="flex justify-between items-center py-3">
         <p className="text-muted-foreground">{label}</p>
-        <p className="font-semibold">{value}</p>
+        <div className="font-semibold text-right">{value}</div>
     </div>
 );
 
@@ -121,14 +121,15 @@ export default function PersonalInfoPage() {
                                     <InfoItem label={t('personalInfoPage.firstName')} value={userProfile.firstName} />
                                     <InfoItem label={t('personalInfoPage.lastName')} value={userProfile.lastName} />
                                     <InfoItem label={t('personalInfoPage.age')} value={userProfile.age.toString()} />
-                                     <div className="flex justify-between items-center py-3">
-                                        <p className="text-muted-foreground">E-posta</p>
+                                     <InfoItem 
+                                        label="E-posta" 
+                                        value={
                                         <div className="flex items-center gap-3">
-                                            <p className="font-semibold">{user.email}</p>
+                                            <span>{user.email}</span>
                                             {user.emailVerified ? (
                                                 <div className="flex items-center gap-1 text-green-600">
                                                     <BadgeCheck className="w-5 h-5" />
-                                                    <span className="text-sm font-medium">Doğrulandı</span>
+                                                    <span className="text-sm font-medium">{t('personalInfoPage.verified')}</span>
                                                 </div>
                                             ) : (
                                                 <Button size="sm" variant="outline" onClick={handleSendVerification} disabled={isSendingVerification}>
@@ -137,11 +138,11 @@ export default function PersonalInfoPage() {
                                                     ) : (
                                                          <AlertTriangle className="w-4 h-4 mr-2 text-yellow-500" />
                                                     )}
-                                                    Doğrula
+                                                    {t('personalInfoPage.verify')}
                                                 </Button>
                                             )}
                                         </div>
-                                    </div>
+                                    } />
                                 </>
                             ) : (
                                 <p>{t('profile.notFound')}</p>

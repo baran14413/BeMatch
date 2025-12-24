@@ -112,7 +112,9 @@
         "sessionActivity": "Oturum Hareketleri",
         "sessionDescription": "Aktif oturumlarını ve giriş yaptığın cihazları gör.",
         "activeNow": "Aktif Oturum",
-        "accountCreation": "Hesap Oluşturulma"
+        "accountCreation": "Hesap Oluşturulma",
+        "verified": "Doğrulandı",
+        "verify": "Doğrula"
     },
     "walletPage": {
         "title": "Cüzdanım",
