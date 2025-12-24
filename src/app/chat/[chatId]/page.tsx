@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback }from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { useUser, useFirestore, useMemoFirebase, useStorage, useCollection } from '@/firebase';
+import { useUser, useFirestore, useMemoFirebase, useStorage, useCollection, useAuth } from '@/firebase';
 import {
   collection,
   query,
@@ -53,6 +53,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useLanguage } from '@/context/language-context';
 import TypingIndicator from '@/components/chat/typing-indicator';
 import ProfileDetails from '@/components/discover/profile-details';
+import { generateAiChatResponse } from '@/app/actions';
 
 const BEMATCH_SYSTEM_ID = 'bematch_system_account';
 
@@ -217,9 +218,11 @@ export default function ChatPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const storage = useStorage();
+  const auth = useAuth();
   const { toast } = useToast();
 
   const [matchProfile, setMatchProfile] = useState<UserProfile | null>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
   const [matchData, setMatchData] = useState<Match | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
@@ -232,6 +235,7 @@ export default function ChatPage() {
   // Typing indicator state
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
+  const [isAiResponding, setIsAiResponding] = useState(false);
 
   // Image sending state
   const [imageToSend, setImageToSend] = useState<{dataUrl: string; file: File} | null>(null);
@@ -254,7 +258,8 @@ export default function ChatPage() {
   const isOverLimit = newMessage.length > CHARACTER_LIMIT;
   const isBlockedByMe = matchData?.isBlocked && matchData.blockedBy === user?.uid;
   const isBlockedByOther = matchData?.isBlocked && matchData.blockedBy !== user?.uid;
-  const isBeMatchChat = matchProfile?.id === BEMATCH_SYSTEM_ID;
+  const isSystemChat = matchProfile?.id === BEMATCH_SYSTEM_ID;
+  const isMockChat = !!matchProfile?.isSystemAccount;
   const userStatus = useUserStatus(matchProfile?.id);
 
   const messagesQuery = useMemoFirebase(() => {
@@ -265,7 +270,7 @@ export default function ChatPage() {
   const { data: messages, isLoading: isLoadingMessages } = useCollection<Message>(messagesQuery);
 
   const updateTypingStatus = (isTyping: boolean) => {
-    if (!user || !chatId || !firestore || isBeMatchChat) return;
+    if (!user || !chatId || !firestore || isSystemChat || isMockChat) return;
     const matchRef = doc(firestore, 'matches', chatId);
     const typingUpdate = {
         [`typing.${user.uid}`]: isTyping
@@ -317,6 +322,7 @@ export default function ChatPage() {
     setIsLoading(true);
     
     let unsubscribeUser: () => void = () => {};
+    let unsubscribeCurrentUser: () => void = () => {};
     
     const matchDocRef = doc(firestore, 'matches', chatId);
     
@@ -329,6 +335,14 @@ export default function ChatPage() {
             if (otherUserId && match.typing) {
                 setIsOtherUserTyping(!!match.typing[otherUserId]);
             }
+            
+            const currentUserDocRef = doc(firestore, 'users', user.uid);
+            unsubscribeCurrentUser = onSnapshot(currentUserDocRef, (userDoc) => {
+                if (userDoc.exists()) {
+                    setCurrentUserProfile({ id: userDoc.id, ...userDoc.data() } as UserProfile);
+                }
+            });
+
 
             if (otherUserId && matchProfile?.id !== otherUserId) {
                 if (unsubscribeUser) unsubscribeUser(); 
@@ -347,6 +361,7 @@ export default function ChatPage() {
                                 id: otherUserId,
                                 name: mockInfo.name,
                                 avatarUrl: mockInfo.avatarUrl,
+                                isSystemAccount: true, // Mark it as a mock account
                            } as UserProfile)
                         } else {
                             toast({ variant: 'destructive', title: 'User not found' });
@@ -384,15 +399,80 @@ export default function ChatPage() {
     return () => {
         unsubscribeMatch();
         unsubscribeUser();
+        unsubscribeCurrentUser();
         if (user) {
             updateTypingStatus(false);
         }
     };
 }, [chatId, user, firestore, router, toast]);
 
+    // AI Response Logic for Mock Chats
+  useEffect(() => {
+    if (!messages || messages.length === 0 || !user || !isMockChat || isAiResponding) {
+        return;
+    }
+
+    const lastMessage = messages[messages.length - 1];
+    
+    // If the last message is from the user, trigger the AI response.
+    if (lastMessage.senderId === user.uid) {
+        
+        const triggerAiResponse = async () => {
+            if (!currentUserProfile || !matchProfile) return;
+
+            setIsAiResponding(true);
+
+            // Give a "typing" delay
+            await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 1000));
+
+            const chatHistory = messages
+                .slice(-5) // Get last 5 messages for context
+                .map(m => {
+                    const senderName = m.senderId === user.uid ? currentUserProfile.name : matchProfile.name;
+                    return `${senderName}: ${m.text}`;
+                }).join('\n');
+            
+            const userProfileString = `Name: ${currentUserProfile.name}, Age: ${currentUserProfile.age}, Bio: ${currentUserProfile.bio || ''}, Interests: ${currentUserProfile.interests?.join(', ') || ''}`;
+
+            try {
+                const result = await generateAiChatResponse({
+                    userProfile: userProfileString,
+                    mockProfileName: matchProfile.name,
+                    chatHistory: chatHistory,
+                    messageCount: messages.length,
+                    language: locale,
+                });
+
+                if (result.response) {
+                    const matchDocRef = doc(firestore, 'matches', chatId);
+                    await addDoc(collection(firestore, 'matches', chatId, 'messages'), {
+                         senderId: matchProfile.id,
+                         text: result.response,
+                         timestamp: serverTimestamp(),
+                         isRead: true, // Mark as read since user is in chat
+                         isAiGenerated: true,
+                    });
+                     await updateDoc(matchDocRef, {
+                        lastMessage: result.response,
+                        timestamp: serverTimestamp(),
+                    });
+                }
+            } catch (error) {
+                console.error("Error generating AI response:", error);
+                // Optionally inform the user
+            } finally {
+                setIsAiResponding(false);
+            }
+        };
+
+        triggerAiResponse();
+    }
+}, [messages, user, isMockChat, currentUserProfile, matchProfile, chatId, firestore, locale, isAiResponding]);
+
+
 
   useEffect(() => {
-      if (messages && user && firestore && !isBeMatchChat) {
+      if (messages && user && firestore && !isSystemChat) {
           const unreadMessages = messages.filter(message => message.senderId !== user.uid && !message.isRead);
           if (unreadMessages.length > 0) {
               const batch = writeBatch(firestore);
@@ -410,11 +490,11 @@ export default function ChatPage() {
               });
           }
       }
-  }, [messages, user, firestore, chatId, isBeMatchChat]);
+  }, [messages, user, firestore, chatId, isSystemChat]);
   
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isOtherUserTyping]);
+  }, [messages, isOtherUserTyping, isAiResponding]);
 
   const handleSendMessage = async (e: React.FormEvent | React.MouseEvent) => {
     e.preventDefault();
@@ -422,7 +502,7 @@ export default function ChatPage() {
     if(typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     
     const text = newMessage.trim();
-    if (!text || !user || !firestore || !chatId || isOverLimit || isBlockedByMe || isBlockedByOther || isBeMatchChat) return;
+    if (!text || !user || !firestore || !chatId || isOverLimit || isBlockedByMe || isBlockedByOther || isSystemChat) return;
     
     const matchDocRef = doc(firestore, 'matches', chatId);
 
@@ -529,7 +609,7 @@ export default function ChatPage() {
   };
   
   const handleReaction = async (message: Message, emoji: string) => {
-      if (!user || isBeMatchChat) return;
+      if (!user || isSystemChat || isMockChat) return;
       const messageRef = doc(firestore, 'matches', chatId, 'messages', message.id);
 
       try {
@@ -584,7 +664,7 @@ export default function ChatPage() {
   };
 
    const sendVoiceMessage = useCallback(async (audioBlob: Blob) => {
-    if (!user || !storage || !firestore || !chatId || isBeMatchChat) return;
+    if (!user || !storage || !firestore || !chatId || isSystemChat || isMockChat) return;
 
     const getDuration = (blob: Blob): Promise<number> => {
         return new Promise(resolve => {
@@ -637,10 +717,10 @@ export default function ChatPage() {
             title: t('chat.toasts.voiceSendError')
         });
     }
-  }, [user, storage, firestore, chatId, toast, t, isBeMatchChat]);
+  }, [user, storage, firestore, chatId, toast, t, isSystemChat, isMockChat]);
 
    const startRecording = useCallback(async () => {
-    if (isRecording || !user || isBlockedByMe || isBlockedByOther || isBeMatchChat) return;
+    if (isRecording || !user || isBlockedByMe || isBlockedByOther || isSystemChat || isMockChat) return;
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const options = {
@@ -679,7 +759,7 @@ export default function ChatPage() {
             description: t('chat.toasts.recordStartErrorDescription')
         });
     }
-  }, [isRecording, user, toast, isBlockedByMe, isBlockedByOther, sendVoiceMessage, t, isBeMatchChat]);
+  }, [isRecording, user, toast, isBlockedByMe, isBlockedByOther, sendVoiceMessage, t, isSystemChat, isMockChat]);
 
 
   const stopRecording = useCallback(() => {
@@ -701,7 +781,7 @@ export default function ChatPage() {
   };
 
   const handleSendImage = async () => {
-    if (!imageToSend || !user || isSendingImage || !storage || !firestore || !imageInputRef.current || isBeMatchChat) return;
+    if (!imageToSend || !user || isSendingImage || !storage || !firestore || !imageInputRef.current || isSystemChat || isMockChat) return;
 
     setIsSendingImage(true);
     try {
@@ -750,7 +830,7 @@ export default function ChatPage() {
   };
 
     const handleViewOnceImage = (message: Message) => {
-        if (!user || !firestore || isBeMatchChat) return;
+        if (!user || !firestore || isSystemChat || isMockChat) return;
         
         const hasOpened = message.isOpenedBy?.includes(user.uid);
         if (hasOpened) return; // Don't open if already viewed
@@ -773,7 +853,7 @@ export default function ChatPage() {
   };
 
   const handleBlockUser = async () => {
-    if (!user || !firestore || !chatId || isBeMatchChat) return;
+    if (!user || !firestore || !chatId || isSystemChat || isMockChat) return;
     const matchRef = doc(firestore, 'matches', chatId);
     try {
       await updateDoc(matchRef, {
@@ -793,7 +873,7 @@ export default function ChatPage() {
   };
 
   const handleUnblockUser = async () => {
-    if (!user || !firestore || !chatId || isBeMatchChat) return;
+    if (!user || !firestore || !chatId || isSystemChat || isMockChat) return;
     const matchRef = doc(firestore, 'matches', chatId);
     try {
       await updateDoc(matchRef, {
@@ -813,12 +893,12 @@ export default function ChatPage() {
   };
 
   const handleReportUser = () => {
-    if (!matchProfile || isBeMatchChat) return;
+    if (!matchProfile || isSystemChat || isMockChat) return;
     router.push(`/report/${matchProfile.id}?matchId=${chatId}`);
   };
   
   const handleHeaderClick = () => {
-    if (matchProfile && !isBeMatchChat) {
+    if (matchProfile && !isSystemChat && !isMockChat) {
       setShowProfileDetails(true);
     }
   };
@@ -861,14 +941,14 @@ export default function ChatPage() {
                 <div className="flex-1">
                     <div className="flex items-center gap-1.5">
                         <h2 className="text-lg font-bold text-foreground">{matchProfile.name}</h2>
-                        {isBeMatchChat && <BadgeCheck className="w-5 h-5 text-blue-500 fill-current" />}
+                        {isSystemChat && <BadgeCheck className="w-5 h-5 text-blue-500 fill-current" />}
                     </div>
-                <p className="text-sm text-muted-foreground">{isBeMatchChat ? 'Official Account' : formatUserStatus(userStatus, t, locale)}</p>
+                <p className="text-sm text-muted-foreground">{isSystemChat ? 'Official Account' : formatUserStatus(userStatus, t, locale)}</p>
                 </div>
             </>
             )}
         </div>
-        {!isBeMatchChat && (
+        {!isSystemChat && !isMockChat && (
             <div className="flex items-center gap-1">
             <Popover>
                 <PopoverTrigger asChild>
@@ -997,7 +1077,7 @@ export default function ChatPage() {
                             )}>
                                 {message.isEdited && <span>{t('chat.edited')}</span>}
                                 <span>{formatMessageTimestamp(message.timestamp, locale)}</span>
-                                {isMe && message.senderId !== BEMATCH_SYSTEM_ID && (
+                                {isMe && message.senderId !== BEMATCH_SYSTEM_ID && !isMockChat && (
                                     <CheckCheck className={cn("w-4 h-4", message.isRead ? "text-blue-400" : "opacity-50")} />
                                 )}
                             </div>
@@ -1032,7 +1112,7 @@ export default function ChatPage() {
             )
           })}
         </AnimatePresence>
-        {isOtherUserTyping && (
+        {(isOtherUserTyping || isAiResponding) && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1059,7 +1139,7 @@ export default function ChatPage() {
           <div className="text-center text-muted-foreground text-sm p-3">
             <p>{t('chat.blockedByOther')}</p>
           </div>
-        ) : isBeMatchChat ? (
+        ) : isSystemChat ? (
             <div className="text-center text-muted-foreground text-sm p-3">
                 <p>{t('chat.systemChatDisabled')}</p>
             </div>
@@ -1077,10 +1157,10 @@ export default function ChatPage() {
             </div>
         ) : (
         <form onSubmit={handleSendMessage} className="flex items-start gap-2">
-            <input type="file" ref={imageInputRef} onChange={handleImageFileChange} className="hidden" accept="image/*" />
-            <Button type="button" size="icon" variant="ghost" className="text-foreground/70 hover:text-foreground mt-1.5" onClick={() => imageInputRef.current?.click()}>
+            {!isMockChat && <input type="file" ref={imageInputRef} onChange={handleImageFileChange} className="hidden" accept="image/*" />}
+            {!isMockChat && <Button type="button" size="icon" variant="ghost" className="text-foreground/70 hover:text-foreground mt-1.5" onClick={() => imageInputRef.current?.click()}>
                 <Plus className="w-6 h-6" />
-            </Button>
+            </Button>}
              <div className="flex-1">
                  {(editingMessage || replyingToMessage) && (
                     <div className="flex items-center justify-between text-xs px-3 py-1 bg-secondary rounded-t-lg">
@@ -1095,7 +1175,7 @@ export default function ChatPage() {
                                 <p className="line-clamp-1 text-foreground/60">{editingMessage?.text || (replyingToMessage?.type === 'image' ? t('chat.lastMessagePhoto') : replyingToMessage?.text)}</p>
                             </div>
                         </div>
-                        <button type="button" className="p-1" onClick={editingMessage ? cancelEdit() : cancelReply()}>
+                        <button type="button" className="p-1" onClick={() => editingMessage ? cancelEdit() : cancelReply()}>
                             <X className="h-4 w-4" />
                         </button>
                     </div>
@@ -1148,7 +1228,7 @@ export default function ChatPage() {
                 <Button type="submit" size="icon" className="h-12 w-12 rounded-full bg-primary hover:bg-primary/90 mt-auto" disabled={!newMessage.trim() || isOverLimit}>
                     <Send className="w-6 h-6" />
                 </Button>
-            ) : (
+            ) : !isMockChat && (
                 <Button type="button" size="icon" className="h-12 w-12 rounded-full bg-primary hover:bg-primary/90 mt-auto" onClick={startRecording} >
                    <Mic className="w-6 h-6" />
                 </Button>
