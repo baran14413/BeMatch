@@ -10,7 +10,6 @@ const pwaConfig = withPWA({
 });
 
 const nextConfig: NextConfig = {
-  output: 'export', // This ensures `next build` creates the 'out' directory
   /* config options here */
   typescript: {
     ignoreBuildErrors: true,
