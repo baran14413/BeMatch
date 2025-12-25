@@ -1,12 +1,10 @@
-// Give the service worker access to Firebase Messaging.
-// Note that you can only use Firebase Messaging here, other Firebase libraries
-// are not available in the service worker.
-importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
+// This file must be in the public directory.
 
-// Initialize the Firebase app in the service worker by passing in
-// your app's Firebase config object.
-// TODO: Replace with your project's customized code snippet
+// Scripts for firebase and firebase messaging
+importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
+
+// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCtj9XvTW2aiumZhrR3OXQk3U3sh01ffRQ",
   authDomain: "bematch-f168d.firebaseapp.com",
@@ -17,6 +15,8 @@ const firebaseConfig = {
   measurementId: "G-B9HD1ESD1H"
 };
 
+
+// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 
 // Retrieve an instance of Firebase Messaging so that it can handle background
@@ -24,12 +24,15 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
+  console.log(
+    "[firebase-messaging-sw.js] Received background message ",
+    payload
+  );
   
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: payload.notification.icon || '/icon-192x192.png'
+    icon: payload.notification.image || '/icons/icon-192x192.png'
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);

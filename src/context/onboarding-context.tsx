@@ -93,8 +93,11 @@ const scheduleMockMessages = (
 
         setTimeout(async () => {
             try {
-                const userProfileString = `Name: ${newUserProfile.name}, Age: ${newUserProfile.age}, Bio: ${newUserProfile.bio}, Interests: ${newUserProfile.interests?.join(', ')}`;
-                
+                // Construct profile string safely, handling undefined fields
+                const bioPart = newUserProfile.bio ? `, Bio: ${newUserProfile.bio}` : '';
+                const interestsPart = (newUserProfile.interests && newUserProfile.interests.length > 0) ? `, Interests: ${newUserProfile.interests.join(', ')}` : '';
+                const userProfileString = `Name: ${newUserProfile.name}, Age: ${newUserProfile.age}${bioPart}${interestsPart}`;
+
                 const result = await generateAiIcebreaker({
                     userProfile: userProfileString,
                     mockProfileName: mockName,
@@ -357,5 +360,3 @@ export const useOnboardingContext = () => {
   }
   return context;
 };
-
-    

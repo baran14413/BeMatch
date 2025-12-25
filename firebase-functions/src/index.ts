@@ -5,6 +5,7 @@ import * as admin from "firebase-admin";
 import {google} from "googleapis";
 import {getFirestore, Timestamp} from "firebase-admin/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
 
 
 // Initialize Firebase Admin SDK
@@ -40,9 +41,8 @@ interface SubscriptionPurchase {
 }
 
 // Map Base Plan IDs to Subscription Product IDs
-// IMPORTANT: This must match your Google Play Console setup
 const planToSubscriptionIdMap: { [key: string]: string } = {
-    'weekly-base': 'premium_uyelik_1ay', // Assuming weekly plan is under the same subscription product
+    'weekly-base': 'premium_uyelik_1ay',
     'monthly-base': 'premium_uyelik_1ay',
     'yearly-base': 'premium_uyelik_1ay',
 };
@@ -72,6 +72,33 @@ export const verifySubscription = onCall(
   async (request) => {
     logger.info("Verifying subscription...", {structuredData: true});
 
+    // --- DEVELOPMENT ONLY ---
+    // This block allows testing purchases in non-TWA environments
+    if (request.data.isDevelopment) {
+      if (!request.auth) {
+        throw new HttpsError("unauthenticated", "Dev mode requires auth.");
+      }
+      const { uid } = request.auth;
+      const { productId } = request.data;
+      
+      let premiumTier: "weekly" | "gold" | "platinum" | null = null;
+      if (productId.includes("yearly")) premiumTier = "platinum";
+      else if (productId.includes("monthly")) premiumTier = "gold";
+      else if (productId.includes("weekly")) premiumTier = "weekly";
+      
+      const userRef = db.collection("users").doc(uid);
+      await userRef.update({
+        isPremium: true,
+        subscriptionId: productId,
+        premiumExpiresAt: Timestamp.fromMillis(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+        autoRenewing: true,
+        premiumTier: premiumTier,
+      });
+      logger.info(`DEV: User ${uid} granted ${premiumTier} status.`);
+      return { success: true, message: "Development purchase successful."};
+    }
+    // --- END DEVELOPMENT ONLY ---
+
     if (!request.auth) {
       throw new HttpsError(
         "unauthenticated",
@@ -93,7 +120,6 @@ export const verifySubscription = onCall(
     }
 
     try {
-      // In production, always verify with Google Play
       const subscriptionProductId = planToSubscriptionIdMap[productId];
        if (!subscriptionProductId) {
             throw new HttpsError('invalid-argument', `Invalid productId: ${productId}. No matching subscription ID found.`);
@@ -102,7 +128,7 @@ export const verifySubscription = onCall(
 
       const response =
         await androidpublisher.purchases.subscriptions.get({
-          packageName: packageName,
+          packageName: packageName, // Correct package name
           subscriptionId: subscriptionProductId,
           token: purchaseToken,
         });
@@ -122,7 +148,7 @@ export const verifySubscription = onCall(
 
       if (subscription.acknowledgementState !== 1) {
         await androidpublisher.purchases.subscriptions.acknowledge({
-          packageName: packageName,
+          packageName: packageName, // Correct package name
           subscriptionId: subscriptionProductId,
           token: purchaseToken,
         });
@@ -178,7 +204,6 @@ export const checkSubscriptionStatuses = onSchedule("every 24 hours", async (eve
   logger.info("Running scheduled job to check subscription statuses.");
   const now = Timestamp.now();
 
-  // Find all users who are marked as premium and have an expiry date in the past
   const expiredQuery = db
     .collection("users")
     .where("isPremium", "==", true)
@@ -194,7 +219,7 @@ export const checkSubscriptionStatuses = onSchedule("every 24 hours", async (eve
   const promises = snapshot.docs.map(async (doc) => {
     const user = doc.data() as {
       purchaseToken: string,
-      subscriptionId: string // This is the Base Plan ID, e.g. 'monthly-base'
+      subscriptionId: string
     };
     logger.info(`Processing expired subscription for user ${doc.id}`);
 
@@ -207,7 +232,7 @@ export const checkSubscriptionStatuses = onSchedule("every 24 hours", async (eve
       
       const response =
         await androidpublisher.purchases.subscriptions.get({
-          packageName: "app.be.match", // Replace with your package name
+          packageName: "com.bematch.bematch", // Correct package name
           subscriptionId: subscriptionProductId,
           token: user.purchaseToken,
         });
@@ -216,18 +241,15 @@ export const checkSubscriptionStatuses = onSchedule("every 24 hours", async (eve
       const googleExpiry =
         Timestamp.fromMillis(parseInt(subscription.expiryTimeMillis, 10));
 
-      // If Google says it's still active, update our DB and skip downgrade
       if (googleExpiry > now) {
         logger.info(`Subscription for ${doc.id} renewed. Updating expiry.`);
         return doc.ref.update({premiumExpiresAt: googleExpiry, autoRenewing: subscription.autoRenewing});
       }
     } catch (error: any) {
-      // If the token is invalid (404/410), it confirms the subscription is dead.
       logger.warn(`Could not re-verify token for ${doc.id}. Proceeding ` +
         "with downgrade.", {error: error.message});
     }
 
-    // Downgrade the user
     return doc.ref.update({
       isPremium: false,
       premiumTier: null,
@@ -239,4 +261,91 @@ export const checkSubscriptionStatuses = onSchedule("every 24 hours", async (eve
 
   logger.info(`Processed ${snapshot.size} expired subscriptions.`);
   return {success: true, message: `Processed ${snapshot.size} subscriptions.`};
+});
+
+
+/**
+ * Triggers a push notification when a new message is created in a chat.
+ */
+export const onMessageCreate = onDocumentCreated("matches/{matchId}/messages/{messageId}", async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) {
+        console.log("No data associated with the event");
+        return;
+    }
+
+    const messageData = snapshot.data() as { senderId: string; text: string; };
+    const matchId = event.params.matchId;
+
+    try {
+        // Get the match document to find the participants
+        const matchDoc = await db.collection("matches").doc(matchId).get();
+        if (!matchDoc.exists) {
+            logger.log("Match document not found.");
+            return;
+        }
+
+        const matchData = matchDoc.data() as { users: string[]; };
+        const senderId = messageData.senderId;
+
+        // Find the recipient's ID
+        const recipientId = matchData.users.find(uid => uid !== senderId);
+        if (!recipientId) {
+            logger.log("Recipient not found.");
+            return;
+        }
+
+        // Get sender's and recipient's profile
+        const senderDoc = await db.collection("users").doc(senderId).get();
+        const recipientDoc = await db.collection("users").doc(recipientId).get();
+
+        if (!recipientDoc.exists || !senderDoc.exists) {
+            logger.log("Sender or recipient document not found.");
+            return;
+        }
+
+        const recipientData = recipientDoc.data() as { fcmTokens?: string[]; };
+        const senderData = senderDoc.data() as { name: string; avatarUrl: string; };
+        
+        const tokens = recipientData.fcmTokens;
+        if (!tokens || tokens.length === 0) {
+            logger.log("No FCM tokens for recipient.");
+            return;
+        }
+
+        // Construct the notification payload
+        const payload = {
+            notification: {
+                title: `${senderData.name} sana bir mesaj gönderdi`,
+                body: messageData.text,
+                icon: senderData.avatarUrl || '/icons/icon-192x192.png',
+                click_action: `https://bematch-f168d.web.app/chat/${matchId}`
+            },
+            tokens: tokens,
+        };
+
+        // Send the notification
+        const response = await admin.messaging().sendEachForMulticast(payload);
+        logger.log("Successfully sent message:", response);
+        
+        // Clean up invalid tokens
+        const tokensToRemove: Promise<any>[] = [];
+        response.responses.forEach((result, index) => {
+            const error = result.error;
+            if (error) {
+                logger.error("Failure sending notification to", tokens[index], error);
+                if (error.code === 'messaging/invalid-registration-token' ||
+                    error.code === 'messaging/registration-token-not-registered') {
+                    tokensToRemove.push(db.collection("users").doc(recipientId).update({
+                        fcmTokens: admin.firestore.FieldValue.arrayRemove(tokens[index])
+                    }));
+                }
+            }
+        });
+        return Promise.all(tokensToRemove);
+
+    } catch (error) {
+        logger.error("Error in onMessageCreate:", error);
+        return;
+    }
 });
