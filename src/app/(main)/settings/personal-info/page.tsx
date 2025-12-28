@@ -2,11 +2,13 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Smartphone, Monitor, Clock, Calendar, ArrowLeft, BadgeCheck, Mail, Loader2, AlertTriangle } from "lucide-react";
 import Link from 'next/link';
 import { useLanguage } from '@/context/language-context';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 import type { UserProfile } from "@/lib/data";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -40,15 +42,8 @@ export default function PersonalInfoPage() {
     const auth = useAuth();
     const { toast } = useToast();
     const [isSendingVerification, setIsSendingVerification] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const isVisible = usePageVisibility();
-
-    useEffect(() => {
-        // When the tab becomes visible again, reload the user's data
-        // to get the latest emailVerified status.
-        if (isVisible && user) {
-            user.reload();
-        }
-    }, [isVisible, user]);
 
     const userDocRef = useMemoFirebase(() => {
         if (!user) return null;
@@ -56,6 +51,22 @@ export default function PersonalInfoPage() {
     }, [firestore, user]);
 
     const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+    
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+
+    useEffect(() => {
+        if (isVisible && user) {
+            user.reload();
+        }
+    }, [isVisible, user]);
+    
+    useEffect(() => {
+        if(userProfile) {
+            setFirstName(userProfile.firstName || '');
+            setLastName(userProfile.lastName || '');
+        }
+    }, [userProfile]);
 
     const handleSendVerification = async () => {
         if (!user) return;
@@ -78,6 +89,31 @@ export default function PersonalInfoPage() {
         }
     };
 
+    const handleSaveChanges = async () => {
+        if (!userDocRef || !firstName.trim() || !lastName.trim()) return;
+        setIsSaving(true);
+        try {
+            await updateDoc(userDocRef, {
+                firstName: firstName.trim(),
+                lastName: lastName.trim(),
+                name: `${firstName.trim()} ${lastName.trim()}`
+            });
+            toast({
+                title: "Başarılı",
+                description: "Kişisel bilgilerin başarıyla güncellendi.",
+            });
+        } catch(error) {
+            console.error("Error updating personal info:", error);
+            toast({
+                variant: 'destructive',
+                title: t('common.error'),
+                description: "Bilgiler güncellenirken bir hata oluştu.",
+            });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const isLoading = isUserLoading || isProfileLoading;
     
     const lastSignInTime = user?.metadata.lastSignInTime 
@@ -87,6 +123,9 @@ export default function PersonalInfoPage() {
     const creationTime = user?.metadata.creationTime 
         ? new Date(user.metadata.creationTime).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })
         : '...';
+        
+    const originalNameIsSet = !!userProfile?.firstName && !!userProfile?.lastName;
+    const nameHasChanged = originalNameIsSet && (firstName !== userProfile.firstName || lastName !== userProfile.lastName);
 
     return (
         <ScrollArea className="h-full">
@@ -108,47 +147,63 @@ export default function PersonalInfoPage() {
                         <CardHeader>
                             <CardTitle>{t('personalInfoPage.profileDetails')}</CardTitle>
                         </CardHeader>
-                        <CardContent className="divide-y">
+                        <CardContent className="space-y-6">
                             {isLoading ? (
                                 <div className="space-y-4 py-2">
-                                    <Skeleton className="h-8 w-full" />
-                                    <Skeleton className="h-8 w-full" />
+                                    <Skeleton className="h-10 w-full" />
+                                    <Skeleton className="h-10 w-full" />
                                     <Skeleton className="h-8 w-full" />
                                     <Skeleton className="h-8 w-full" />
                                 </div>
                             ) : userProfile && user ? (
                                 <>
-                                    <InfoItem label={t('personalInfoPage.firstName')} value={userProfile.firstName} />
-                                    <InfoItem label={t('personalInfoPage.lastName')} value={userProfile.lastName} />
-                                    <InfoItem label={t('personalInfoPage.age')} value={userProfile.age.toString()} />
-                                     <InfoItem 
-                                        label="E-posta" 
-                                        value={
-                                        <div className="flex items-center gap-3">
-                                            <span>{user.email}</span>
-                                            {user.emailVerified ? (
-                                                <div className="flex items-center gap-1 text-green-600">
-                                                    <BadgeCheck className="w-5 h-5" />
-                                                    <span className="text-sm font-medium">{t('personalInfoPage.verified')}</span>
-                                                </div>
-                                            ) : (
-                                                <Button size="sm" variant="outline" onClick={handleSendVerification} disabled={isSendingVerification}>
-                                                    {isSendingVerification ? (
-                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                    ) : (
-                                                         <AlertTriangle className="w-4 h-4 mr-2 text-yellow-500" />
-                                                    )}
-                                                    {t('personalInfoPage.verify')}
-                                                </Button>
-                                            )}
-                                        </div>
-                                    } />
+                                    <div className="space-y-2">
+                                        <Label htmlFor="firstName">{t('personalInfoPage.firstName')}</Label>
+                                        <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                                    </div>
+                                     <div className="space-y-2">
+                                        <Label htmlFor="lastName">{t('personalInfoPage.lastName')}</Label>
+                                        <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                                    </div>
+                                    <div className="divide-y">
+                                        <InfoItem label={t('personalInfoPage.age')} value={userProfile.age.toString()} />
+                                        <InfoItem 
+                                            label="E-posta" 
+                                            value={
+                                            <div className="flex items-center gap-3">
+                                                <span>{user.email}</span>
+                                                {user.emailVerified ? (
+                                                    <div className="flex items-center gap-1 text-green-600">
+                                                        <BadgeCheck className="w-5 h-5" />
+                                                        <span className="text-sm font-medium">{t('personalInfoPage.verified')}</span>
+                                                    </div>
+                                                ) : (
+                                                    <Button size="sm" variant="outline" onClick={handleSendVerification} disabled={isSendingVerification}>
+                                                        {isSendingVerification ? (
+                                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        ) : (
+                                                             <AlertTriangle className="w-4 h-4 mr-2 text-yellow-500" />
+                                                        )}
+                                                        {t('personalInfoPage.verify')}
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        } />
+                                    </div>
                                 </>
                             ) : (
                                 <p>{t('profile.notFound')}</p>
                             )}
                         </CardContent>
                     </Card>
+                    
+                    {nameHasChanged && (
+                         <Button onClick={handleSaveChanges} disabled={isSaving} className="w-full md:w-auto">
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                            {t('common.save')}
+                        </Button>
+                    )}
+
 
                     <Card>
                         <CardHeader>
