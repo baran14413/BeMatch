@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { motion, useMotionValue, useTransform, PanInfo, AnimatePresence, animate } from 'framer-motion';
+import { motion, useMotionValue, useTransform, PanInfo, AnimatePresence } from 'framer-motion';
 import { X, Star, Heart, Rewind } from 'lucide-react';
 import { useLanguage } from '@/context/language-context';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -8,7 +8,7 @@ import ProfileCard from '@/components/discover/profile-card';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { collection, query, where, doc, writeBatch, getDoc, serverTimestamp, getDocs, updateDoc, Timestamp, limit, orderBy } from 'firebase/firestore';
-import type { UserProfile } from '@/lib/data';
+import type { UserProfile, SwipeItem, UserItem, AdItem } from '@/lib/data';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import ProfileDetails from '@/components/discover/profile-details';
 import TutorialOverlay from '@/components/discover/tutorial-overlay';
@@ -21,6 +21,7 @@ import { isToday, isFuture } from 'date-fns';
 import ItIsAMatch from '@/components/discover/it-is-a-match';
 import { generateAiIcebreaker } from '@/ai/flows/generate-ai-icebreaker';
 import { mockProfiles } from '@/lib/mock-profiles';
+import { Card, CardContent } from '@/components/ui/card';
 
 
 type SwipeDirection = 'left' | 'right' | 'up';
@@ -28,6 +29,20 @@ type SwipeType = 'like' | 'nope' | 'superlike';
 
 const MAX_VISIBLE_CARDS = 3;
 const DAILY_REWIND_LIMIT = 3;
+const AD_FREQUENCY = 3; // Show an ad every 3 user profiles
+
+// --- Ad Injection Logic ---
+const injectAds = (profiles: UserProfile[]): SwipeItem[] => {
+  const items: SwipeItem[] = [];
+  let adCounter = 1;
+  profiles.forEach((profile, index) => {
+    items.push({ type: 'user', user: profile });
+    if ((index + 1) % AD_FREQUENCY === 0) {
+      items.push({ type: 'ad', id: `ad-${adCounter++}` });
+    }
+  });
+  return items;
+};
 
 // Haversine formula to calculate distance between two lat/lon points
 const getDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -67,14 +82,29 @@ const AdBanner = () => {
     );
 };
 
+const AdCard = ({ item }: { item: AdItem }) => {
+  return (
+    <Card className="w-full h-full bg-muted flex flex-col items-center justify-center p-4">
+        <CardContent className='w-full'>
+             <div className="text-center text-muted-foreground mb-4">
+                <p className="text-xs font-semibold uppercase">Advertisement</p>
+            </div>
+            <div className="w-full h-64 bg-background rounded-lg flex items-center justify-center">
+                 <AdBanner />
+            </div>
+        </CardContent>
+    </Card>
+  );
+};
+
 
 const SwipeableCard = ({
-  profile,
+  item,
   onSwipe,
   onShowDetails,
   isTop,
 }: {
-  profile: UserProfile;
+  item: SwipeItem;
   onSwipe: (direction: SwipeDirection, triggeredByButton?: boolean) => void;
   onShowDetails: () => void;
   isTop: boolean;
@@ -105,38 +135,48 @@ const SwipeableCard = ({
     }
   };
 
+  // Ads are not draggable
+  const isDraggable = isTop && item.type === 'user';
+
+
   return (
     <motion.div
       className="absolute w-full h-full"
-      drag={isTop ? true : false}
+      drag={isDraggable}
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
       dragElastic={0.35}
       onDragEnd={handleDragEnd}
-      style={{ x, y, rotate, cursor: isTop ? 'grab' : 'auto' }}
+      style={{ x, y, rotate, cursor: isDraggable ? 'grab' : 'auto' }}
       whileDrag={{ cursor: 'grabbing' }}
     >
-      <motion.div
-        style={{ opacity: likeOpacity }}
-        className="absolute top-12 left-6 z-10 p-4 bg-black/30 rounded-full"
-      >
-        <Heart className="w-12 h-12 text-green-400" fill="currentColor" />
-      </motion.div>
+      {item.type === 'user' ? (
+          <>
+            <motion.div
+                style={{ opacity: likeOpacity }}
+                className="absolute top-12 left-6 z-10 p-4 bg-black/30 rounded-full"
+            >
+                <Heart className="w-12 h-12 text-green-400" fill="currentColor" />
+            </motion.div>
 
-      <motion.div
-        style={{ opacity: nopeOpacity }}
-        className="absolute top-12 right-6 z-10 p-4 bg-black/30 rounded-full"
-      >
-        <X className="w-12 h-12 text-red-500" strokeWidth={3} />
-      </motion.div>
-      
-       <motion.div
-        style={{ opacity: superlikeOpacity }}
-        className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10 p-4 bg-black/30 rounded-full"
-      >
-        <Star className="w-12 h-12 text-blue-400" fill="currentColor" />
-      </motion.div>
+            <motion.div
+                style={{ opacity: nopeOpacity }}
+                className="absolute top-12 right-6 z-10 p-4 bg-black/30 rounded-full"
+            >
+                <X className="w-12 h-12 text-red-500" strokeWidth={3} />
+            </motion.div>
+            
+            <motion.div
+                style={{ opacity: superlikeOpacity }}
+                className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10 p-4 bg-black/30 rounded-full"
+            >
+                <Star className="w-12 h-12 text-blue-400" fill="currentColor" />
+            </motion.div>
 
-      <ProfileCard profile={profile} onShowDetails={onShowDetails} isTopCard={isTop}/>
+            <ProfileCard profile={item.user} onShowDetails={onShowDetails} isTopCard={isTop}/>
+        </>
+      ) : (
+          <AdCard item={item} />
+      )}
     </motion.div>
   );
 };
@@ -176,8 +216,8 @@ export default function DiscoverPage() {
   const [newlyMatchedProfile, setNewlyMatchedProfile] = useState<UserProfile | null>(null);
 
   const [profileIndex, setProfileIndex] = useState(0);
-  const [visibleStack, setVisibleStack] = useState<UserProfile[]>([]);
-  const [history, setHistory] = useState<{profile: UserProfile, type: SwipeType}[]>([]);
+  const [visibleStack, setVisibleStack] = useState<SwipeItem[]>([]);
+  const [history, setHistory] = useState<{item: SwipeItem, type: SwipeType}[]>([]);
   const [showTutorial, setShowTutorial] = useState(false);
 
   // Fetch current user's profile to get their coordinates and preferences
@@ -186,6 +226,8 @@ export default function DiscoverPage() {
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
   const { data: currentUserProfile } = useDoc<UserProfile>(currentUserDocRef);
+  const isPremium = !!currentUserProfile?.premiumTier;
+
 
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -198,8 +240,7 @@ export default function DiscoverPage() {
 
   const { data: profiles, isLoading: isLoadingProfiles } = useCollection<UserProfile>(usersQuery);
 
-  const filteredAndSortedProfiles = useMemo(() => {
-    // Combine real profiles from Firestore with mock profiles
+  const swipeableItems = useMemo((): SwipeItem[] => {
     const combinedProfiles = [...(profiles || []), ...mockProfiles];
 
     if (!currentUserProfile || !user) return [];
@@ -215,13 +256,11 @@ export default function DiscoverPage() {
 
     const [minAge, maxAge] = ageRange;
     
-    // Ensure uniqueness, giving priority to real profiles over mock profiles with the same ID
     const uniqueProfiles = Array.from(new Map(combinedProfiles.map(p => [p.id, p])).values());
 
-    return uniqueProfiles
+    const filteredProfiles = uniqueProfiles
       .filter(p => {
         const isNotSelf = p.id !== user.uid;
-        // For mock profiles, age/interest checks can be bypassed if desired
         if (p.isSystemAccount) return isNotSelf;
 
         const isInAgeRange = p.age >= minAge && p.age <= maxAge;
@@ -236,20 +275,16 @@ export default function DiscoverPage() {
         return isNotSelf && isInAgeRange && interestMatch && hasAvatar;
       })
       .map(p => {
-        // Don't calculate distance for mock profiles unless they have lat/lon
         const distance = (p.latitude && p.longitude && currentLat && currentLon) ? getDistanceInKm(currentLat, currentLon, p.latitude, p.longitude) : undefined;
         const isBoosted = p.boostExpiresAt && isFuture((p.boostExpiresAt as Timestamp).toDate());
         return { ...p, distance, isBoosted };
       })
       .filter(p => {
-          if (p.isSystemAccount) return true; // Always include mock accounts
-          if (globalMode || p.distance === undefined) {
-              return true;
-          }
+          if (p.isSystemAccount) return true;
+          if (globalMode || p.distance === undefined) return true;
           return p.distance <= maxDistance;
       })
       .sort((a, b) => {
-        // Prioritize mock profiles to appear first if needed, or mix them in
         if (a.isSystemAccount && !b.isSystemAccount) return -1;
         if (!a.isSystemAccount && b.isSystemAccount) return 1;
 
@@ -260,17 +295,26 @@ export default function DiscoverPage() {
         if (b.distance === undefined) return -1;
         return a.distance - b.distance;
       });
-  }, [profiles, currentUserProfile, user]);
+
+    // Inject ads only if the user is not premium
+    if (!isPremium) {
+        return injectAds(filteredProfiles);
+    }
+    
+    // For premium users, return only user items
+    return filteredProfiles.map(p => ({ type: 'user', user: p }));
+
+  }, [profiles, currentUserProfile, user, isPremium]);
 
   
   useEffect(() => {
-    if (filteredAndSortedProfiles.length > 0) {
-      const initialStack = filteredAndSortedProfiles.slice(profileIndex, profileIndex + MAX_VISIBLE_CARDS).reverse();
+    if (swipeableItems.length > 0) {
+      const initialStack = swipeableItems.slice(profileIndex, profileIndex + MAX_VISIBLE_CARDS).reverse();
       setVisibleStack(initialStack);
     } else {
       setVisibleStack([]);
     }
-  }, [filteredAndSortedProfiles, profileIndex]);
+  }, [swipeableItems, profileIndex]);
 
   useEffect(() => {
     if (isMobile && profiles && profiles.length > 0) {
@@ -292,12 +336,13 @@ export default function DiscoverPage() {
   const handleRewind = async () => {
     if (history.length === 0 || !currentUserProfile || !currentUserDocRef) return;
 
-    const isPremium = !!currentUserProfile.premiumTier;
+    // Premium users have unlimited rewinds.
+    const isPremiumUser = !!currentUserProfile.premiumTier;
     
     const lastRewindDate = currentUserProfile.lastRewindAt?.toDate();
     const rewindsToday = (lastRewindDate && isToday(lastRewindDate)) ? (currentUserProfile.rewindCount || 0) : 0;
 
-    if (!isPremium && rewindsToday >= DAILY_REWIND_LIMIT) {
+    if (!isPremiumUser && rewindsToday >= DAILY_REWIND_LIMIT) {
         toast({
             title: "Günlük Geri Alma Hakkı Doldu",
             description: "Sınırsız geri alma için Gold'a yükselt!",
@@ -310,18 +355,20 @@ export default function DiscoverPage() {
     setHistory(prev => prev.slice(1));
     setProfileIndex(prev => prev - 1);
 
-    if (!isPremium) {
+    if (!isPremiumUser) {
         const newRewindCount = rewindsToday + 1;
         await updateDoc(currentUserDocRef, {
             rewindCount: newRewindCount,
             lastRewindAt: serverTimestamp(),
         });
     }
-
-    toast({
-        title: "Geri Alındı!",
-        description: `${lastAction.profile.name} profiline geri döndün.`
-    })
+    
+    if (lastAction.item.type === 'user') {
+      toast({
+          title: "Geri Alındı!",
+          description: `${lastAction.item.user.name} profiline geri döndün.`
+      });
+    }
 
   };
 
@@ -332,16 +379,23 @@ export default function DiscoverPage() {
     }
     if (visibleStack.length === 0 || !user || !firestore || !currentUserProfile) return;
 
-    const swipedProfile = visibleStack[visibleStack.length - 1];
+    const swipedItem = visibleStack[visibleStack.length - 1];
+    
+    // If it's an ad, just move to the next item
+    if (swipedItem.type === 'ad') {
+        setProfileIndex(prev => prev + 1);
+        return;
+    }
+
+    const swipedProfile = swipedItem.user;
     const swipeType: SwipeType = direction === 'right' ? 'like' : direction === 'up' ? 'superlike' : 'nope';
 
-    setHistory(prev => [{profile: swipedProfile, type: swipeType}, ...prev]);
+    setHistory(prev => [{item: swipedItem, type: swipeType}, ...prev]);
     setProfileIndex(prev => prev + 1);
 
     // If it's a mock profile and the user liked them, initiate an AI chat.
     if (swipedProfile.isSystemAccount && (swipeType === 'like' || swipeType === 'superlike')) {
         try {
-            // Check if a match already exists to prevent duplicate messages
             const matchId = [currentUserProfile.id, swipedProfile.id].sort().join('_');
             const matchRef = doc(firestore, 'matches', matchId);
             const matchDoc = await getDoc(matchRef);
@@ -351,7 +405,6 @@ export default function DiscoverPage() {
                 return;
             }
 
-            // Construct profile string safely, handling undefined fields
             const bioPart = currentUserProfile.bio ? `, Bio: ${currentUserProfile.bio}` : '';
             const interestsPart = (currentUserProfile.interests && currentUserProfile.interests.length > 0) ? `, Interests: ${currentUserProfile.interests.join(', ')}` : '';
             const userProfileString = `Name: ${currentUserProfile.name}, Age: ${currentUserProfile.age}${bioPart}${interestsPart}`;
@@ -411,7 +464,7 @@ export default function DiscoverPage() {
     // Regular swipe logic for real users
     if (swipeType === 'nope') return;
 
-    if (direction === 'up' && !currentUserProfile.premiumTier) {
+    if (direction === 'up' && !isPremium) {
         toast({
             title: "Süper Beğeni İçin Yükselt!",
             description: "Süper Beğeni göndermek ve daha fazla dikkat çekmek için Gold'a yükselt.",
@@ -475,7 +528,7 @@ export default function DiscoverPage() {
           }));
       });
 
-  }, [visibleStack, user, firestore, currentUserProfile, toast, t, router, locale, showTutorial]);
+  }, [visibleStack, user, firestore, currentUserProfile, toast, t, router, locale, showTutorial, isPremium]);
 
   if (isMobile === undefined) {
     return null;
@@ -514,12 +567,12 @@ export default function DiscoverPage() {
           <AnimatePresence>
             {visibleStack.length > 0 ? (
               <>
-                {visibleStack.map((profile, index) => {
+                {visibleStack.map((item, index) => {
                   const isTop = index === visibleStack.length - 1;
                   const stackIndex = visibleStack.length - 1 - index;
                   return (
                     <motion.div
-                      key={profile.id}
+                      key={item.type === 'user' ? item.user.id : item.id}
                       initial={{
                         y: 0,
                         scale: 1 - stackIndex * 0.05,
@@ -531,7 +584,7 @@ export default function DiscoverPage() {
                         opacity: stackIndex < MAX_VISIBLE_CARDS -1 ? 1 : (isTop ? 1 : 0),
                       }}
                       exit={{
-                        x: profile.id === visibleStack[visibleStack.length - 1].id ? (history[0]?.type === 'like' || history[0]?.type === 'superlike' ? 300 : -300) : 0,
+                        x: item.id === (visibleStack[visibleStack.length - 1] as AdItem | UserItem).id ? (history[0]?.type === 'like' || history[0]?.type === 'superlike' ? 300 : -300) : 0,
                         opacity: 0,
                         transition: { duration: 0.3 }
                       }}
@@ -543,9 +596,9 @@ export default function DiscoverPage() {
                       }}
                     >
                       <SwipeableCard
-                        profile={profile}
+                        item={item}
                         onSwipe={(direction) => handleSwipe(direction)}
-                        onShowDetails={() => setDetailsProfile(profile)}
+                        onShowDetails={() => item.type === 'user' && setDetailsProfile(item.user)}
                         isTop={isTop}
                       />
                     </motion.div>
@@ -562,12 +615,7 @@ export default function DiscoverPage() {
         {showTutorial && <TutorialOverlay />}
       </div>
       
-      {/* Ad Banner */}
-      {!currentUserProfile?.premiumTier && (
-          <div className="p-2 bg-background">
-              <AdBanner />
-          </div>
-      )}
+      {/* Ad Banner - This can be moved or removed if AdCard is sufficient */}
       
       <Sheet open={!!detailsProfile} onOpenChange={(isOpen) => !isOpen && setDetailsProfile(null)}>
         <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl flex flex-col">

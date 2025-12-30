@@ -119,3 +119,17 @@ export type UserStatus = {
     state: 'online' | 'offline';
     last_changed: number; // This will be a timestamp
 };
+
+
+// --- New Ad Types for Discover Feed ---
+export type AdItem = {
+  id: string;
+  type: 'ad';
+};
+
+export type UserItem = {
+  type: 'user';
+  user: UserProfile;
+};
+
+export type SwipeItem = UserItem | AdItem;
