@@ -1,7 +1,7 @@
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronRight, Heart, LogOut, MapPin, Shield, ShieldCheck, SlidersHorizontal, Smartphone, User, Wallet, GalleryHorizontal, Crown } from "lucide-react";
+import { ChevronRight, Heart, LogOut, MapPin, Shield, ShieldCheck, SlidersHorizontal, Smartphone, User, Wallet, GalleryHorizontal, Crown, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/context/language-context";
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
@@ -86,9 +86,16 @@ export default function SettingsPage() {
   return (
     <ScrollArea className="h-full">
         <div className="h-full bg-gray-50 dark:bg-black">
-            <header className="p-4 md:p-8 pt-[calc(env(safe-area-inset-top,0rem)+1.5rem)]">
-                <h1 className="text-3xl font-bold text-primary">{t('settings.title')}</h1>
-                <p className="text-muted-foreground">{t('settings.description')}</p>
+            <header className="p-4 md:p-8 flex items-center gap-4 pt-[calc(env(safe-area-inset-top,0rem)+1.5rem)]">
+                 <Link href="/profile" passHref>
+                    <Button variant="ghost" size="icon">
+                        <ArrowLeft className="w-6 h-6" />
+                    </Button>
+                </Link>
+                <div>
+                    <h1 className="text-3xl font-bold text-primary">{t('settings.title')}</h1>
+                    <p className="text-muted-foreground">{t('settings.description')}</p>
+                </div>
             </header>
 
             <div className="p-4 md:p-8 md:pt-0 space-y-8 pb-[calc(env(safe-area-inset-bottom,0rem)+2rem)]">
