@@ -1,6 +1,7 @@
-import type {NextConfig} from 'next';
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  output: 'export', // <--- KRİTİK AYAR: Bunu ekledik, artık "out" klasörü oluşacak.
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -8,6 +9,9 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    // Statik export (output: 'export') kullanırken Next.js'in resim optimizasyonu sunucusu çalışmaz.
+    // Eğer build sırasında "Image Optimization" hatası alırsan buraya "unoptimized: true" eklememiz gerekebilir.
+    // Şimdilik senin ayarlarınla deniyoruz:
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       {
@@ -94,6 +98,7 @@ const nextConfig: NextConfig = {
   }
 };
 
+// PWA wrapper'ı
 const withPWA = require("@ducanh2912/next-pwa").default({
   ...nextConfig.pwa
 });
