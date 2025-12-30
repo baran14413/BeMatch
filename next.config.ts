@@ -1,5 +1,4 @@
 import type {NextConfig} from 'next';
-import withPWA from '@ducanh2912/next-pwa';
 
 const nextConfig: NextConfig = {
   typescript: {
@@ -94,5 +93,9 @@ const nextConfig: NextConfig = {
     ],
   }
 };
+
+const withPWA = require("@ducanh2912/next-pwa").default({
+  ...nextConfig.pwa
+});
 
 export default withPWA(nextConfig);
