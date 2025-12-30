@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { subscriptionPackages, type SubscriptionPackage } from '@/config/subscriptions';
-import { useGooglePlayBilling } from '@/hooks/useGooglePlayBilling';
 import { useToast } from '@/hooks/use-toast';
 
 const FeatureListItem = ({ text, included }: { text: string, included: boolean }) => (
@@ -88,25 +87,24 @@ export default function SubscriptionsPage() {
     const { t } = useLanguage();
     const { toast } = useToast();
     const [purchasingId, setPurchasingId] = useState<string | null>(null);
-    const { purchase, isReady, state, error } = useGooglePlayBilling();
-
-    const isLoading = state === 'PURCHASING' || state === 'LOADING';
+    const [isLoading, setIsLoading] = useState(false);
 
     const handlePurchase = async (productId: string, packageName: string) => {
+        // Placeholder for purchase logic
+        setIsLoading(true);
         setPurchasingId(productId);
-        const result = await purchase({productId, packageName});
-        if (result?.success) {
-            toast({
-                title: 'Satın Alma Başarılı!',
-                description: `BeMatch aboneliğiniz başarıyla başlatıldı.`,
-            });
-        } else if (error?.code !== 'USER_CANCELLED') {
-             toast({
-                variant: 'destructive',
-                title: 'Satın Alma Başarısız',
-                description: error?.message || 'Bilinmeyen bir hata oluştu.',
-            });
-        }
+        console.log(`Attempting to purchase ${productId}`);
+        
+        // Simulate a delay
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        toast({
+            variant: 'destructive',
+            title: 'Ödeme Sistemi Aktif Değil',
+            description: 'Satın alma işlevi şu anda devre dışı.',
+        });
+        
+        setIsLoading(false);
         setPurchasingId(null);
     };
     
@@ -137,7 +135,6 @@ export default function SubscriptionsPage() {
                    ))}
                 </div>
                  <div className="px-4 md:px-8 pb-8 text-center">
-                    {!isReady && error && <p className="text-xs text-destructive">{error.message}</p>}
                     <p className="text-xs text-muted-foreground pt-2">Satın alma işleminiz Google Play üzerinden güvenli bir şekilde gerçekleştirilecektir.</p>
                 </div>
             </div>
