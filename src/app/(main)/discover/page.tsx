@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, useMotionValue, useTransform, PanInfo, AnimatePresence } from 'framer-motion';
@@ -85,10 +86,11 @@ const AdBanner = () => {
 const AdCard = ({ item }: { item: AdItem }) => {
   return (
     <Card className="w-full h-full bg-muted flex flex-col items-center justify-center p-4">
-        <CardContent className='w-full'>
+        <CardContent className='w-full p-0'>
              <div className="text-center text-muted-foreground mb-4">
                 <p className="text-xs font-semibold uppercase">Advertisement</p>
             </div>
+            {/* The actual ad container */}
             <div className="w-full h-64 bg-background rounded-lg flex items-center justify-center">
                  <AdBanner />
             </div>
@@ -123,7 +125,8 @@ const SwipeableCard = ({
         return Math.abs(offset) * velocity;
     };
     
-    if (Math.abs(offset.y) > Math.abs(offset.x) && offset.y < -swipeThreshold * 1.5) {
+    // Ads can't be superliked
+    if (item.type === 'user' && Math.abs(offset.y) > Math.abs(offset.x) && offset.y < -swipeThreshold * 1.5) {
         onSwipe('up');
         return;
     }
@@ -135,8 +138,8 @@ const SwipeableCard = ({
     }
   };
 
-  // Ads are not draggable
-  const isDraggable = isTop && item.type === 'user';
+  // Both user and ad cards are draggable when on top
+  const isDraggable = isTop;
 
 
   return (
@@ -381,18 +384,20 @@ export default function DiscoverPage() {
 
     const swipedItem = visibleStack[visibleStack.length - 1];
     
-    // If it's an ad, just move to the next item
+    // Common logic for both ads and users: advance the card stack
+    const swipeType: SwipeType = direction === 'right' ? 'like' : direction === 'up' ? 'superlike' : 'nope';
+    setHistory(prev => [{item: swipedItem, type: swipeType}, ...prev]);
+    setProfileIndex(prev => prev + 1);
+    
+    // If it's an ad, just dismiss it. Don't do any other logic.
+    // Ads can't be liked or superliked.
     if (swipedItem.type === 'ad') {
-        setProfileIndex(prev => prev + 1);
         return;
     }
 
+    // --- User-specific swipe logic ---
     const swipedProfile = swipedItem.user;
-    const swipeType: SwipeType = direction === 'right' ? 'like' : direction === 'up' ? 'superlike' : 'nope';
-
-    setHistory(prev => [{item: swipedItem, type: swipeType}, ...prev]);
-    setProfileIndex(prev => prev + 1);
-
+    
     // If it's a mock profile and the user liked them, initiate an AI chat.
     if (swipedProfile.isSystemAccount && (swipeType === 'like' || swipeType === 'superlike')) {
         try {
@@ -629,3 +634,5 @@ export default function DiscoverPage() {
     </>
   );
 }
+
+    
