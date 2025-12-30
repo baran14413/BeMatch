@@ -28,17 +28,15 @@ const PackageCard = ({
     pkg,
     onPurchase,
     isPurchasingThis,
-    isBillingLoading,
-    isBillingReady,
+    isDisabled,
 }:{
     pkg: SubscriptionPackage,
     onPurchase: (productId: string) => void,
     isPurchasingThis: boolean,
-    isBillingLoading: boolean,
-    isBillingReady: boolean;
+    isDisabled: boolean,
 }) => {
     const { t } = useLanguage();
-    const isButtonDisabled = isBillingLoading || !isBillingReady;
+    const showSpinner = isPurchasingThis || isDisabled;
 
     return (
         <Card className={cn(
@@ -78,9 +76,9 @@ const PackageCard = ({
                     className="w-full h-12 text-lg font-bold"
                     style={{ background: `linear-gradient(to right, ${pkg.colors.from}, ${pkg.colors.to})`, color: 'white' }}
                     onClick={() => onPurchase(pkg.productId)}
-                    disabled={isButtonDisabled}
+                    disabled={isDisabled || isPurchasingThis}
                 >
-                    {isPurchasingThis || !isBillingReady ? <Loader2 className="animate-spin" /> : t('subscriptionsPage.choosePlan')}
+                    {showSpinner ? <Loader2 className="animate-spin" /> : t('subscriptionsPage.choosePlan')}
                 </Button>
             </CardFooter>
         </Card>
@@ -93,7 +91,7 @@ export default function SubscriptionsPage() {
     const { toast } = useToast();
     const [purchasingId, setPurchasingId] = useState<string | null>(null);
 
-    const { purchase, isReady, isLoading } = useGooglePlayBilling({
+    const { purchase, state, error } = useGooglePlayBilling({
         onPurchaseSuccess: () => {
             toast({
                 title: 'Satın Alma Başarılı!',
@@ -112,16 +110,6 @@ export default function SubscriptionsPage() {
     });
 
     const handlePurchase = async (productId: string) => {
-        if (!isReady) {
-            toast({
-                variant: 'destructive',
-                title: 'Ödeme Sistemi Hazır Değil',
-                description: 'Lütfen birkaç saniye bekleyip tekrar deneyin veya uygulamayı yeniden başlatın.',
-            });
-            return;
-        }
-        setPurchasingId(productId);
-        
         const packageName = process.env.NEXT_PUBLIC_TWA_PACKAGE_NAME;
         if (!packageName) {
             console.error("TWA package name is not configured in environment variables.");
@@ -130,12 +118,15 @@ export default function SubscriptionsPage() {
                 title: 'Yapılandırma Hatası',
                 description: 'Uygulama paket adı bulunamadı. Satın alma işlemi gerçekleştirilemiyor.',
             });
-            setPurchasingId(null);
             return;
         }
 
+        setPurchasingId(productId);
         await purchase(productId, packageName);
     };
+    
+    // Butonların devre dışı olup olmayacağını belirleyen ana mantık
+    const areButtonsDisabled = state === 'LOADING' || state === 'PURCHASING';
     
     return (
         <ScrollArea className="h-full">
@@ -158,9 +149,8 @@ export default function SubscriptionsPage() {
                           key={pkg.id} 
                           pkg={pkg}
                           onPurchase={handlePurchase}
-                          isBillingLoading={isLoading}
-                          isBillingReady={isReady}
-                          isPurchasingThis={isLoading && purchasingId === pkg.productId}
+                          isDisabled={areButtonsDisabled}
+                          isPurchasingThis={state === 'PURCHASING' && purchasingId === pkg.productId}
                         />
                    ))}
                 </div>
