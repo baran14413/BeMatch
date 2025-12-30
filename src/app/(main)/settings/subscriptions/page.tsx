@@ -29,13 +29,17 @@ const PackageCard = ({
     onPurchase,
     isPurchasingThis,
     isBillingLoading,
+    isBillingReady,
 }:{
     pkg: SubscriptionPackage,
     onPurchase: (productId: string) => void,
     isPurchasingThis: boolean,
     isBillingLoading: boolean,
+    isBillingReady: boolean;
 }) => {
     const { t } = useLanguage();
+    const isButtonDisabled = isBillingLoading || !isBillingReady;
+
     return (
         <Card className={cn(
             "flex flex-col w-full max-w-md mx-auto transition-all",
@@ -74,9 +78,9 @@ const PackageCard = ({
                     className="w-full h-12 text-lg font-bold"
                     style={{ background: `linear-gradient(to right, ${pkg.colors.from}, ${pkg.colors.to})`, color: 'white' }}
                     onClick={() => onPurchase(pkg.productId)}
-                    disabled={isBillingLoading}
+                    disabled={isButtonDisabled}
                 >
-                    {isPurchasingThis ? <Loader2 className="animate-spin" /> : t('subscriptionsPage.choosePlan')}
+                    {isPurchasingThis || !isBillingReady ? <Loader2 className="animate-spin" /> : t('subscriptionsPage.choosePlan')}
                 </Button>
             </CardFooter>
         </Card>
@@ -118,7 +122,6 @@ export default function SubscriptionsPage() {
         }
         setPurchasingId(productId);
         
-        // IMPORTANT: Get your package name from environment variables for security and flexibility.
         const packageName = process.env.NEXT_PUBLIC_TWA_PACKAGE_NAME;
         if (!packageName) {
             console.error("TWA package name is not configured in environment variables.");
@@ -156,6 +159,7 @@ export default function SubscriptionsPage() {
                           pkg={pkg}
                           onPurchase={handlePurchase}
                           isBillingLoading={isLoading}
+                          isBillingReady={isReady}
                           isPurchasingThis={isLoading && purchasingId === pkg.productId}
                         />
                    ))}
