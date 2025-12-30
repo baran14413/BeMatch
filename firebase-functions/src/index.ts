@@ -42,9 +42,9 @@ interface SubscriptionPurchase {
 
 // Map Base Plan IDs to Subscription Product IDs
 const planToSubscriptionIdMap: { [key: string]: string } = {
-    'weekly-base': 'premium_uyelik_1ay',
-    'monthly-base': 'premium_uyelik_1ay',
-    'yearly-base': 'premium_uyelik_1ay',
+    'weekly-base': 'weekly_subscription',
+    'monthly-base': 'monthly_subscription',
+    'yearly-base': 'yearly_subscription',
 };
 
 
