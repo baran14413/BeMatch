@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -48,6 +47,12 @@ type BillingState = 'INITIAL' | 'LOADING' | 'READY' | 'PURCHASING' | 'ERROR';
 type BillingError = {
   code: 'NOT_SUPPORTED' | 'USER_CANCELLED' | 'PAYMENT_FAILED' | 'VERIFICATION_FAILED' | 'UNKNOWN';
   message: string;
+}
+
+interface PurchaseOptions {
+    productId: string;
+    packageName: string;
+    isDevelopment?: boolean;
 }
 
 export function useGooglePlayBilling() {
@@ -102,21 +107,18 @@ export function useGooglePlayBilling() {
     }
   }, [billingService]);
 
-  const purchase = useCallback(async (productId: string) => {
+  const purchase = useCallback(async ({ productId, packageName, isDevelopment = false }: PurchaseOptions) => {
     setState('PURCHASING');
     setError(null);
 
-    if (!billingService) {
-      setError({ code: 'NOT_SUPPORTED', message: 'Billing service is not available.' });
-      setState('ERROR');
-      return;
-    }
-    
     // --- DEVELOPMENT ONLY ---
-    // If we're not in a TWA or real device, the DGAPI won't work.
     // This block simulates a successful purchase for local development.
-    const isDevelopment = !window.getDigitalGoodsService;
-    if (isDevelopment && user) {
+    if (isDevelopment) {
+        if (!user) {
+            setError({ code: 'UNKNOWN', message: 'User must be logged in for development purchase simulation.' });
+            setState('ERROR');
+            return { success: false };
+        }
         console.warn("DEV MODE: Simulating purchase flow.");
         try {
             const functions = getFunctions(firebaseApp);
@@ -137,6 +139,11 @@ export function useGooglePlayBilling() {
     }
     // --- END DEVELOPMENT ONLY ---
 
+    if (!billingService) {
+      setError({ code: 'NOT_SUPPORTED', message: 'Billing service is not available.' });
+      setState('ERROR');
+      return { success: false };
+    }
 
     let purchaseToken: string;
 
@@ -170,7 +177,7 @@ export function useGooglePlayBilling() {
       const verificationResult = await verifySubscription({
         purchaseToken,
         productId,
-        packageName: 'com.bematch.bematch', // Your app's package name
+        packageName,
       });
       
       const data = verificationResult.data as { success: boolean; message?: string };

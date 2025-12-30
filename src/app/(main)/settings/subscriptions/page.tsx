@@ -31,7 +31,7 @@ const PackageCard = ({
     isPurchasingThis
 }:{
     pkg: SubscriptionPackage,
-    onPurchase: (productId: string) => void,
+    onPurchase: (productId: string, packageName: string) => void,
     isLoading: boolean,
     isPurchasingThis: boolean
 }) => {
@@ -73,7 +73,7 @@ const PackageCard = ({
                 <Button 
                     className="w-full h-12 text-lg font-bold"
                     style={{ background: `linear-gradient(to right, ${pkg.colors.from}, ${pkg.colors.to})`, color: 'white' }}
-                    onClick={() => onPurchase(pkg.productId)}
+                    onClick={() => onPurchase(pkg.productId, 'com.bematch.bematch')}
                     disabled={isLoading}
                 >
                     {isPurchasingThis ? <Loader2 className="animate-spin" /> : t('subscriptionsPage.choosePlan')}
@@ -92,9 +92,9 @@ export default function SubscriptionsPage() {
 
     const isLoading = state === 'PURCHASING' || state === 'LOADING';
 
-    const handlePurchase = async (productId: string) => {
+    const handlePurchase = async (productId: string, packageName: string) => {
         setPurchasingId(productId);
-        const result = await purchase(productId);
+        const result = await purchase({productId, packageName});
         if (result?.success) {
             toast({
                 title: 'Satın Alma Başarılı!',

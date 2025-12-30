@@ -1,12 +1,4 @@
 
-import {onCall, HttpsError} from "firebase-functions/v2/ons";
-import * as logger from "firebase-functions/logger";
-import * as admin from "firebase-admin";
-import {google} from "googleapis";
-import {getFirestore, Timestamp} from "firebase-admin/firestore";
-import { onSchedule } from "firebase-functions/v2/scheduler";
-import { onDocumentCreated } from "firebase-functions/v2/firestore";
-
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
