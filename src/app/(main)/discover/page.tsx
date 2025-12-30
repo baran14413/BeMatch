@@ -47,6 +47,27 @@ const getDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number)
 };
 
 
+const AdBanner = () => {
+    useEffect(() => {
+        try {
+            // @ts-ignore
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+        } catch (err) {
+            console.error(err);
+        }
+    }, []);
+
+    return (
+        <ins className="adsbygoogle"
+             style={{ display: "block" }}
+             data-ad-client="ca-pub-9707142962495660"
+             data-ad-slot="YOUR_AD_SLOT_ID" // TODO: Replace with your ad slot ID
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+    );
+};
+
+
 const SwipeableCard = ({
   profile,
   onSwipe,
@@ -540,6 +561,13 @@ export default function DiscoverPage() {
         </div>
         {showTutorial && <TutorialOverlay />}
       </div>
+      
+      {/* Ad Banner */}
+      {!currentUserProfile?.premiumTier && (
+          <div className="p-2 bg-background">
+              <AdBanner />
+          </div>
+      )}
       
       <Sheet open={!!detailsProfile} onOpenChange={(isOpen) => !isOpen && setDetailsProfile(null)}>
         <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl flex flex-col">

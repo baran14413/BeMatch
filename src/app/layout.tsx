@@ -12,6 +12,8 @@ import { getPerformance } from 'firebase/performance';
 import { useEffect, useState } from 'react';
 import { WifiOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Script from 'next/script';
+
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -109,6 +111,13 @@ export default function RootLayout({
         <title>BeMatch</title>
         <meta name="description" content="Mükemmel eşini bul." />
         <link rel="manifest" href="/manifest.json" />
+        <Script
+          id="adsbygoogle-init"
+          strategy="afterInteractive"
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9707142962495660"
+          crossOrigin="anonymous"
+        />
       </head>
       <body className={`${poppins.variable} font-body antialiased h-dvh`}>
         <ThemeProvider

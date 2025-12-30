@@ -1,10 +1,11 @@
-
-'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { useFirebase } from '@/firebase';
+import { useFirebase } from '@/firebase'; // Firebase context yolun doğruysa burası kalsın
 
-// Extend the Window interface to include the Digital Goods API service
+// Paket ismini buraya sabitliyoruz (Senin verdiğin bilgiye göre)
+const PACKAGE_NAME = "com.bematch.bematch";
+
+// Window interface genişletmesi
 declare global {
   interface Window {
     getDigitalGoodsService: (serviceId: string) => Promise<DigitalGoodsService | undefined>;
@@ -25,13 +26,11 @@ declare global {
       currency: string;
       value: string;
     };
-    // Other properties...
   }
 
   interface DigitalGoodsPurchaseDetails {
     itemId: string;
     purchaseToken: string;
-    // Other properties...
   }
 }
 
@@ -40,58 +39,66 @@ interface UseGooglePlayBillingOptions {
   onPurchaseError?: (error: string) => void;
 }
 
-export function useGooglePlayBilling({ onPurchaseSuccess, onPurchaseError }: UseGooglePlayBillingOptions) {
+// UI tarafında beklenen dönüş tipi
+interface PurchaseResult {
+    success: boolean;
+    message?: string;
+}
+
+export function useGooglePlayBilling(options?: UseGooglePlayBillingOptions) {
   const { firebaseApp, user } = useFirebase();
   const [isReady, setIsReady] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); // Start loading initially
-  const [error, setError] = useState<string | null>(null);
+  // Başlangıçta 'LOADING' durumu.
+  // Component'deki "isLoading" buna bakarak butonları kilitliyor.
+  const [state, setState] = useState<'IDLE' | 'LOADING' | 'PURCHASING'>('LOADING'); 
+  const [error, setError] = useState<{ code?: string; message: string } | null>(null);
 
-  // Initialize Digital Goods Service
+  // 1. Digital Goods API Hazır mı Kontrolü
   useEffect(() => {
+    let isMounted = true;
+
     async function initializeService() {
-      if ('getDigitalGoodsService' in window) {
+      if (typeof window !== 'undefined' && 'getDigitalGoodsService' in window) {
         try {
           const service = await window.getDigitalGoodsService('https://play.google.com/billing');
-          if (service) {
+          if (service && isMounted) {
             setIsReady(true);
-            console.log('Digital Goods API Service is ready.');
+            console.log('Digital Goods API Service is ready. 🔥');
           } else {
-             const errMsg = 'Digital Goods API service is not available.';
-             setError(errMsg);
-             console.error(errMsg);
+            console.warn('Digital Goods API service is not available.');
           }
         } catch (e: any) {
-          setError(e.message);
           console.error('Failed to initialize Digital Goods API:', e);
         } finally {
-            setIsLoading(false); // Stop loading after initialization attempt
+          // KRİTİK NOKTA: Başarılı olsa da olmasa da loading'i kapat.
+          if (isMounted) setState('IDLE');
         }
       } else {
-        const errMsg = 'Digital Goods API not supported in this browser.';
-        console.warn(errMsg);
-        setError(errMsg);
-        setIsLoading(false); // Stop loading if not supported
+        console.warn('Digital Goods API not supported in this browser.');
+        if (isMounted) setState('IDLE');
       }
     }
     initializeService();
+
+    return () => { isMounted = false; };
   }, []);
 
-  const purchase = useCallback(async (productId: string, packageName: string) => {
+  // 2. Satın Alma Fonksiyonu
+  const purchase = useCallback(async (productId: string): Promise<PurchaseResult> => {
     if (!isReady) {
-      const errorMsg = 'Google Play Billing service is not ready.';
-      console.error(errorMsg);
-      onPurchaseError?.(errorMsg);
-      return;
+      const msg = 'Ödeme servisi (Digital Goods) hazır değil.';
+      setError({ message: msg });
+      return { success: false, message: msg };
     }
 
     if (!user) {
-      const errorMsg = 'User is not authenticated.';
-      console.error(errorMsg);
-      onPurchaseError?.(errorMsg);
-      return;
+        const msg = 'Kullanıcı girişi yapılmamış.';
+        setError({ message: msg });
+        return { success: false, message: msg };
     }
 
-    setIsLoading(true);
+    // Yükleniyor durumuna al
+    setState('PURCHASING');
     setError(null);
 
     try {
@@ -101,49 +108,73 @@ export function useGooglePlayBilling({ onPurchaseSuccess, onPurchaseError }: Use
             data: { sku: productId },
         }];
 
-        const paymentUi = new (window as any).PaymentRequest(paymentInstruments);
-        const paymentResponse = await paymentUi.show();
+        // @ts-ignore - PaymentRequest bazen TS hatası verebilir
+        const paymentUi = new PaymentRequest(paymentInstruments);
         
+        // 1. Google Play penceresini aç
+        const paymentResponse = await paymentUi.show();
         const { purchaseToken } = paymentResponse.details;
         
-        // After getting the token, call the verification function on the server.
-        const functions = getFunctions(firebaseApp, 'europe-west1');
-        const verifyPurchase = httpsCallable(functions, 'verifyPurchase');
+        // 2. Backend Doğrulaması (Verify)
+        // DİKKAT: Fonksiyon ismini 'verifySubscription' olarak düzelttik.
+        const functions = getFunctions(firebaseApp, 'europe-west1'); // Senin bölgen neyse o kalmalı
+        const verifyFn = httpsCallable(functions, 'verifySubscription');
         
-        const result = await verifyPurchase({
+        const result = await verifyFn({
             purchaseToken,
             productId,
-            packageName
+            packageName: PACKAGE_NAME // Sabit paket ismi
         });
 
-        if ((result.data as any).success) {
-            // Acknowledge the purchase on the client side
-            const service = await window.getDigitalGoodsService('https://play.google.com/billing');
-            await service?.acknowledge(purchaseToken, 'repeatable');
+        const data = result.data as any;
+
+        if (data.success) {
+            // 3. Client tarafında onayla (Acknowledge)
+            // Bu, kullanıcının "Tekrar satın al" diyebilmesi için bazen gereklidir
+            try {
+                const service = await window.getDigitalGoodsService(paymentMethod);
+                await service?.acknowledge(purchaseToken, 'repeatable');
+            } catch (ackError) {
+                console.warn("Acknowledge warning:", ackError);
+                // Acknowledge hatası satın almayı iptal etmemeli, backend zaten onayladı.
+            }
+
+            console.log('Satın alma başarılı ve doğrulandı. ✅');
+            options?.onPurchaseSuccess?.();
             
-            console.log('Purchase successful and verified.');
-            onPurchaseSuccess?.();
+            // Başarılı olduğunda IDLE'a çek
+            setState('IDLE'); 
+            return { success: true };
         } else {
-            throw new Error((result.data as any).message || 'Verification failed on server.');
+            throw new Error(data.message || 'Sunucu doğrulaması başarısız.');
         }
 
     } catch (e: any) {
-      console.error('An error occurred during the purchase flow:', e);
-      let errorMessage = e.message || 'An unknown error occurred.';
+      console.error('Satın alma sırasında hata:', e);
+      
+      let errorMessage = e.message || 'Bilinmeyen bir hata oluştu.';
+      let errorCode = 'UNKNOWN';
+
       if (e.name === 'AbortError') {
-          errorMessage = 'Payment was cancelled by the user.';
+          errorMessage = 'İşlem kullanıcı tarafından iptal edildi.';
+          errorCode = 'USER_CANCELLED';
       }
-      setError(errorMessage);
-      onPurchaseError?.(errorMessage);
-    } finally {
-      setIsLoading(false);
+
+      setError({ code: errorCode, message: errorMessage });
+      options?.onPurchaseError?.(errorMessage);
+
+      // Hata durumunda IDLE'a çek
+      setState('IDLE');
+      return { success: false, message: errorMessage };
     }
-  }, [isReady, user, firebaseApp, onPurchaseSuccess, onPurchaseError]);
+  }, [isReady, user, firebaseApp, options]);
 
   return {
     isReady,
-    isLoading,
+    // Component'in isLoading kontrolü için 'state'i kontrol ediyoruz
+    state, // 'IDLE' | 'LOADING' | 'PURCHASING'
     error,
     purchase,
   };
 }
+//amk google play ödemesi seni
