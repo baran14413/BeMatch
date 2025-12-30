@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -50,7 +51,7 @@ type BillingError = {
 }
 
 export function useGooglePlayBilling() {
-  const { firebaseApp } = useFirebase();
+  const { firebaseApp, user } = useFirebase();
   const [billingService, setBillingService] = useState<DigitalGoodsService | null>(null);
   const [state, setState] = useState<BillingState>('INITIAL');
   const [error, setError] = useState<BillingError | null>(null);
@@ -110,6 +111,32 @@ export function useGooglePlayBilling() {
       setState('ERROR');
       return;
     }
+    
+    // --- DEVELOPMENT ONLY ---
+    // If we're not in a TWA or real device, the DGAPI won't work.
+    // This block simulates a successful purchase for local development.
+    const isDevelopment = !window.getDigitalGoodsService;
+    if (isDevelopment && user) {
+        console.warn("DEV MODE: Simulating purchase flow.");
+        try {
+            const functions = getFunctions(firebaseApp);
+            const verifySubscription = httpsCallable(functions, 'verifySubscription');
+            const verificationResult = await verifySubscription({
+                isDevelopment: true,
+                productId: productId,
+            });
+            const data = verificationResult.data as { success: boolean; message?: string };
+            if (!data.success) throw new Error(data.message);
+            setState('READY');
+            return { success: true };
+        } catch (err: any) {
+            setError({ code: 'VERIFICATION_FAILED', message: `DEV: Verification failed: ${err.message}` });
+            setState('ERROR');
+            return { success: false };
+        }
+    }
+    // --- END DEVELOPMENT ONLY ---
+
 
     let purchaseToken: string;
 
@@ -143,7 +170,7 @@ export function useGooglePlayBilling() {
       const verificationResult = await verifySubscription({
         purchaseToken,
         productId,
-        packageName: 'app.be.match',
+        packageName: 'com.bematch.bematch', // Your app's package name
       });
       
       const data = verificationResult.data as { success: boolean; message?: string };
@@ -161,7 +188,7 @@ export function useGooglePlayBilling() {
        setState('ERROR');
        return { success: false };
     }
-  }, [billingService, firebaseApp]);
+  }, [billingService, firebaseApp, user]);
 
   return {
     state,
