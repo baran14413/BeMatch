@@ -43,7 +43,7 @@ interface UseGooglePlayBillingOptions {
 export function useGooglePlayBilling({ onPurchaseSuccess, onPurchaseError }: UseGooglePlayBillingOptions) {
   const { firebaseApp, user } = useFirebase();
   const [isReady, setIsReady] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start loading initially
   const [error, setError] = useState<string | null>(null);
 
   // Initialize Digital Goods Service
@@ -56,16 +56,21 @@ export function useGooglePlayBilling({ onPurchaseSuccess, onPurchaseError }: Use
             setIsReady(true);
             console.log('Digital Goods API Service is ready.');
           } else {
-             setError('Digital Goods API service is not available.');
-             console.error('Digital Goods API service is not available.');
+             const errMsg = 'Digital Goods API service is not available.';
+             setError(errMsg);
+             console.error(errMsg);
           }
         } catch (e: any) {
           setError(e.message);
           console.error('Failed to initialize Digital Goods API:', e);
+        } finally {
+            setIsLoading(false); // Stop loading after initialization attempt
         }
       } else {
-        console.warn('Digital Goods API not supported in this browser.');
-        setError('Digital Goods API not supported in this browser.');
+        const errMsg = 'Digital Goods API not supported in this browser.';
+        console.warn(errMsg);
+        setError(errMsg);
+        setIsLoading(false); // Stop loading if not supported
       }
     }
     initializeService();
