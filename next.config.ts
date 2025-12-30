@@ -1,7 +1,6 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  output: 'export', // <--- KRİTİK AYAR: Bunu ekledik, artık "out" klasörü oluşacak.
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -9,9 +8,6 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    // Statik export (output: 'export') kullanırken Next.js'in resim optimizasyonu sunucusu çalışmaz.
-    // Eğer build sırasında "Image Optimization" hatası alırsan buraya "unoptimized: true" eklememiz gerekebilir.
-    // Şimdilik senin ayarlarınla deniyoruz:
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       {
@@ -46,61 +42,23 @@ const nextConfig: NextConfig = {
       }
     ],
   },
-  pwa: {
-    dest: 'public',
-    register: true,
-    skipWaiting: true,
-    disable: process.env.NODE_ENV === 'development',
-    sw: 'sw.js',
-    runtimeCaching: [
-      {
-        urlPattern: /^https?:\/\/firebasestorage\.googleapis\.com\/.*/i,
-        handler: 'CacheFirst',
-        options: {
-          cacheName: 'firebase-storage-cache',
-          expiration: {
-            maxEntries: 50,
-            maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
-          },
-          cacheableResponse: {
-            statuses: [0, 200],
-          },
-        },
-      },
-      {
-        urlPattern: /^https?:\/\/.*\.(?:png|jpg|jpeg|svg|gif|webp|avif)/i,
-        handler: 'CacheFirst',
-        options: {
-          cacheName: 'image-cache',
-          expiration: {
-            maxEntries: 100,
-            maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
-          },
-        },
-      },
-      {
-        // All other network requests go to network first
-        urlPattern: /^https?:\/\/.*/,
-        handler: 'NetworkFirst',
-         options: {
-          cacheName: 'others-cache',
-          networkTimeoutSeconds: 10,
-          expiration: {
-            maxEntries: 50,
-            maxAgeSeconds: 10 * 60, // 10 minutes
-          },
-          cacheableResponse: {
-            statuses: [0, 200],
-          },
-        },
-      },
-    ],
+  webpack: (config, { isServer }) => {
+    // PWA için service worker'ı yapılandır
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        'firebase-admin': false,
+      };
+    }
+    return config;
   }
 };
 
-// PWA wrapper'ı
 const withPWA = require("@ducanh2912/next-pwa").default({
-  ...nextConfig.pwa
+    dest: "public",
+    register: true,
+    skipWaiting: true,
+    disable: process.env.NODE_ENV === "development",
 });
 
 export default withPWA(nextConfig);
