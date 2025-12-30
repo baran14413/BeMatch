@@ -1,3 +1,4 @@
+
 export type SubscriptionFeature = {
   text: string; // This will now be the translation key, e.g., 'subscriptionsPage.features.unlimitedLikes'
   included: boolean;
@@ -16,7 +17,6 @@ export type SubscriptionPackage = {
   price: string;
   period: string; // Translation key for period, e.g., '/ay' -> 'subscriptionsPage.monthly'
   productId: string; // The ID used in our app's logic (e.g., 'monthly-base')
-  subscriptionId: string; // The ID from Google Play Console (e.g., 'monthly_subscription')
   isPopular?: boolean;
 };
 
@@ -26,7 +26,6 @@ export const subscriptionPackages: SubscriptionPackage[] = [
     name: 'Haftalık',
     description: 'Temel özelliklerle hızlı bir başlangıç yapın.',
     productId: 'weekly-base',
-    subscriptionId: 'weekly_subscription',
     price: '39.99 TL',
     period: 'subscriptionsPage.weekly',
     colors: {
@@ -49,7 +48,6 @@ export const subscriptionPackages: SubscriptionPackage[] = [
     name: 'GOLD',
     description: 'En popüler özelliklerle eşleşme şansını artır.',
     productId: 'monthly-base',
-    subscriptionId: 'monthly_subscription',
     price: '89.99 TL',
     period: 'subscriptionsPage.monthly',
     isPopular: true,
@@ -73,7 +71,6 @@ export const subscriptionPackages: SubscriptionPackage[] = [
     name: 'PLATINUM',
     description: 'Tüm ayrıcalıklardan yararlan ve zirveye oyna.',
     productId: 'yearly-base',
-    subscriptionId: 'yearly_subscription',
     price: '499.99 TL',
     period: 'subscriptionsPage.yearly',
     colors: {

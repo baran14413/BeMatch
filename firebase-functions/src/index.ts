@@ -8,14 +8,6 @@ admin.initializeApp();
 const db = admin.firestore();
 const androidpublisher = google.androidpublisher('v3');
 
-// This map links your in-app product IDs to the subscription types in Google Play
-// It now correctly maps each plan from your config to its unique Google Play ID.
-const planToSubscriptionIdMap: { [key: string]: string } = {
-  'weekly-base': 'weekly_subscription',    // Maps to the weekly subscription in Play Store
-  'monthly-base': 'monthly_subscription', // Maps to the monthly subscription in Play Store
-  'yearly-base': 'yearly_subscription',   // Maps to the yearly subscription in Play Store
-};
-
 // This function securely verifies a purchase with Google and grants entitlement.
 export const verifyPurchase = functions.region('europe-west1').https.onCall(async (data, context) => {
   const { purchaseToken, productId, packageName } = data;
@@ -28,11 +20,9 @@ export const verifyPurchase = functions.region('europe-west1').https.onCall(asyn
   if (!purchaseToken || !productId || !packageName) {
     throw new functions.https.HttpsError('invalid-argument', 'Purchase token, product ID, and package name are required.');
   }
-
-  const subscriptionId = planToSubscriptionIdMap[productId];
-  if (!subscriptionId) {
-      throw new functions.https.HttpsError('not-found', `No Google Play subscription ID found for the product ID: ${productId}`);
-  }
+  
+  // Google Play Console'daki ana abonelik ürün kimliğiniz
+  const GOOGLE_PLAY_SUBSCRIPTION_ID = 'premium_uyelik_1ay';
 
   try {
     // Authorize the Google API client
@@ -45,17 +35,18 @@ export const verifyPurchase = functions.region('europe-west1').https.onCall(asyn
     // Verify the subscription purchase with Google
     const res = await androidpublisher.purchases.subscriptions.get({
       packageName: packageName,
-      subscriptionId: subscriptionId,
+      subscriptionId: GOOGLE_PLAY_SUBSCRIPTION_ID, // Her zaman ana ürün kimliğini kullan
       token: purchaseToken,
     });
 
     const sub = res.data;
 
-    if (!sub.expiryTimeMillis) {
-        throw new functions.https.HttpsError('internal', 'Verification failed: No expiry time returned from Google.');
+    // Check if the purchase is valid and has an expiry date
+    if (!sub.expiryTimeMillis || parseInt(sub.expiryTimeMillis, 10) < Date.now()) {
+        throw new functions.https.HttpsError('internal', 'Verification failed: Purchase is expired or has no expiry time.');
     }
     
-    // Determine premium tier based on product ID
+    // Determine premium tier based on the base plan ID (`productId`)
     let premiumTier = 'gold'; // default
     if (productId.includes('weekly')) premiumTier = 'weekly';
     if (productId.includes('yearly')) premiumTier = 'platinum';
@@ -64,21 +55,24 @@ export const verifyPurchase = functions.region('europe-west1').https.onCall(asyn
     // Everything is valid, update the user's profile in Firestore
     const userRef = db.collection('users').doc(uid);
     await userRef.update({
-      isPremium: true,
-      premiumTier: premiumTier,
-      purchaseToken: purchaseToken, // Store the token for potential server-to-server notifications
+      isPremium: true, // Genel bir premium durumu
+      premiumTier: premiumTier, // Hangi seviye olduğunu belirt
+      purchaseToken: purchaseToken, // Sunucu bildirimleri için sakla
       expiryDate: admin.firestore.Timestamp.fromMillis(parseInt(sub.expiryTimeMillis, 10)),
       autoRenewing: sub.autoRenewing,
-      subscriptionId: productId
+      subscriptionId: productId // Hangi temel planı aldığını sakla (weekly-base vb.)
     });
 
     return { success: true, message: 'Subscription verified and activated.' };
 
   } catch (error: any) {
     console.error('Error verifying Google Play purchase:', error);
-    // Check for specific Google API errors if needed
+    // Provide more specific feedback for common errors
     if (error.code === 404) {
         throw new functions.https.HttpsError('not-found', 'The purchase token or subscription was not found by Google.');
+    }
+     if (error.code === 401) {
+        throw new functions.https.HttpsError('unauthenticated', 'The service account does not have permission to access the Google Play API. Check IAM roles.');
     }
     throw new functions.https.HttpsError('internal', error.message || 'An unknown error occurred during purchase verification.');
   }
