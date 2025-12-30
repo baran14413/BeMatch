@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { subscriptionPackages, type SubscriptionPackage } from '@/config/subscriptions';
 import { useToast } from '@/hooks/use-toast';
+import { useGooglePlayBilling } from '@/hooks/useGooglePlayBilling';
 
 const FeatureListItem = ({ text, included }: { text: string, included: boolean }) => (
     <li className={cn("flex items-start gap-3", !included && "text-muted-foreground/50 line-through")}>
@@ -26,13 +27,13 @@ const FeatureListItem = ({ text, included }: { text: string, included: boolean }
 const PackageCard = ({
     pkg,
     onPurchase,
-    isLoading,
-    isPurchasingThis
+    isPurchasingThis,
+    isBillingLoading,
 }:{
     pkg: SubscriptionPackage,
-    onPurchase: (productId: string, packageName: string) => void,
-    isLoading: boolean,
-    isPurchasingThis: boolean
+    onPurchase: (productId: string) => void,
+    isPurchasingThis: boolean,
+    isBillingLoading: boolean,
 }) => {
     const { t } = useLanguage();
     return (
@@ -72,8 +73,8 @@ const PackageCard = ({
                 <Button 
                     className="w-full h-12 text-lg font-bold"
                     style={{ background: `linear-gradient(to right, ${pkg.colors.from}, ${pkg.colors.to})`, color: 'white' }}
-                    onClick={() => onPurchase(pkg.productId, 'com.bematch.bematch')}
-                    disabled={isLoading}
+                    onClick={() => onPurchase(pkg.productId)}
+                    disabled={isBillingLoading}
                 >
                     {isPurchasingThis ? <Loader2 className="animate-spin" /> : t('subscriptionsPage.choosePlan')}
                 </Button>
@@ -87,25 +88,50 @@ export default function SubscriptionsPage() {
     const { t } = useLanguage();
     const { toast } = useToast();
     const [purchasingId, setPurchasingId] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
 
-    const handlePurchase = async (productId: string, packageName: string) => {
-        // Placeholder for purchase logic
-        setIsLoading(true);
+    const { purchase, isReady, isLoading } = useGooglePlayBilling({
+        onPurchaseSuccess: () => {
+            toast({
+                title: 'Satın Alma Başarılı!',
+                description: 'Aboneliğiniz başarıyla etkinleştirildi. Avantajların tadını çıkarın!',
+            });
+            setPurchasingId(null);
+        },
+        onPurchaseError: (error) => {
+            toast({
+                variant: 'destructive',
+                title: 'Satın Alma Başarısız Oldu',
+                description: error,
+            });
+            setPurchasingId(null);
+        },
+    });
+
+    const handlePurchase = async (productId: string) => {
+        if (!isReady) {
+            toast({
+                variant: 'destructive',
+                title: 'Ödeme Sistemi Hazır Değil',
+                description: 'Lütfen birkaç saniye bekleyip tekrar deneyin veya uygulamayı yeniden başlatın.',
+            });
+            return;
+        }
         setPurchasingId(productId);
-        console.log(`Attempting to purchase ${productId}`);
         
-        // Simulate a delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        toast({
-            variant: 'destructive',
-            title: 'Ödeme Sistemi Aktif Değil',
-            description: 'Satın alma işlevi şu anda devre dışı.',
-        });
-        
-        setIsLoading(false);
-        setPurchasingId(null);
+        // IMPORTANT: Get your package name from environment variables for security and flexibility.
+        const packageName = process.env.NEXT_PUBLIC_TWA_PACKAGE_NAME;
+        if (!packageName) {
+            console.error("TWA package name is not configured in environment variables.");
+             toast({
+                variant: 'destructive',
+                title: 'Yapılandırma Hatası',
+                description: 'Uygulama paket adı bulunamadı. Satın alma işlemi gerçekleştirilemiyor.',
+            });
+            setPurchasingId(null);
+            return;
+        }
+
+        await purchase(productId, packageName);
     };
     
     return (
@@ -129,7 +155,7 @@ export default function SubscriptionsPage() {
                           key={pkg.id} 
                           pkg={pkg}
                           onPurchase={handlePurchase}
-                          isLoading={isLoading}
+                          isBillingLoading={isLoading}
                           isPurchasingThis={isLoading && purchasingId === pkg.productId}
                         />
                    ))}
