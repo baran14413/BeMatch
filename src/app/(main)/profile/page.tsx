@@ -131,7 +131,7 @@ export default function ProfilePage() {
         {(userProfile.interests && userProfile.interests.length > 0) && (
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-lg">{t('interestsPage.title')}</CardTitle>
+                    <CardTitle className="text-lg">İlgi Alanlarım</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-wrap gap-2">
                     {userProfile.interests.map(interest => {
@@ -168,11 +168,6 @@ export default function ProfilePage() {
           <CardHeader>
              <div className="flex justify-between items-center">
                 <CardTitle className="text-lg">{t('profile.myPhotos')}</CardTitle>
-                 <Link href="/settings/gallery" passHref>
-                    <Button variant="ghost" size="icon" aria-label={t('settings.editGallery')}>
-                        <Pencil className="w-5 h-5 text-muted-foreground" />
-                    </Button>
-                </Link>
              </div>
           </CardHeader>
           <CardContent>

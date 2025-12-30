@@ -4,8 +4,10 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.bematch.bematch",
-      "sha256_cert_fingerprints":
-      ["DB:6B:B8:22:DB:90:F5:D7:FE:98:6E:86:35:95:2C:CD:83:31:8B:F7:33:05:AB:02:0E:94:F6:89:17:68:E2:98"]
+      "sha256_cert_fingerprints": [
+        "DB:6B:B8:22:DB:90:F5:D7:FE:98:6E:86:35:95:2C:CD:83:31:8B:F7:33:05:AB:02:0E:94:F6:89:17:68:E2:98",
+        "B0:6E:7E:E2:9C:F6:5A:F5:C4:45:BC:F7:EC:07:B2:F2:F0:2D:27:6A:10:EE:A5:FF:C2:25:D6:9C:5C:35:8D:17"
+      ]
     }
   }
 ]
