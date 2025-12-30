@@ -27,16 +27,17 @@ const FeatureListItem = ({ text, included }: { text: string, included: boolean }
 const PackageCard = ({
     pkg,
     onPurchase,
-    isPurchasingThis,
-    isDisabled,
+    isPurchasingAny,
+    isThisBeingPurchased,
 }:{
     pkg: SubscriptionPackage,
     onPurchase: (productId: string) => void,
-    isPurchasingThis: boolean,
-    isDisabled: boolean,
+    isPurchasingAny: boolean,
+    isThisBeingPurchased: boolean,
 }) => {
     const { t } = useLanguage();
-    const showSpinner = isPurchasingThis || isDisabled;
+    const showSpinner = isThisBeingPurchased;
+    const isDisabled = isPurchasingAny;
 
     return (
         <Card className={cn(
@@ -76,7 +77,7 @@ const PackageCard = ({
                     className="w-full h-12 text-lg font-bold"
                     style={{ background: `linear-gradient(to right, ${pkg.colors.from}, ${pkg.colors.to})`, color: 'white' }}
                     onClick={() => onPurchase(pkg.productId)}
-                    disabled={isDisabled || isPurchasingThis}
+                    disabled={isDisabled}
                 >
                     {showSpinner ? <Loader2 className="animate-spin" /> : t('subscriptionsPage.choosePlan')}
                 </Button>
@@ -91,7 +92,7 @@ export default function SubscriptionsPage() {
     const { toast } = useToast();
     const [purchasingId, setPurchasingId] = useState<string | null>(null);
 
-    const { purchase, state, error } = useGooglePlayBilling({
+    const { state, purchase } = useGooglePlayBilling({
         onPurchaseSuccess: () => {
             toast({
                 title: 'Satın Alma Başarılı!',
@@ -125,8 +126,8 @@ export default function SubscriptionsPage() {
         await purchase(productId, packageName);
     };
     
-    // Butonların devre dışı olup olmayacağını belirleyen ana mantık
-    const areButtonsDisabled = state === 'LOADING' || state === 'PURCHASING';
+    // Determine the global purchasing/loading state
+    const isPurchasingAny = state === 'LOADING' || state === 'PURCHASING';
     
     return (
         <ScrollArea className="h-full">
@@ -149,8 +150,8 @@ export default function SubscriptionsPage() {
                           key={pkg.id} 
                           pkg={pkg}
                           onPurchase={handlePurchase}
-                          isDisabled={areButtonsDisabled}
-                          isPurchasingThis={state === 'PURCHASING' && purchasingId === pkg.productId}
+                          isPurchasingAny={isPurchasingAny}
+                          isThisBeingPurchased={isPurchasingAny && purchasingId === pkg.productId}
                         />
                    ))}
                 </div>

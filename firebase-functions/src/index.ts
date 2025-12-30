@@ -9,11 +9,11 @@ const db = admin.firestore();
 const androidpublisher = google.androidpublisher('v3');
 
 // This map links your in-app product IDs to the subscription types in Google Play
-// IMPORTANT: Replace 'your_weekly_sub_id', etc. with your actual subscription IDs from Google Play Console
+// It now correctly maps each plan from your config to its unique Google Play ID.
 const planToSubscriptionIdMap: { [key: string]: string } = {
-  'weekly-base': 'weekly_subscription', // e.g., weekly-base from your config -> your ID in Play Store
-  'monthly-base': 'monthly_subscription', // e.g., monthly-base from your config -> your ID in Play Store
-  'yearly-base': 'yearly_subscription',  // e.g., yearly-base from your config -> your ID in Play Store
+  'weekly-base': 'weekly_subscription',    // Maps to the weekly subscription in Play Store
+  'monthly-base': 'monthly_subscription', // Maps to the monthly subscription in Play Store
+  'yearly-base': 'yearly_subscription',   // Maps to the yearly subscription in Play Store
 };
 
 // This function securely verifies a purchase with Google and grants entitlement.
