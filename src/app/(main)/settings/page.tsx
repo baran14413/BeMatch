@@ -1,7 +1,7 @@
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronRight, Heart, LogOut, MapPin, Shield, ShieldCheck, SlidersHorizontal, Smartphone, User, Wallet, GalleryHorizontal, Crown, ArrowLeft } from "lucide-react";
+import { ChevronRight, Heart, LogOut, MapPin, Shield, ShieldCheck, SlidersHorizontal, Smartphone, User, Wallet, GalleryHorizontal, Crown, ArrowLeft, Star } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/context/language-context";
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
@@ -25,14 +25,14 @@ const SettingsSection = ({ title, children }: { title: string, children: React.R
     </div>
 );
 
-const SettingsItem = ({ icon: Icon, label, href }: { icon: React.ElementType, label: string, href?: string }) => (
+const SettingsItem = ({ icon: Icon, label, href, target }: { icon: React.ElementType, label: string, href?: string, target?: string }) => (
     <li className="list-none">
-        <Link href={href!} passHref>
-            <div className="flex items-center p-4 hover:bg-secondary cursor-pointer">
+        <Link href={href!} passHref legacyBehavior>
+            <a target={target} rel={target === '_blank' ? 'noopener noreferrer' : undefined} className="flex items-center p-4 hover:bg-secondary cursor-pointer">
                 <Icon className="w-6 h-6 mr-4 text-primary" />
                 <span className="flex-1 font-medium">{label}</span>
                 <ChevronRight className="w-5 h-5 text-muted-foreground" />
-            </div>
+            </a>
         </Link>
     </li>
 );
@@ -120,6 +120,7 @@ export default function SettingsPage() {
 
                  <SettingsSection title={t('settings.app')}>
                     <SettingsItem icon={Smartphone} label={t('settings.application')} href="/settings/application"/>
+                    <SettingsItem icon={Star} label="Uygulamayı Değerlendir" href="https://play.google.com/store/apps/details?id=com.bematch.bematch" target="_blank" />
                 </SettingsSection>
 
                 <SettingsSection title={t('settings.privacySecurity')}>
