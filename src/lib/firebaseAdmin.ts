@@ -1,18 +1,6 @@
 'server-only';
 import * as admin from 'firebase-admin';
 
-// IMPORTANT: This setup expects a 'serviceAccountKey.json' file in your project's root directory.
-// Go to your Firebase project settings -> Service accounts -> Generate new private key.
-let serviceAccount;
-try {
-  // This is the standard way to include the service account key in a secure server environment.
-  serviceAccount = require('../../serviceAccountKey.json');
-} catch (e) {
-  // Catch the error if the file doesn't exist, but don't log anything here.
-  // The check below will provide a more informative message.
-  serviceAccount = null;
-}
-
 // Define the structure for the cached Firebase Admin application instance.
 interface FirebaseAdminApp {
   auth: admin.auth.Auth;
@@ -21,6 +9,36 @@ interface FirebaseAdminApp {
 
 // Use a singleton pattern to ensure Firebase Admin is initialized only once.
 let adminApp: FirebaseAdminApp | undefined;
+
+/**
+ * Retrieves the service account credentials from either the environment variable
+ * or a local file.
+ * @returns {admin.ServiceAccount | null} The service account object or null.
+ */
+function getServiceAccount(): admin.ServiceAccount | null {
+    // 1. Check for the environment variable first (preferred for production/deployment)
+    if (process.env.SERVICE_ACCOUNT_KEY) {
+        try {
+            // The environment variable is expected to be a base64 encoded JSON string.
+            const serviceAccountJson = Buffer.from(process.env.SERVICE_ACCOUNT_KEY, 'base64').toString('utf-8');
+            return JSON.parse(serviceAccountJson);
+        } catch (e) {
+            console.error('Error parsing SERVICE_ACCOUNT_KEY from environment variable:', e);
+            return null;
+        }
+    }
+
+    // 2. Fallback to the local file for local development
+    try {
+        const serviceAccountFile = require('../../serviceAccountKey.json');
+        return serviceAccountFile;
+    } catch (e) {
+        // This is not an error in production if the env var is set, so we just log a warning.
+        // The check in getFirebaseAdmin will provide a more user-friendly message.
+        return null;
+    }
+}
+
 
 /**
  * A getter function to initialize and/or retrieve the Firebase Admin services.
@@ -34,11 +52,13 @@ export function getFirebaseAdmin(): FirebaseAdminApp | null {
     return adminApp;
   }
   
-  // If serviceAccount is null (file not found), log a specific warning and return null.
+  const serviceAccount = getServiceAccount();
+
+  // If serviceAccount is null, log a specific warning and return null.
   if (!serviceAccount) {
     // This check runs on the server, so the log will appear in your server console/terminal.
     console.warn(
-        'Firebase Admin initialization skipped: "serviceAccountKey.json" not found in the project root. Admin features will be disabled.'
+        'Firebase Admin initialization skipped: SERVICE_ACCOUNT_KEY environment variable not set, and "serviceAccountKey.json" not found. Admin features will be disabled.'
     );
     return null;
   }
@@ -65,7 +85,7 @@ export function getFirebaseAdmin(): FirebaseAdminApp | null {
     console.error("Firebase Admin SDK Initialization Error:", error.message);
     // Provide a more helpful error message if the key is likely malformed.
     if (error.message.includes('Invalid credential')) {
-         console.error('Hint: The "serviceAccountKey.json" file might be corrupted or malformed. Please re-download it from your Firebase project settings.');
+         console.error('Hint: The service account key might be corrupted or malformed. Please check the environment variable or the JSON file.');
     }
     return null; // Return null on error to prevent crashing.
   }
