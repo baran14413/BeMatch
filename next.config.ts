@@ -42,16 +42,7 @@ const nextConfig: NextConfig = {
       }
     ],
   },
-  webpack: (config, { isServer }) => {
-    // PWA için service worker'ı yapılandır
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        'firebase-admin': false,
-      };
-    }
-    return config;
-  }
+  serverComponentsExternalPackages: ['firebase-admin'],
 };
 
 const withPWA = require("@ducanh2912/next-pwa").default({
