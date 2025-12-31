@@ -3,6 +3,9 @@
 
 [build.environment]
   NODE_VERSION = "18"
+  # ÖNEMLİ: Yapay zeka özelliklerinin çalışması için Netlify UI'da 
+  # GEMINI_API_KEY ortam değişkenini ayarlamanız gerekir.
+  # Bu değer, .env.local dosyanızda bulunur.
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
