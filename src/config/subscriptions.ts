@@ -16,7 +16,7 @@ export type SubscriptionPackage = {
   features: SubscriptionFeature[];
   price: string;
   period: string; // Translation key for period, e.g., '/ay' -> 'subscriptionsPage.monthly'
-  productId: string; // The ID used in our app's logic (e.g., 'monthly-base')
+  productId: string; // The ID used in our app's logic (e.g., 'monthly-plan')
   isPopular?: boolean;
 };
 
@@ -25,7 +25,7 @@ export const subscriptionPackages: SubscriptionPackage[] = [
     id: 'weekly',
     name: 'Haftalık',
     description: 'Temel özelliklerle hızlı bir başlangıç yapın.',
-    productId: 'weekly-base',
+    productId: 'weekly-plan', // Updated from weekly-base
     price: '39.99 TL',
     period: 'subscriptionsPage.weekly',
     colors: {
@@ -47,7 +47,7 @@ export const subscriptionPackages: SubscriptionPackage[] = [
     id: 'gold',
     name: 'GOLD',
     description: 'En popüler özelliklerle eşleşme şansını artır.',
-    productId: 'monthly-base',
+    productId: 'monthly-plan', // Updated from monthly-base
     price: '89.99 TL',
     period: 'subscriptionsPage.monthly',
     isPopular: true,
@@ -70,7 +70,7 @@ export const subscriptionPackages: SubscriptionPackage[] = [
     id: 'platinum',
     name: 'PLATINUM',
     description: 'Tüm ayrıcalıklardan yararlan ve zirveye oyna.',
-    productId: 'yearly-base',
+    productId: 'yearly-plan', // Updated from yearly-base
     price: '499.99 TL',
     period: 'subscriptionsPage.yearly',
     colors: {
