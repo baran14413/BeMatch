@@ -354,29 +354,7 @@ export default function DiscoverPage() {
     }));
   }, [compatibilityProfile]);
 
-  const isLoading = isUserLoading || isLoadingProfiles || !currentUserProfile;
 
-  useEffect(() => {
-    if (swipeableItems.length > 0) {
-      const initialStack = swipeableItems.slice(profileIndex, profileIndex + MAX_VISIBLE_CARDS).reverse();
-      setVisibleStack(initialStack);
-    } else {
-      setVisibleStack([]);
-    }
-  }, [swipeableItems, profileIndex]);
-
-  useEffect(() => {
-    if (isMobile && profiles && profiles.length > 0) {
-      const hasSeenTutorial = localStorage.getItem('hasSeenSwipeTutorial');
-      if (!hasSeenTutorial) {
-        const timer = setTimeout(() => {
-          setShowTutorial(true);
-        }, 4000);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [isMobile, profiles]);
-  
   const handleReset = () => {
     setProfileIndex(0);
     setHistory([]);
@@ -581,10 +559,33 @@ export default function DiscoverPage() {
 
   }, [visibleStack, user, firestore, currentUserProfile, toast, t, router, locale, showTutorial, isPremium]);
 
+  const isLoading = isUserLoading || isLoadingProfiles || !currentUserProfile;
+
+  useEffect(() => {
+    if (swipeableItems.length > 0) {
+      const initialStack = swipeableItems.slice(profileIndex, profileIndex + MAX_VISIBLE_CARDS).reverse();
+      setVisibleStack(initialStack);
+    } else {
+      setVisibleStack([]);
+    }
+  }, [swipeableItems, profileIndex]);
+
+  useEffect(() => {
+    if (isMobile && profiles && profiles.length > 0) {
+      const hasSeenTutorial = localStorage.getItem('hasSeenSwipeTutorial');
+      if (!hasSeenTutorial) {
+        const timer = setTimeout(() => {
+          setShowTutorial(true);
+        }, 4000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isMobile, profiles]);
+
   if (isMobile === undefined) {
     return null;
   }
-
+  
   if (isLoading) {
      return (
          <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 dark:bg-black md:p-8">
@@ -685,14 +686,6 @@ export default function DiscoverPage() {
                 <SheetHeader className="text-center">
                     <SheetTitle className="sr-only">Uyumluluk Analizi</SheetTitle>
                 </SheetHeader>
-                 <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="absolute right-4 top-1/2 -translate-y-1/2"
-                    onClick={() => setCompatibilityProfile(null)}
-                >
-                    <X className="w-5 h-5" />
-                </Button>
             </div>
             {compatibilityProfile && currentUserProfile && (
                 <div className="p-4 pt-4">
