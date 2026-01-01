@@ -95,6 +95,10 @@ export interface UserProfile {
   role?: 'admin' | 'moderator' | 'support' | 'user';
   isBanned?: boolean;
   createdAt?: any;
+  // Personality Traits for compatibility
+  personalityTraits?: {
+      [key: string]: number
+  };
 }
 
 export type Match = {

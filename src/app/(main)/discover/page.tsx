@@ -2,16 +2,18 @@
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, useMotionValue, useTransform, PanInfo, AnimatePresence } from 'framer-motion';
-import { X, Star, Heart, Rewind } from 'lucide-react';
+import { X, Star, Heart, Rewind, Sparkles } from 'lucide-react';
 import { useLanguage } from '@/context/language-context';
 import { useIsMobile } from '@/hooks/use-mobile';
 import ProfileCard from '@/components/discover/profile-card';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { collection, query, where, doc, writeBatch, getDoc, serverTimestamp, getDocs, updateDoc, Timestamp, limit, orderBy } from 'firebase/firestore';
-import type { UserProfile, SwipeItem, UserItem, AdItem } from '@/lib/data';
+import type { UserProfile, SwipeItem, UserItem, AdItem, PersonalityTrait } from '@/lib/data';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import ProfileDetails from '@/components/discover/profile-details';
+import CompatibilityRadar from '@/components/profile/compatibility-radar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import TutorialOverlay from '@/components/discover/tutorial-overlay';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -104,11 +106,13 @@ const SwipeableCard = ({
   item,
   onSwipe,
   onShowDetails,
+  onShowCompatibility,
   isTop,
 }: {
   item: SwipeItem;
   onSwipe: (direction: SwipeDirection, triggeredByButton?: boolean) => void;
   onShowDetails: () => void;
+  onShowCompatibility: () => void;
   isTop: boolean;
 }) => {
   const x = useMotionValue(0);
@@ -175,7 +179,12 @@ const SwipeableCard = ({
                 <Star className="w-12 h-12 text-blue-400" fill="currentColor" />
             </motion.div>
 
-            <ProfileCard profile={item.user} onShowDetails={onShowDetails} isTopCard={isTop}/>
+            <ProfileCard 
+                profile={item.user} 
+                onShowDetails={onShowDetails}
+                onShowCompatibility={onShowCompatibility}
+                isTopCard={isTop}
+            />
         </>
       ) : (
           <AdCard item={item} />
@@ -206,6 +215,16 @@ const NoMoreProfiles = ({ onReset }: { onReset: () => void }) => {
     );
 };
 
+// Dummy data for compatibility chart
+const createDummyTraits = (): PersonalityTrait[] => {
+  const traits = ["Macera", "Mizah", "Duygusallık", "Dışadönüklük", "Planlılık"];
+  return traits.map(trait => ({
+    trait,
+    userScore: Math.floor(Math.random() * 60) + 40, // Score between 40-100
+    viewerScore: 0, // This will be filled for the other user
+  }));
+};
+
 
 export default function DiscoverPage() {
   const { user, isUserLoading } = useUser();
@@ -216,6 +235,7 @@ export default function DiscoverPage() {
   const router = useRouter();
   
   const [detailsProfile, setDetailsProfile] = useState<UserProfile | null>(null);
+  const [compatibilityProfile, setCompatibilityProfile] = useState<UserProfile | null>(null);
   const [newlyMatchedProfile, setNewlyMatchedProfile] = useState<UserProfile | null>(null);
 
   const [profileIndex, setProfileIndex] = useState(0);
@@ -280,7 +300,14 @@ export default function DiscoverPage() {
       .map(p => {
         const distance = (p.latitude && p.longitude && currentLat && currentLon) ? getDistanceInKm(currentLat, currentLon, p.latitude, p.longitude) : undefined;
         const isBoosted = p.boostExpiresAt && isFuture((p.boostExpiresAt as Timestamp).toDate());
-        return { ...p, distance, isBoosted };
+        const personalityTraits = p.personalityTraits || {
+            macera: Math.floor(Math.random() * 60) + 40,
+            mizah: Math.floor(Math.random() * 60) + 40,
+            duygusallık: Math.floor(Math.random() * 60) + 40,
+            dışadönüklük: Math.floor(Math.random() * 60) + 40,
+            planlılık: Math.floor(Math.random() * 60) + 40,
+        };
+        return { ...p, distance, isBoosted, personalityTraits };
       })
       .filter(p => {
           if (p.isSystemAccount) return true;
@@ -556,6 +583,25 @@ export default function DiscoverPage() {
          </div>
      )
   }
+  
+    const currentUserTraits = useMemo(() => {
+        if (!currentUserProfile?.personalityTraits) return createDummyTraits();
+        return Object.entries(currentUserProfile.personalityTraits).map(([trait, score]) => ({
+            trait,
+            userScore: score,
+            viewerScore: 0,
+        }));
+    }, [currentUserProfile]);
+
+    const viewerProfileTraits = useMemo(() => {
+        if (!compatibilityProfile?.personalityTraits) return createDummyTraits();
+        return Object.entries(compatibilityProfile.personalityTraits).map(([trait, score]) => ({
+            trait,
+            userScore: score, // This will be used as viewer score
+            viewerScore: 0,
+        }));
+    }, [compatibilityProfile]);
+
 
   return (
     <>
@@ -604,6 +650,7 @@ export default function DiscoverPage() {
                         item={item}
                         onSwipe={(direction) => handleSwipe(direction)}
                         onShowDetails={() => item.type === 'user' && setDetailsProfile(item.user)}
+                        onShowCompatibility={() => item.type === 'user' && setCompatibilityProfile(item.user)}
                         isTop={isTop}
                       />
                     </motion.div>
@@ -628,6 +675,32 @@ export default function DiscoverPage() {
                 <SheetTitle className="sr-only">{t('discover.profileDetailsTitle')}</SheetTitle>
             </SheetHeader>
             {detailsProfile && <ProfileDetails profile={detailsProfile} />}
+        </SheetContent>
+      </Sheet>
+      
+       <Sheet open={!!compatibilityProfile} onOpenChange={(isOpen) => !isOpen && setCompatibilityProfile(null)}>
+        <SheetContent 
+            side="bottom" 
+            className="h-auto bg-background/80 backdrop-blur-md border-t border-border/50 rounded-t-2xl flex flex-col"
+        >
+            <SheetHeader className="pt-4 text-center">
+                <SheetTitle className="sr-only">Uyumluluk Analizi</SheetTitle>
+            </SheetHeader>
+            {compatibilityProfile && currentUserProfile && (
+                <div className="p-4 pt-0">
+                    <div className="flex items-center justify-center -space-x-6 mb-4">
+                        <Avatar className="w-24 h-24 border-4 border-background ring-2 ring-primary">
+                            <AvatarImage src={currentUserProfile.avatarUrl} alt={currentUserProfile.name} />
+                            <AvatarFallback>{currentUserProfile.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                         <Avatar className="w-24 h-24 border-4 border-background ring-2 ring-ring">
+                            <AvatarImage src={compatibilityProfile.avatarUrl} alt={compatibilityProfile.name} />
+                            <AvatarFallback>{compatibilityProfile.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                    </div>
+                     <CompatibilityRadar currentUserTraits={currentUserTraits} viewerProfileTraits={viewerProfileTraits} />
+                </div>
+            )}
         </SheetContent>
       </Sheet>
     </div>

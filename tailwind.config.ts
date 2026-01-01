@@ -50,7 +50,7 @@ export default {
         ring: 'hsl(var(--ring))',
         '#1f1f1f': '#1f1f1f',
         chart: {
-          '1': 'hsl(var(--chart-1))',
+          '1': 'hsl(var(--primary))',
           '2': 'hsl(var(--chart-2))',
           '3': 'hsl(var(--chart-3))',
           '4': 'hsl(var(--chart-4))',
@@ -83,11 +83,18 @@ export default {
           '0%': { transform: 'rotate(0deg)' },
           '100%': { transform: 'rotate(360deg)' },
         },
+        'ping-slow': {
+            '75%, 100%': {
+              transform: 'scale(1.8)',
+              opacity: '0',
+            },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'spin-slow': 'spin 5s linear infinite',
+        'ping-slow': 'ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite',
       },
       backdropBlur: {
         '2xl': '40px',

@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import type { UserProfile, UserStatus } from '@/lib/data';
 import Image from 'next/image';
-import { MapPin, Info, Music, Dumbbell, Plane, Clapperboard, Gamepad2, BookOpen, Utensils, Camera, Mountain, PartyPopper, User, Crown } from 'lucide-react';
+import { MapPin, Info, Music, Dumbbell, Plane, Clapperboard, Gamepad2, BookOpen, Utensils, Camera, Mountain, PartyPopper, User, Crown, Sparkles } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
@@ -13,6 +13,7 @@ import { differenceInMinutes } from 'date-fns';
 type ProfileCardProps = {
   profile: UserProfile;
   onShowDetails: () => void;
+  onShowCompatibility: () => void;
   isTopCard: boolean;
 };
 
@@ -68,7 +69,7 @@ const getActivityStatus = (profile: UserProfile, status: UserStatus | null): 'ac
 };
 
 
-export default function ProfileCard({ profile, onShowDetails, isTopCard }: ProfileCardProps) {
+export default function ProfileCard({ profile, onShowDetails, onShowCompatibility, isTopCard }: ProfileCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const { t } = useLanguage();
   const userStatus = useUserStatus(profile.id);
@@ -170,17 +171,25 @@ export default function ProfileCard({ profile, onShowDetails, isTopCard }: Profi
               </div>
             )}
         </div>
-         <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={(e) => {
-                e.stopPropagation(); // prevent card drag
-                onShowDetails();
-            }}
-            className="absolute top-4 right-4 bg-black/30 text-white hover:bg-black/50 hover:text-white z-20"
-        >
-            <Info className="w-6 h-6" />
-        </Button>
+         <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => { e.stopPropagation(); onShowCompatibility(); }}
+              className="relative bg-black/30 text-white hover:bg-black/50 hover:text-white rounded-full w-9 h-9"
+            >
+              <Sparkles className="w-5 h-5 text-yellow-300" />
+              <span className="absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75 animate-ping-slow"></span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => { e.stopPropagation(); onShowDetails(); }}
+              className="bg-black/30 text-white hover:bg-black/50 hover:text-white rounded-full w-9 h-9"
+            >
+              <Info className="w-5 h-5" />
+            </Button>
+         </div>
         <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/40 text-2xl rounded-full px-3 py-1 backdrop-blur-sm z-20">
             {flag && (
                 <span className="text-xl">{flag}</span>
