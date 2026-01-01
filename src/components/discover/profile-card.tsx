@@ -106,19 +106,26 @@ export default function ProfileCard({ profile, onShowDetails, isTopCard }: Profi
         <div className="absolute bottom-0 left-0 p-4 text-white w-full space-y-2">
             <div className="flex items-center gap-2">
               <h2 className="text-3xl font-bold">{profile.name} {profile.age}</h2>
+              {profile.gender === 'man' && <User className="w-6 h-6 text-blue-400" />}
+              {profile.gender === 'woman' && <User className="w-6 h-6 text-pink-400" />}
               {profile.premiumTier && <Crown className="w-6 h-6 text-yellow-400 fill-yellow-400" />}
             </div>
             {profile.bio && <p className="text-white/90 text-sm truncate">{profile.bio}</p>}
-            <div className='flex items-center gap-2 text-sm'>
-              {profile.location && (
-                <div className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    <span>{profile.location}</span>
-                </div>
-              )}
-              {profile.distance !== undefined && (
-                   <span>• {profile.distance} km</span>
-              )}
+            
+             <div className="flex items-center gap-2 text-sm pt-1">
+                {(profile.location || profile.distance !== undefined) && (
+                    <Badge variant="secondary" className="bg-white/20 text-white border border-white/30 backdrop-blur-sm shadow-lg shadow-black/50">
+                        {profile.location && (
+                            <div className="flex items-center gap-1">
+                                <MapPin className="w-4 h-4" />
+                                <span>{profile.location}</span>
+                            </div>
+                        )}
+                        {profile.distance !== undefined && (
+                            <span>&nbsp;• {profile.distance} km</span>
+                        )}
+                    </Badge>
+                )}
             </div>
 
             {displayedInterests.length > 0 && (
@@ -154,8 +161,6 @@ export default function ProfileCard({ profile, onShowDetails, isTopCard }: Profi
             {flag && (
                 <span className="text-xl">{flag}</span>
             )}
-            {profile.gender === 'man' && <User className="w-5 h-5 text-blue-400" />}
-            {profile.gender === 'woman' && <User className="w-5 h-5 text-pink-400" />}
         </div>
       </div>
     </div>
