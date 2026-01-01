@@ -2,7 +2,7 @@
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, useMotionValue, useTransform, PanInfo, AnimatePresence } from 'framer-motion';
-import { X, Star, Heart, Rewind, Sparkles } from 'lucide-react';
+import { X, Star, Heart, Rewind, Sparkles, ArrowLeft } from 'lucide-react';
 import { useLanguage } from '@/context/language-context';
 import { useIsMobile } from '@/hooks/use-mobile';
 import ProfileCard from '@/components/discover/profile-card';
@@ -336,6 +336,24 @@ export default function DiscoverPage() {
 
   }, [profiles, currentUserProfile, user, isPremium]);
 
+    const currentUserTraits = useMemo(() => {
+    if (!currentUserProfile?.personalityTraits) return createDummyTraits();
+    return Object.entries(currentUserProfile.personalityTraits).map(([trait, score]) => ({
+        trait,
+        userScore: score,
+        viewerScore: 0,
+    }));
+  }, [currentUserProfile]);
+
+  const viewerProfileTraits = useMemo(() => {
+    if (!compatibilityProfile?.personalityTraits) return createDummyTraits();
+    return Object.entries(compatibilityProfile.personalityTraits).map(([trait, score]) => ({
+        trait,
+        userScore: score, // This will be used as viewer score
+        viewerScore: 0,
+    }));
+  }, [compatibilityProfile]);
+
   
   useEffect(() => {
     if (swipeableItems.length > 0) {
@@ -564,25 +582,6 @@ export default function DiscoverPage() {
 
   const isLoading = isUserLoading || isLoadingProfiles || !currentUserProfile;
 
-  const currentUserTraits = useMemo(() => {
-    if (!currentUserProfile?.personalityTraits) return createDummyTraits();
-    return Object.entries(currentUserProfile.personalityTraits).map(([trait, score]) => ({
-        trait,
-        userScore: score,
-        viewerScore: 0,
-    }));
-  }, [currentUserProfile]);
-
-  const viewerProfileTraits = useMemo(() => {
-    if (!compatibilityProfile?.personalityTraits) return createDummyTraits();
-    return Object.entries(compatibilityProfile.personalityTraits).map(([trait, score]) => ({
-        trait,
-        userScore: score, // This will be used as viewer score
-        viewerScore: 0,
-    }));
-  }, [compatibilityProfile]);
-
-
   if (isMobile === undefined) {
     return null;
   }
@@ -681,14 +680,24 @@ export default function DiscoverPage() {
        <Sheet open={!!compatibilityProfile} onOpenChange={(isOpen) => !isOpen && setCompatibilityProfile(null)}>
         <SheetContent 
             side="bottom" 
-            className="h-auto bg-background/80 backdrop-blur-md border-t border-border/50 rounded-t-2xl flex flex-col"
+            className="h-auto bg-background/80 backdrop-blur-md border-t border-border/50 rounded-t-2xl flex flex-col p-0"
         >
-            <SheetHeader className="pt-4 text-center">
-                <SheetTitle className="sr-only">Uyumluluk Analizi</SheetTitle>
-            </SheetHeader>
+            <div className="relative p-4 flex items-center justify-center border-b">
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute left-4 top-1/2 -translate-y-1/2"
+                    onClick={() => setCompatibilityProfile(null)}
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                </Button>
+                <SheetHeader className="text-center">
+                    <SheetTitle className="sr-only">Uyumluluk Analizi</SheetTitle>
+                </SheetHeader>
+            </div>
             {compatibilityProfile && currentUserProfile && (
                 <div className="p-4 pt-0">
-                    <div className="flex items-center justify-center -space-x-6 mb-4">
+                    <div className="flex items-center justify-center -space-x-6 mb-4 mt-4">
                         <Avatar className="w-24 h-24 border-4 border-background ring-2 ring-primary">
                             <AvatarImage src={currentUserProfile.avatarUrl} alt={currentUserProfile.name} />
                             <AvatarFallback>{currentUserProfile.name.charAt(0)}</AvatarFallback>
