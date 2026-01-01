@@ -114,7 +114,7 @@ export default function ProfileCard({ profile, onShowDetails, isTopCard }: Profi
             
              <div className="flex items-center gap-2 text-sm pt-1">
                 {(profile.location || profile.distance !== undefined) && (
-                    <Badge variant="secondary" className="bg-white/20 text-white border border-white/30 backdrop-blur-sm shadow-lg shadow-black/50">
+                    <Badge variant="secondary" className="bg-black/40 text-white border border-white/30 backdrop-blur-sm shadow-lg shadow-black/50">
                         {profile.location && (
                             <div className="flex items-center gap-1">
                                 <MapPin className="w-4 h-4" />
