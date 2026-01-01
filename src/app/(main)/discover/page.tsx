@@ -336,7 +336,7 @@ export default function DiscoverPage() {
 
   }, [profiles, currentUserProfile, user, isPremium]);
 
-    const currentUserTraits = useMemo(() => {
+  const currentUserTraits = useMemo(() => {
     if (!currentUserProfile?.personalityTraits) return createDummyTraits();
     return Object.entries(currentUserProfile.personalityTraits).map(([trait, score]) => ({
         trait,
@@ -354,7 +354,8 @@ export default function DiscoverPage() {
     }));
   }, [compatibilityProfile]);
 
-  
+  const isLoading = isUserLoading || isLoadingProfiles || !currentUserProfile;
+
   useEffect(() => {
     if (swipeableItems.length > 0) {
       const initialStack = swipeableItems.slice(profileIndex, profileIndex + MAX_VISIBLE_CARDS).reverse();
@@ -580,8 +581,6 @@ export default function DiscoverPage() {
 
   }, [visibleStack, user, firestore, currentUserProfile, toast, t, router, locale, showTutorial, isPremium]);
 
-  const isLoading = isUserLoading || isLoadingProfiles || !currentUserProfile;
-
   if (isMobile === undefined) {
     return null;
   }
@@ -683,30 +682,20 @@ export default function DiscoverPage() {
             className="h-auto bg-background/80 backdrop-blur-md border-t border-border/50 rounded-t-2xl flex flex-col p-0"
         >
             <div className="relative p-4 flex items-center justify-center border-b">
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="absolute left-4 top-1/2 -translate-y-1/2"
-                    onClick={() => setCompatibilityProfile(null)}
-                >
-                    <ArrowLeft className="w-5 h-5" />
-                </Button>
                 <SheetHeader className="text-center">
                     <SheetTitle className="sr-only">Uyumluluk Analizi</SheetTitle>
                 </SheetHeader>
+                 <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute right-4 top-1/2 -translate-y-1/2"
+                    onClick={() => setCompatibilityProfile(null)}
+                >
+                    <X className="w-5 h-5" />
+                </Button>
             </div>
             {compatibilityProfile && currentUserProfile && (
-                <div className="p-4 pt-0">
-                    <div className="flex items-center justify-center -space-x-6 mb-4 mt-4">
-                        <Avatar className="w-24 h-24 border-4 border-background ring-2 ring-primary">
-                            <AvatarImage src={currentUserProfile.avatarUrl} alt={currentUserProfile.name} />
-                            <AvatarFallback>{currentUserProfile.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                         <Avatar className="w-24 h-24 border-4 border-background ring-2 ring-ring">
-                            <AvatarImage src={compatibilityProfile.avatarUrl} alt={compatibilityProfile.name} />
-                            <AvatarFallback>{compatibilityProfile.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                    </div>
+                <div className="p-4 pt-4">
                      <CompatibilityRadar currentUserTraits={currentUserTraits} viewerProfileTraits={viewerProfileTraits} />
                 </div>
             )}
@@ -716,5 +705,3 @@ export default function DiscoverPage() {
     </>
   );
 }
-
-    
