@@ -5,5 +5,6 @@ export const firebaseConfig = {
   storageBucket: "bematch-f168d.firebasestorage.app",
   messagingSenderId: "137528078260",
   appId: "1:137528078260:web:9bbd45115bd2aaf8200ce1",
-  measurementId: "G-B9HD1ESD1H"
+  measurementId: "G-B9HD1ESD1H",
+  databaseURL: "https://bematch-f168d-default-rtdb.firebaseio.com"
 };

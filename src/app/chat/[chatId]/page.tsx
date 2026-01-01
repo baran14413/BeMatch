@@ -41,7 +41,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
@@ -1259,6 +1259,7 @@ export default function ChatPage() {
         <DialogContent className="p-0 m-0 bg-black border-none w-screen h-dvh max-w-none flex flex-col text-white">
              <DialogHeader className="sr-only">
                 <DialogTitle>{t('chat.imagePreview.title')}</DialogTitle>
+                <DialogDescription>{t('chat.imagePreview.title')}</DialogDescription>
             </DialogHeader>
 
             <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-2 pt-[calc(env(safe-area-inset-top,0rem)+0.5rem)] bg-black/50 backdrop-blur-sm">
@@ -1316,6 +1317,7 @@ export default function ChatPage() {
         <DialogContent className="p-0 m-0 bg-black border-none w-screen h-dvh max-w-none flex flex-col items-center justify-center text-white" onClick={() => setViewOnceImage(null)}>
              <DialogHeader className="sr-only">
                 <DialogTitle>{t('chat.viewOnce.title')}</DialogTitle>
+                 <DialogDescription>{t('chat.viewOnce.title')}</DialogDescription>
             </DialogHeader>
             {viewOnceImage && (
               <Image src={viewOnceImage.imageUrl!} alt={t('chat.viewOnce.alt')} fill className="object-contain" />
