@@ -35,21 +35,21 @@ const MainHeader = () => {
     ];
     
     return (
-        <header className={cn("flex items-center justify-between px-4 py-1 h-14 border-b border-border bg-background z-10", "pt-[calc(env(safe-area-inset-top,0rem)+0.25rem)]")}>
+        <header className={cn("flex items-center justify-between px-4 py-0 h-12 border-b border-border bg-background z-10", "pt-[calc(env(safe-area-inset-top,0rem)+0.25rem)]")}>
             <Link href="/discover">
-                <h1 className="text-2xl font-bold text-primary tracking-tight">BeMatch</h1>
+                <h1 className="text-xl font-bold text-primary tracking-tight">BeMatch</h1>
             </Link>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
                 {navLinks.map(link => {
                     const isActive = pathname.startsWith(link.href);
                     return (
                         <Button key={link.href} variant="ghost" size="icon" asChild>
                             <Link href={link.href} aria-label={link.label} className="relative">
-                                <link.icon className={cn("w-6 h-6", isActive ? "text-primary" : "text-muted-foreground")} />
+                                <link.icon className={cn("w-5 h-5", isActive ? "text-primary" : "text-muted-foreground")} />
                                 {link.hasNotification && (
-                                     <span className="absolute top-1.5 right-1.5 flex h-3 w-3">
+                                     <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
                                     </span>
                                 )}
                             </Link>
@@ -59,7 +59,7 @@ const MainHeader = () => {
                 {isAdmin && (
                     <Button key="/admin" variant="ghost" size="icon" asChild>
                         <Link href="/admin" aria-label="Admin" className="relative">
-                            <Shield className={cn("w-6 h-6", pathname.startsWith('/admin') ? "text-primary" : "text-muted-foreground")} />
+                            <Shield className={cn("w-5 h-5", pathname.startsWith('/admin') ? "text-primary" : "text-muted-foreground")} />
                         </Link>
                     </Button>
                 )}
