@@ -424,8 +424,8 @@ export default function ChatPage() {
 
             setIsAiResponding(true);
 
-            // Give a "typing" delay
-            await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 1000));
+            // Give a "typing" delay to make it feel more natural
+            await new Promise(resolve => setTimeout(resolve, Math.random() * 3000 + 2000)); // 2-5 seconds delay
 
             const chatHistory = messages
                 .slice(-5) // Get last 5 messages for context
