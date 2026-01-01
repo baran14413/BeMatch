@@ -1,12 +1,14 @@
 'use client';
 import { useState } from 'react';
-import type { UserProfile } from '@/lib/data';
+import type { UserProfile, UserStatus } from '@/lib/data';
 import Image from 'next/image';
 import { MapPin, Info, Music, Dumbbell, Plane, Clapperboard, Gamepad2, BookOpen, Utensils, Camera, Mountain, PartyPopper, User, Crown } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/context/language-context';
+import { useUserStatus } from '@/hooks/use-user-status';
+import { differenceInMinutes } from 'date-fns';
 
 type ProfileCardProps = {
   profile: UserProfile;
@@ -46,11 +48,33 @@ const getCountryFlag = (location: string | undefined): string => {
     }
 }
 
+const getActivityStatus = (profile: UserProfile, status: UserStatus | null): 'active' | 'recent' | null => {
+    if (profile.isSystemAccount) {
+        return 'active';
+    }
+    if (!status) {
+        return null;
+    }
+    if (status.state === 'online') {
+        return 'active';
+    }
+    if (status.state === 'offline') {
+        const minutesSinceLastChange = differenceInMinutes(new Date(), new Date(status.last_changed));
+        if (minutesSinceLastChange < 5) {
+            return 'recent';
+        }
+    }
+    return null;
+};
+
+
 export default function ProfileCard({ profile, onShowDetails, isTopCard }: ProfileCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const { t } = useLanguage();
+  const userStatus = useUserStatus(profile.id);
   const totalImages = profile.imageUrls?.length || 1;
   const flag = getCountryFlag(profile.location);
+  const activityStatus = getActivityStatus(profile, userStatus);
 
   const navigateImages = (e: React.MouseEvent, direction: 'next' | 'prev') => {
     // Prevent swipe gesture from triggering when changing images
@@ -160,6 +184,12 @@ export default function ProfileCard({ profile, onShowDetails, isTopCard }: Profi
         <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/40 text-2xl rounded-full px-3 py-1 backdrop-blur-sm z-20">
             {flag && (
                 <span className="text-xl">{flag}</span>
+            )}
+             {activityStatus === 'active' && (
+                <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse border-2 border-green-300"></div>
+            )}
+            {activityStatus === 'recent' && (
+                <div className="w-3 h-3 rounded-full bg-yellow-500 border-2 border-yellow-300"></div>
             )}
         </div>
       </div>
