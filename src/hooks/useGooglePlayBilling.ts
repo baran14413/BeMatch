@@ -122,6 +122,8 @@ export function useGooglePlayBilling(options?: UseGooglePlayBillingOptions) {
       );
       
       const paymentResponse = await paymentUi.show();
+      await paymentResponse.complete('success'); // UI'ı hemen kapat
+      
       const { purchaseToken } = paymentResponse.details;
       
       if (!purchaseToken) {
@@ -140,8 +142,10 @@ export function useGooglePlayBilling(options?: UseGooglePlayBillingOptions) {
       const data = result.data as any;
 
       if (data.success) {
-        const service = await window.getDigitalGoodsService(paymentMethod);
-        await service?.acknowledge(purchaseToken, 'repeatable');
+        // TWA'da acknowledge'a gerek kalmayabilir, çünkü sunucu tüketimi yapıyor (consume).
+        // Ancak güvenlik için burada da çağırılabilir.
+        // const service = await window.getDigitalGoodsService(paymentMethod);
+        // await service?.acknowledge(purchaseToken, 'onetime'); // 'onetime' veya 'repeatable'
         
         console.log('Satın alma başarılı ve doğrulandı. ✅');
         options?.onPurchaseSuccess?.();
@@ -153,7 +157,7 @@ export function useGooglePlayBilling(options?: UseGooglePlayBillingOptions) {
       console.error('Satın alma sırasında hata:', e);
       
       let errorMessage = e.message || 'Bilinmeyen bir hata oluştu.';
-      if (e.name === 'AbortError') {
+      if (e.name === 'AbortError' || e.code === 8) { // DOMException code for user cancellation
           errorMessage = 'İşlem kullanıcı tarafından iptal edildi.';
       }
 

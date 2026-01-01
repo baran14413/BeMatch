@@ -15,8 +15,10 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { addMinutes, isFuture } from 'date-fns';
 import { Separator } from "@/components/ui/separator";
+import { useGooglePlayBilling } from "@/hooks/useGooglePlayBilling";
+import { useState } from 'react';
 
-const InfoCard = ({ icon: Icon, title, value, actionText, onActionClick, disabled = false, description }: { icon: React.ElementType, title: string, value: string, actionText: string, onActionClick?: () => void, disabled?: boolean, description?: string }) => (
+const InfoCard = ({ icon: Icon, title, value, actionText, onActionClick, disabled = false, isLoading = false, description }: { icon: React.ElementType, title: string, value: string, actionText: string, onActionClick?: () => void, disabled?: boolean, isLoading?: boolean, description?: string }) => (
     <Card className="text-center">
         <CardHeader className="items-center">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
@@ -27,7 +29,11 @@ const InfoCard = ({ icon: Icon, title, value, actionText, onActionClick, disable
         </CardHeader>
         <CardContent className="space-y-4">
             <p className="text-4xl font-bold">{value}</p>
-            {onActionClick && <Button onClick={onActionClick} variant="secondary" className="w-full" disabled={disabled}>{actionText}</Button>}
+            {onActionClick && (
+                <Button onClick={onActionClick} variant="secondary" className="w-full" disabled={disabled || isLoading}>
+                    {isLoading ? <Loader2 className="animate-spin" /> : actionText}
+                </Button>
+            )}
         </CardContent>
     </Card>
 );
@@ -45,12 +51,39 @@ const WalletSkeleton = () => (
     </div>
 );
 
+const superLikePackages = {
+    'superlike_5': { amount: 5, price: '25 TL' },
+    'superlike_15': { amount: 15, price: '50 TL' },
+    'superlike_30': { amount: 30, price: '80 TL' },
+};
+
+
 export default function WalletPage() {
     const { t, locale } = useLanguage();
     const router = useRouter();
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
+    
+    const [purchasingId, setPurchasingId] = useState<string | null>(null);
+
+    const { state: billingState, purchase } = useGooglePlayBilling({
+        onPurchaseSuccess: () => {
+            toast({
+                title: 'Satın Alma Başarılı!',
+                description: 'Süper Beğeniler hesabınıza eklendi.',
+            });
+            setPurchasingId(null);
+        },
+        onPurchaseError: (error) => {
+            toast({
+                variant: 'destructive',
+                title: 'Satın Alma Başarısız Oldu',
+                description: error,
+            });
+            setPurchasingId(null);
+        },
+    });
 
     const userDocRef = useMemoFirebase(() => {
         if (!user) return null;
@@ -74,21 +107,21 @@ export default function WalletPage() {
         }
     };
     
-    const handlePurchaseSuperLikes = async (amount: number) => {
-        if (!userDocRef) return;
-        try {
-            await updateDoc(userDocRef, {
-                superLikes: increment(amount)
-            });
+    const handlePurchaseSuperLikes = async (productId: string) => {
+        const packageName = process.env.NEXT_PUBLIC_TWA_PACKAGE_NAME;
+        if (!packageName) {
             toast({
-                title: `${amount} Süper Beğeni Eklendi!`,
-                description: 'Hesabına yeni Süper Beğeniler yüklendi.',
+                variant: "destructive",
+                title: "Yapılandırma Hatası",
+                description: "Ödeme işlemi yapılamıyor. Uygulama yapılandırması eksik.",
             });
-        } catch (error) {
-            console.error("Error purchasing super likes:", error);
-            toast({ variant: 'destructive', title: 'Satın Alma Hatası', description: 'İşlem sırasında bir hata oluştu.'});
+            return;
         }
-    }
+        setPurchasingId(productId);
+        await purchase(productId, packageName);
+    };
+
+    const isPurchasingAny = billingState === 'PURCHASING';
 
     return (
         <ScrollArea className="h-full">
@@ -174,24 +207,30 @@ export default function WalletPage() {
                                 <InfoCard
                                     icon={Star}
                                     title="5 Süper Beğeni"
-                                    value="25 ₺"
+                                    value={superLikePackages.superlike_5.price}
                                     actionText="Satın Al"
-                                    onActionClick={() => handlePurchaseSuperLikes(5)}
+                                    onActionClick={() => handlePurchaseSuperLikes('superlike_5')}
+                                    isLoading={isPurchasingAny && purchasingId === 'superlike_5'}
+                                    disabled={isPurchasingAny}
                                 />
                                 <InfoCard
                                     icon={Star}
                                     title="15 Süper Beğeni"
-                                    value="50 ₺"
+                                    value={superLikePackages.superlike_15.price}
                                     actionText="Satın Al"
-                                    onActionClick={() => handlePurchaseSuperLikes(15)}
+                                    onActionClick={() => handlePurchaseSuperLikes('superlike_15')}
+                                    isLoading={isPurchasingAny && purchasingId === 'superlike_15'}
+                                    disabled={isPurchasingAny}
                                 />
                                 <InfoCard
                                     icon={Star}
                                     title="30 Süper Beğeni"
-                                    value="80 ₺"
+                                    value={superLikePackages.superlike_30.price}
                                     description="En Popüler"
                                     actionText="Satın Al"
-                                    onActionClick={() => handlePurchaseSuperLikes(30)}
+                                    onActionClick={() => handlePurchaseSuperLikes('superlike_30')}
+                                    isLoading={isPurchasingAny && purchasingId === 'superlike_30'}
+                                    disabled={isPurchasingAny}
                                 />
                             </div>
                         </div>
