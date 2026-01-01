@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
@@ -89,7 +90,13 @@ export function useGooglePlayBilling(options?: UseGooglePlayBillingOptions) {
 
   // 2. Satın alma fonksiyonu
   const purchase = useCallback(async (productId: string, packageName: string) => {
-    // Sadece state 'READY' ise devam et
+    if (!packageName) {
+        const msg = 'Uygulama paket adı yapılandırılmamış. Satın alma işlemi yapılamıyor.';
+        console.error(msg);
+        options?.onPurchaseError?.(msg);
+        return;
+    }
+    
     if (state !== 'READY') {
       const msg = 'Ödeme servisi hazır değil.';
       console.warn(msg);

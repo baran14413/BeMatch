@@ -113,7 +113,7 @@ export default function SubscriptionsPage() {
     const handlePurchase = async (productId: string) => {
         const packageName = process.env.NEXT_PUBLIC_TWA_PACKAGE_NAME;
         if (!packageName) {
-            console.error("TWA package name is not configured in environment variables.");
+            console.error("TWA package name is not configured. Make sure NEXT_PUBLIC_TWA_PACKAGE_NAME is set in your .env.local file.");
              toast({
                 variant: 'destructive',
                 title: 'Yapılandırma Hatası',
