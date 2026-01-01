@@ -43,7 +43,7 @@ export default function NotificationPermissionBanner() {
         setIsVisible(false);
     };
 
-    if (!isVisible) {
+    if (!isVisible || typeof window === 'undefined' || !('Notification' in window)) {
         return null;
     }
     

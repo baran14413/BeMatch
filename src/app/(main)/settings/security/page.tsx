@@ -64,6 +64,18 @@ export default function SecurityPage() {
     const [selectedReason, setSelectedReason] = useState('');
     const [deleteConfirmPassword, setDeleteConfirmPassword] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
+    const [passwordLastUpdated, setPasswordLastUpdated] = useState<string | null>(null);
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    useEffect(() => {
+        if (isClient && userProfile?.passwordLastUpdatedAt) {
+            setPasswordLastUpdated(formatDistanceToNow(userProfile.passwordLastUpdatedAt.toDate(), { addSuffix: true, locale: locale === 'tr' ? tr : enUS }));
+        }
+    }, [isClient, userProfile, locale]);
 
     const deletionReasons = [
         { id: 'privacy', label: t('securityPage.deletionReasons.privacy') },
@@ -117,7 +129,6 @@ export default function SecurityPage() {
           const credential = EmailAuthProvider.credential(user.email, deleteConfirmPassword);
           await reauthenticateWithCredential(user, credential);
           
-          // 1. Log deletion reason
           const deletionLogRef = doc(firestore, 'deletedUsers', user.uid);
           await setDoc(deletionLogRef, {
             email: user.email,
@@ -125,12 +136,10 @@ export default function SecurityPage() {
             deletedAt: serverTimestamp(),
           });
     
-          // 2. Delete user's profile document from Firestore
           if (userDocRef) {
             await deleteDoc(userDocRef);
           }
           
-          // 3. Delete the user from Firebase Authentication
           await deleteUser(user);
     
           toast({
@@ -166,9 +175,9 @@ export default function SecurityPage() {
         setDeleteConfirmPassword('');
     }
 
-    const passwordLastUpdated = userProfile?.passwordLastUpdatedAt
-        ? formatDistanceToNow(userProfile.passwordLastUpdatedAt.toDate(), { addSuffix: true, locale: locale === 'tr' ? tr : enUS })
-        : null;
+    if (!isClient) {
+      return null;
+    }
 
     return (
         <ScrollArea className="h-full">

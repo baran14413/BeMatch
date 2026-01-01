@@ -28,8 +28,14 @@ export default function LocationPage() {
     const [currentLocation, setCurrentLocation] = useState("...");
     const [isUpdating, setIsUpdating] = useState(false);
     const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     const loadLocationInfo = () => {
+        if (typeof window === 'undefined') return;
         if (userProfile?.location) {
             setCurrentLocation(userProfile.location);
         }
@@ -43,8 +49,10 @@ export default function LocationPage() {
     };
 
     useEffect(() => {
-        loadLocationInfo();
-    }, [userProfile, locale]);
+        if (isClient) {
+            loadLocationInfo();
+        }
+    }, [userProfile, locale, isClient]);
 
     const getCityFromCoordinates = async (latitude: number, longitude: number) => {
         try {
@@ -81,7 +89,9 @@ export default function LocationPage() {
                         longitude: longitude,
                     });
                     
-                    localStorage.setItem('locationLastUpdated', Date.now().toString());
+                    if (typeof window !== 'undefined') {
+                      localStorage.setItem('locationLastUpdated', Date.now().toString());
+                    }
 
                     setCurrentLocation(locationString);
                     loadLocationInfo(); // Reload info to update timestamp
@@ -111,6 +121,10 @@ export default function LocationPage() {
              setIsUpdating(false);
         });
     };
+
+    if (!isClient) {
+      return null;
+    }
 
     return (
         <ScrollArea className="h-full">

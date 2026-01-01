@@ -55,6 +55,14 @@ export default function PersonalInfoPage() {
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
 
+    const [lastSignInTime, setLastSignInTime] = useState<string>('...');
+    const [creationTime, setCreationTime] = useState<string>('...');
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
     useEffect(() => {
         if (isVisible && user) {
             user.reload();
@@ -67,6 +75,17 @@ export default function PersonalInfoPage() {
             setLastName(userProfile.lastName || '');
         }
     }, [userProfile]);
+    
+    useEffect(() => {
+        if (isClient && user) {
+            setLastSignInTime(user.metadata.lastSignInTime 
+                ? formatDistanceToNow(new Date(user.metadata.lastSignInTime), { addSuffix: true, locale: locale === 'tr' ? tr : enUS }) 
+                : '...');
+            setCreationTime(user.metadata.creationTime 
+                ? new Date(user.metadata.creationTime).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+                : '...');
+        }
+    }, [isClient, user, locale]);
 
     const handleSendVerification = async () => {
         if (!user) return;
@@ -116,16 +135,12 @@ export default function PersonalInfoPage() {
 
     const isLoading = isUserLoading || isProfileLoading;
     
-    const lastSignInTime = user?.metadata.lastSignInTime 
-        ? formatDistanceToNow(new Date(user.metadata.lastSignInTime), { addSuffix: true, locale: locale === 'tr' ? tr : enUS }) 
-        : '...';
-        
-    const creationTime = user?.metadata.creationTime 
-        ? new Date(user.metadata.creationTime).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-        : '...';
-        
     const originalNameIsSet = !!userProfile?.firstName && !!userProfile?.lastName;
     const nameHasChanged = originalNameIsSet && (firstName !== userProfile.firstName || lastName !== userProfile.lastName);
+
+    if (!isClient) {
+      return null;
+    }
 
     return (
         <ScrollArea className="h-full">

@@ -1,7 +1,7 @@
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, ArrowLeft, Monitor, Sun, Moon, Bell, Loader2, BellOff } from "lucide-react";
+import { Trash2, ArrowLeft, Monitor, Sun, Moon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -27,9 +27,14 @@ export default function ApplicationSettingsPage() {
 
     const [cacheSize, setCacheSize] = useState<string>('0 KB');
     const [lastCleared, setLastCleared] = useState<string | null>(null);
+    const [isClient, setIsClient] = useState(false);
 
-    // --- CACHE LOGIC ---
+    useEffect(() => {
+      setIsClient(true);
+    }, []);
+
     const calculateCacheSize = () => {
+        if (typeof window === 'undefined') return;
         let total = 0;
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
@@ -45,6 +50,7 @@ export default function ApplicationSettingsPage() {
     };
     
     const loadCacheInfo = () => {
+        if (typeof window === 'undefined') return;
         const lastClearedTimestamp = localStorage.getItem('cacheLastCleared');
         if (lastClearedTimestamp) {
             const date = new Date(parseInt(lastClearedTimestamp, 10));
@@ -56,11 +62,14 @@ export default function ApplicationSettingsPage() {
     };
 
     useEffect(() => {
-        loadCacheInfo();
-    }, [locale]);
+        if (isClient) {
+            loadCacheInfo();
+        }
+    }, [locale, isClient]);
 
 
     const handleClearCache = () => {
+        if (typeof window === 'undefined') return;
         const theme = localStorage.getItem('theme');
         const locale = localStorage.getItem('locale');
 
@@ -85,6 +94,10 @@ export default function ApplicationSettingsPage() {
         
         loadCacheInfo();
     };
+
+    if (!isClient) {
+      return null;
+    }
 
     return (
         <ScrollArea className="h-full">
