@@ -562,11 +562,30 @@ export default function DiscoverPage() {
 
   }, [visibleStack, user, firestore, currentUserProfile, toast, t, router, locale, showTutorial, isPremium]);
 
+  const isLoading = isUserLoading || isLoadingProfiles || !currentUserProfile;
+
+  const currentUserTraits = useMemo(() => {
+    if (!currentUserProfile?.personalityTraits) return createDummyTraits();
+    return Object.entries(currentUserProfile.personalityTraits).map(([trait, score]) => ({
+        trait,
+        userScore: score,
+        viewerScore: 0,
+    }));
+  }, [currentUserProfile]);
+
+  const viewerProfileTraits = useMemo(() => {
+    if (!compatibilityProfile?.personalityTraits) return createDummyTraits();
+    return Object.entries(compatibilityProfile.personalityTraits).map(([trait, score]) => ({
+        trait,
+        userScore: score, // This will be used as viewer score
+        viewerScore: 0,
+    }));
+  }, [compatibilityProfile]);
+
+
   if (isMobile === undefined) {
     return null;
   }
-
-  const isLoading = isUserLoading || isLoadingProfiles || !currentUserProfile;
 
   if (isLoading) {
      return (
@@ -584,25 +603,6 @@ export default function DiscoverPage() {
      )
   }
   
-    const currentUserTraits = useMemo(() => {
-        if (!currentUserProfile?.personalityTraits) return createDummyTraits();
-        return Object.entries(currentUserProfile.personalityTraits).map(([trait, score]) => ({
-            trait,
-            userScore: score,
-            viewerScore: 0,
-        }));
-    }, [currentUserProfile]);
-
-    const viewerProfileTraits = useMemo(() => {
-        if (!compatibilityProfile?.personalityTraits) return createDummyTraits();
-        return Object.entries(compatibilityProfile.personalityTraits).map(([trait, score]) => ({
-            trait,
-            userScore: score, // This will be used as viewer score
-            viewerScore: 0,
-        }));
-    }, [compatibilityProfile]);
-
-
   return (
     <>
     {newlyMatchedProfile && currentUserProfile && (
