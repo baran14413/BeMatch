@@ -129,7 +129,7 @@ export default function ProfileCard({ profile, onShowDetails, isTopCard }: Profi
                     <Badge
                       key={interest}
                       variant="secondary"
-                      className="bg-white/20 text-white border-white/30 backdrop-blur-sm"
+                      className="bg-white/20 text-white border border-white/30 backdrop-blur-sm shadow-lg shadow-black/50"
                     >
                       {Icon && <Icon className="w-3 h-3 mr-1" />}
                       {t(`interests.${interest}`)}
