@@ -1,10 +1,6 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // This is required to make environment variables from .env.local available to the client side.
-  env: {
-    NEXT_PUBLIC_TWA_PACKAGE_NAME: process.env.NEXT_PUBLIC_TWA_PACKAGE_NAME,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
