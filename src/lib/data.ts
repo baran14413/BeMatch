@@ -79,7 +79,12 @@ export interface UserProfile {
   maxDistance?: number;
   ageRange?: [number, number];
   // Premium Status
-  premiumTier?: 'plus' | 'gold' | 'platinum' | null;
+  isPremium?: boolean;
+  subscriptionId?: string;
+  purchaseToken?: string;
+  expiryDate?: any;
+  autoRenewing?: boolean;
+  premiumTier?: 'weekly' | 'gold' | 'platinum' | null;
   premiumExpiresAt?: any; // Firestore Timestamp
   superLikes?: number;
   boostExpiresAt?: any; // Firestore Timestamp
