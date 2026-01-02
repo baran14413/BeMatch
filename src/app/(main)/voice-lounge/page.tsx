@@ -11,10 +11,14 @@ import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import type { VoiceRoom } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
+import CreateRoomDialog from '@/components/voice/create-room-dialog';
+
 
 const RoomCardSkeleton = () => (
     <Card className="overflow-hidden flex flex-col bg-card">
-        <Skeleton className="h-32 w-full" />
+        <div className="p-4 relative h-32 flex flex-col justify-end bg-muted/50">
+             <Skeleton className="w-3/4 h-6" />
+        </div>
         <CardContent className="p-4 flex-1">
             <div className="flex -space-x-2 overflow-hidden mb-4">
                  <Skeleton className="h-10 w-10 rounded-full" />
@@ -57,10 +61,12 @@ export default function VoiceLoungePage() {
                     <p className="text-muted-foreground">Sesli sohbet odalarında yeni insanlarla tanış.</p>
                  </div>
             </div>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Oda Oluştur
-            </Button>
+            <CreateRoomDialog>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Oda Oluştur
+                </Button>
+            </CreateRoomDialog>
           </div>
         </header>
 
@@ -76,16 +82,16 @@ export default function VoiceLoungePage() {
                 {rooms.map((room) => (
                 <Card key={room.id} className="overflow-hidden flex flex-col bg-card">
                     <CardHeader 
-                    className="p-0 relative h-32 flex flex-col justify-end"
-                     style={{
-                        backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.8), transparent), url(https://picsum.photos/seed/${room.id}/600/400)`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                    }}
+                        className="p-0 relative h-32 flex flex-col justify-end"
+                         style={{
+                            backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.8), transparent), url(https://picsum.photos/seed/${room.id}/600/400)`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                        }}
                     >
-                    <div className="p-4">
-                        <CardTitle className="text-white text-xl">{room.title}</CardTitle>
-                    </div>
+                        <div className="p-4">
+                            <CardTitle className="text-white text-xl">{room.title}</CardTitle>
+                        </div>
                     </CardHeader>
                     <CardContent className="p-4 flex-1">
                     {/* Participant avatars can be fetched in a subcollection later */}
@@ -117,10 +123,12 @@ export default function VoiceLoungePage() {
           ) : (
              <div className="text-center py-16">
                 <p className="text-muted-foreground">Henüz aktif bir oda bulunmuyor.</p>
-                <Button className="mt-4">
-                  <Plus className="mr-2 h-4 w-4" />
-                  İlk Odayı Sen Oluştur
-                </Button>
+                <CreateRoomDialog>
+                    <Button className="mt-4">
+                        <Plus className="mr-2 h-4 w-4" />
+                        İlk Odayı Sen Oluştur
+                    </Button>
+                </CreateRoomDialog>
             </div>
           )}
         </main>
