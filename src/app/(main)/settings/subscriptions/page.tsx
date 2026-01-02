@@ -89,25 +89,22 @@ const PackageCard = ({
 
 
 const WebViewInfoCard = () => (
-    <Card className="lg:col-span-3 bg-blue-50 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
+    <Card className="lg:col-span-3 bg-secondary border border-border">
         <CardHeader>
              <div className="flex items-center gap-3">
-                <ExternalLink className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                <CardTitle className="text-blue-800 dark:text-blue-300">Premium Paketleri Görüntüle</CardTitle>
+                <ExternalLink className="w-6 h-6 text-primary" />
+                <CardTitle>Hesabını Yönet</CardTitle>
             </div>
         </CardHeader>
         <CardContent>
-            <p className="text-blue-700 dark:text-blue-300/90">
-                Premium özelliklere erişmek ve abonelik başlatmak için lütfen web sitemizi ziyaret edin.
-            </p>
-            <p className="mt-2 text-sm text-blue-600 dark:text-blue-400/80">
-                Ödeme işlemleri yalnızca harici bir tarayıcı (Chrome, Safari vb.) üzerinden güvenli bir şekilde yapılabilir.
+            <p className="text-muted-foreground">
+                Mevcut abonelik planını görüntülemek veya değiştirmek için hesabını web sitemizden yönetebilirsin.
             </p>
         </CardContent>
         <CardFooter>
             <a href="https://bematch.app/settings/subscriptions" target="_blank" rel="noopener noreferrer" className="w-full">
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
-                    Web Sitesine Git
+                <Button className="w-full">
+                    Hesabımı Web'de Yönet
                 </Button>
             </a>
         </CardFooter>
@@ -168,8 +165,8 @@ export default function SubscriptionsPage() {
                         </Button>
                     </Link>
                     <div>
-                        <h1 className="text-3xl font-bold text-primary">{t('subscriptionsPage.title')}</h1>
-                        <p className="text-muted-foreground">{t('subscriptionsPage.description')}</p>
+                        <h1 className="text-3xl font-bold text-primary">{isWebView ? "Hesabımı Yönet" : t('subscriptionsPage.title')}</h1>
+                        <p className="text-muted-foreground">{isWebView ? "Abonelik ve paket detaylarını web sitemizden yönet." : t('subscriptionsPage.description')}</p>
                     </div>
                 </header>
                 
