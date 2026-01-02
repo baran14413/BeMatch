@@ -6,7 +6,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLanguage } from '@/context/language-context';
 import { Users, Plus, Headphones } from 'lucide-react';
-import Image from 'next/image';
+import Link from 'next/link';
 
 // Mock data for the voice chat rooms
 const mockRooms = [
@@ -117,9 +117,11 @@ export default function VoiceLoungePage() {
                   </div>
                 </CardContent>
                 <CardFooter className="p-4 pt-0">
-                  <Button className="w-full" disabled={room.participants.length >= room.maxParticipants}>
-                    {room.participants.length >= room.maxParticipants ? 'Oda Dolu' : 'Odaya Katıl'}
-                  </Button>
+                  <Link href={`/voice-lounge/${room.id}`} passHref className="w-full">
+                    <Button className="w-full" disabled={room.participants.length >= room.maxParticipants}>
+                        {room.participants.length >= room.maxParticipants ? 'Oda Dolu' : 'Odaya Katıl'}
+                    </Button>
+                  </Link>
                 </CardFooter>
               </Card>
             ))}
