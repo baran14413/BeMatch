@@ -34,6 +34,7 @@ export const subscriptionPackages: SubscriptionPackage[] = [
       badge: 'bg-gray-500',
     },
     features: [
+      { text: 'subscriptionsPage.features.unlimitedSwipes', included: true },
       { text: 'subscriptionsPage.features.unlimitedLikes', included: true },
       { text: 'subscriptionsPage.features.unlimitedRewind', included: false },
       { text: 'subscriptionsPage.features.noAds', included: true },
@@ -57,6 +58,7 @@ export const subscriptionPackages: SubscriptionPackage[] = [
       badge: 'bg-yellow-500',
     },
     features: [
+      { text: 'subscriptionsPage.features.unlimitedSwipes', included: true },
       { text: 'subscriptionsPage.features.unlimitedLikes', included: true },
       { text: 'subscriptionsPage.features.unlimitedRewind', included: true },
       { text: 'subscriptionsPage.features.noAds', included: true },
@@ -79,6 +81,7 @@ export const subscriptionPackages: SubscriptionPackage[] = [
       badge: 'bg-violet-600',
     },
     features: [
+      { text: 'subscriptionsPage.features.unlimitedSwipes', included: true },
       { text: 'subscriptionsPage.features.unlimitedLikes', included: true },
       { text: 'subscriptionsPage.features.unlimitedRewind', included: true },
       { text: 'subscriptionsPage.features.noAds', included: true },

@@ -14,6 +14,11 @@
         "tutorial": {
             "previous": "GEÇ",
             "next": "BEĞEN"
+        },
+        "limit": {
+            "title": "Günlük Kaydırma Limiti Doldu",
+            "description": "Bugünlük kaydırma hakkın bitti. Sınırsız kaydırma için web sitemizdeki hesabım sayfanı ziyaret edebilirsin.",
+            "ok": "Tamam"
         }
     },
     "likes": {
@@ -82,6 +87,7 @@
         "features": {
             "noAds": "Reklamsız Deneyim",
             "unlimitedLikes": "Sınırsız Beğeni",
+            "unlimitedSwipes": "Sınırsız Kaydırma",
             "unlimitedRewind": "Sınırsız Geri Alma",
             "seeWhoLikesYou": "Seni Kimlerin Beğendiğini Gör",
             "superLikesWeeklyGold": "Haftada 5 Süper Beğeni",

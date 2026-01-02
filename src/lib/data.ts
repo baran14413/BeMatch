@@ -1,3 +1,4 @@
+
 'use client';
 import type { ImagePlaceholder } from './placeholder-images';
 import { differenceInMinutes } from 'date-fns';
@@ -93,6 +94,8 @@ export interface UserProfile {
   // Usage tracking
   lastRewindAt?: any;
   rewindCount?: number;
+  lastSwipeAt?: any;
+  dailySwipeCount?: number;
   // Admin
   role?: 'admin' | 'moderator' | 'support' | 'user';
   isBanned?: boolean;

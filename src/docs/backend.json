@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -78,6 +79,15 @@
         "rewindCount": {
             "type": "number",
             "description": "The number of rewinds a user has used today."
+        },
+        "lastSwipeAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp of the user's last swipe."
+        },
+        "dailySwipeCount": {
+            "type": "number",
+            "description": "The number of swipes a user has made today."
         },
         "bio": {
           "type": "string",
@@ -658,6 +668,18 @@
         }
       },
       {
+        "path": "/voiceRooms/{roomId}/participants/{userId}",
+        "definition": {
+            "entityName": "User",
+            "schema": { "$ref": "#/entities/User" },
+            "description": "Stores a snapshot of users currently in a voice room.",
+            "params": [
+                { "name": "roomId", "description": "The unique ID of the voice room." },
+                { "name": "userId", "description": "The unique ID of the participant." }
+            ]
+        }
+      },
+      {
         "path": "/voiceRooms/{roomId}/messages/{messageId}",
         "definition": {
           "entityName": "Message",
@@ -673,6 +695,7 @@
     "reasoning": "This Firestore structure is designed to support the Nexus dating app's core features while adhering to the principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). It prioritizes security, scalability, and debuggability.\\n\\n**Authorization Independence via Denormalization:**\\n*   User profiles are stored under `/users/{userId}`. Data needing authorization context from the user profile is denormalized to avoid `get()` calls in security rules. For example, prompt answers created by a user are stored in a subcollection `/users/{userId}/promptAnswers/{promptAnswerId}`. The prompt answer documents do not require any authorization data copied because access is solely based on path and `request.auth.uid`.\\n*   Matches between users are stored in a top-level `/matches/{matchId}` collection, which contains an array of `users`. Messages sent within a match are stored in a subcollection `/matches/{matchId}/messages/{messageId}`.  The message documents do not require any authorization data copied because access is solely based on path and `request.auth.uid`.\\n\\n**Structural Segregation (Homogeneous Security Posture):**\\n*   Private user data (profiles, prompt answers, matches, and messages) is kept separate from potentially public data. This separation ensures that each collection has a clear and consistent security posture, avoiding the need for complex logic within security rules.\\n\\n**Access Modeling (Standardization and Consistency):**\\n*   **Private Data:** User profiles and their associated data (prompt answers, swipes) utilize the path-based ownership pattern `/users/{userId}/*`. This approach allows straightforward security rules based on `request.auth.uid == userId`.\\n*   **Collaborative Data:** Matches and messages are secured using the `users` array in the parent match document."
   },
   "database": {
+      "rules": "database.rules.json",
       "structure": [
           {
               "path": "/status/{userId}",

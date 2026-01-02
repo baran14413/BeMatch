@@ -14,6 +14,11 @@
         "tutorial": {
             "previous": "PASS",
             "next": "LIKE"
+        },
+        "limit": {
+            "title": "Daily Swipe Limit Reached",
+            "description": "You have run out of swipes for today. For unlimited swipes, check out our account page on our website.",
+            "ok": "OK"
         }
     },
     "likes": {
@@ -82,6 +87,7 @@
         "features": {
             "noAds": "Ad-Free Experience",
             "unlimitedLikes": "Unlimited Likes",
+            "unlimitedSwipes": "Unlimited Swipes",
             "unlimitedRewind": "Unlimited Rewinds",
             "seeWhoLikesYou": "See Who Likes You",
             "superLikesWeeklyGold": "5 Super Likes per week",

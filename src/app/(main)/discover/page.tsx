@@ -8,7 +8,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import ProfileCard from '@/components/discover/profile-card';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
-import { collection, query, where, doc, writeBatch, getDoc, serverTimestamp, getDocs, updateDoc, Timestamp, limit, orderBy } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, getDoc, serverTimestamp, getDocs, updateDoc, Timestamp, limit, orderBy, increment } from 'firebase/firestore';
 import type { UserProfile, SwipeItem, UserItem, AdItem, PersonalityTrait } from '@/lib/data';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import ProfileDetails from '@/components/discover/profile-details';
@@ -26,6 +26,16 @@ import { generateAiIcebreaker } from '@/ai/flows/generate-ai-icebreaker';
 import { mockProfiles } from '@/lib/mock-profiles';
 import { Card, CardContent } from '@/components/ui/card';
 import { useTwa } from '@/hooks/use-twa';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 
 type SwipeDirection = 'left' | 'right' | 'up';
@@ -33,6 +43,7 @@ type SwipeType = 'like' | 'nope' | 'superlike';
 
 const MAX_VISIBLE_CARDS = 3;
 const DAILY_REWIND_LIMIT = 3;
+const DAILY_SWIPE_LIMIT = 10;
 /*
 const AD_FREQUENCY = 3; // Show an ad every 3 user profiles
 
@@ -243,6 +254,7 @@ export default function DiscoverPage() {
   const [detailsProfile, setDetailsProfile] = useState<UserProfile | null>(null);
   const [compatibilityProfile, setCompatibilityProfile] = useState<UserProfile | null>(null);
   const [newlyMatchedProfile, setNewlyMatchedProfile] = useState<UserProfile | null>(null);
+  const [showSwipeLimitDialog, setShowSwipeLimitDialog] = useState(false);
 
   const [profileIndex, setProfileIndex] = useState(0);
   const [visibleStack, setVisibleStack] = useState<SwipeItem[]>([]);
@@ -410,7 +422,24 @@ export default function DiscoverPage() {
         setShowTutorial(false);
         localStorage.setItem('hasSeenSwipeTutorial', 'true');
     }
-    if (visibleStack.length === 0 || !user || !firestore || !currentUserProfile) return;
+    if (visibleStack.length === 0 || !user || !firestore || !currentUserProfile || !currentUserDocRef) return;
+
+    // --- Daily Swipe Limit Check ---
+    if (!isPremium) {
+        const lastSwipeDate = currentUserProfile.lastSwipeAt?.toDate();
+        const swipesToday = (lastSwipeDate && isToday(lastSwipeDate)) ? (currentUserProfile.dailySwipeCount || 0) : 0;
+        
+        if (swipesToday >= DAILY_SWIPE_LIMIT) {
+            setShowSwipeLimitDialog(true);
+            return; // Stop swipe processing
+        }
+        
+        // Update swipe count and timestamp
+        await updateDoc(currentUserDocRef, {
+            dailySwipeCount: increment(1),
+            lastSwipeAt: serverTimestamp(),
+        });
+    }
 
     const swipedItem = visibleStack[visibleStack.length - 1];
     
@@ -563,7 +592,7 @@ export default function DiscoverPage() {
           }));
       });
 
-  }, [visibleStack, user, firestore, currentUserProfile, toast, t, router, locale, showTutorial, isPremium, isWebView]);
+  }, [visibleStack, user, firestore, currentUserProfile, toast, t, router, locale, showTutorial, isPremium, isWebView, currentUserDocRef]);
 
   const isLoading = isUserLoading || isLoadingProfiles || !currentUserProfile;
 
@@ -617,6 +646,22 @@ export default function DiscoverPage() {
             onContinue={() => setNewlyMatchedProfile(null)}
         />
     )}
+     <AlertDialog open={showSwipeLimitDialog} onOpenChange={setShowSwipeLimitDialog}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>{t('discover.limit.title')}</AlertDialogTitle>
+                <AlertDialogDescription>
+                    {t('discover.limit.description')}
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogAction onClick={() => setShowSwipeLimitDialog(false)}>
+                    {t('discover.limit.ok')}
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+
     <div className="flex flex-col h-full bg-gray-50 dark:bg-black pb-[env(safe-area-inset-bottom,0rem)]">
       <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden">
         <div className="w-full max-w-sm h-full relative">
@@ -704,3 +749,4 @@ export default function DiscoverPage() {
     </>
   );
 }
+
