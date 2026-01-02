@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useToast } from '@/hooks/use-toast';
+import { useTwa } from '@/hooks/use-twa';
 
 
 const LikesGridSkeleton = () => (
@@ -29,13 +30,25 @@ const LikesGridSkeleton = () => (
 const BlurredLikesOverlay = () => {
     const { t } = useLanguage();
     const router = useRouter();
+    const isWebView = useTwa();
+
+    const handlePress = () => {
+        if (isWebView) {
+            // Open the management page in an external browser
+            window.open('https://bematch.app/settings/subscriptions', '_blank');
+        } else {
+            // Navigate internally for web users
+            router.push('/settings/subscriptions');
+        }
+    }
+
     return (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-4 text-center bg-black/60 backdrop-blur-md">
             <Crown className="w-16 h-16 text-yellow-400 mb-4" />
             <h3 className="text-xl font-bold text-white">Seni Beğenenleri Gör</h3>
             <p className="text-white/80 mt-2 mb-6">BeMatch Gold'a yükselterek seni beğenen herkesi anında gör ve eşleşme şansını artır.</p>
-            <Button onClick={() => router.push('/settings/subscriptions')} className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold">
-                Gold'u Keşfet
+            <Button onClick={handlePress} className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold">
+                {isWebView ? 'Hesabımı Web\'de Yönet' : 'Gold\'u Keşfet'}
             </Button>
         </div>
     );
