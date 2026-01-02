@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useRef, useState, useEffect } from 'react';
 import { Plus, X, ArrowLeft, Loader2, Trash2 } from 'lucide-react';
@@ -68,7 +69,14 @@ export default function GallerySettingsPage() {
           const downloadURL = await getDownloadURL(storageRef);
 
           const updatedPhotos = [...localPhotos, downloadURL];
-          await updateDoc(userDocRef!, { imageUrls: updatedPhotos });
+          const updatePayload: { imageUrls: string[], avatarUrl?: string } = { imageUrls: updatedPhotos };
+          
+          // If this is the first photo being added, set it as the avatar.
+          if (localPhotos.length === 0) {
+            updatePayload.avatarUrl = updatedPhotos[0];
+          }
+
+          await updateDoc(userDocRef!, updatePayload);
 
           setLocalPhotos(updatedPhotos);
           toast({ title: t('galleryPage.photoAdded') });
@@ -99,7 +107,14 @@ export default function GallerySettingsPage() {
 
       // Delete from Firestore
       const updatedPhotos = localPhotos.filter(url => url !== photoToDelete);
-      await updateDoc(userDocRef!, { imageUrls: updatedPhotos });
+      const updatePayload: { imageUrls: string[], avatarUrl?: string } = { imageUrls: updatedPhotos };
+      
+      // If the deleted photo was the avatar, set the new first photo as the avatar.
+      if (userProfile?.avatarUrl === photoToDelete) {
+        updatePayload.avatarUrl = updatedPhotos[0];
+      }
+
+      await updateDoc(userDocRef!, updatePayload);
       
       setLocalPhotos(updatedPhotos);
       toast({ title: t('galleryPage.photoRemoved') });
@@ -107,7 +122,11 @@ export default function GallerySettingsPage() {
     } catch (error: any) {
         if (error.code === 'storage/object-not-found') {
              const updatedPhotos = localPhotos.filter(url => url !== photoToDelete);
-             await updateDoc(userDocRef!, { imageUrls: updatedPhotos });
+             const updatePayload: { imageUrls: string[], avatarUrl?: string } = { imageUrls: updatedPhotos };
+              if (userProfile?.avatarUrl === photoToDelete) {
+                updatePayload.avatarUrl = updatedPhotos[0];
+              }
+             await updateDoc(userDocRef!, updatePayload);
              setLocalPhotos(updatedPhotos);
              toast({ title: t('galleryPage.photoRemoved') });
         } else {
