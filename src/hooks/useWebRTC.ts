@@ -76,7 +76,7 @@ export function useWebRTC(roomId: string, currentUserId?: string) {
     return () => {
         localStream?.getTracks().forEach(track => track.stop());
     }
-  }, []); // isMuted dependency removed to prevent re-acquiring stream on mute
+  }, []); // Empty dependency array is correct here.
 
   // Listen for other users joining/leaving to initiate/close connections
   useEffect(() => {
@@ -223,15 +223,14 @@ export function useWebRTC(roomId: string, currentUserId?: string) {
     }, [localStream, isMuted, currentUserId]);
 
 
-  const toggleMute = () => {
-      if (localStream) {
-          const enabled = !isMuted;
-          localStream.getAudioTracks().forEach(track => {
-              track.enabled = enabled;
-          });
-          setIsMuted(!enabled);
-      }
-  };
+  const toggleMute = useCallback(() => {
+    if (!localStream) return;
+    const newMutedState = !isMuted;
+    localStream.getAudioTracks().forEach((track) => {
+      track.enabled = !newMutedState;
+    });
+    setIsMuted(newMutedState);
+  }, [localStream, isMuted]);
   
   return { localStream, peers, isMuted, toggleMute, speakingPeerId };
 }
