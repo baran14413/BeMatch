@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Hand, Mic, MicOff, MoreHorizontal, PhoneMissed, Send, ThumbsUp, Loader2 } from 'lucide-react';
+import { ArrowLeft, Hand, Mic, MicOff, MoreHorizontal, PhoneMissed, Send, ThumbsUp, Loader2, LogOut, Trash2 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDoc, useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import type { VoiceRoom, UserProfile, Message } from '@/lib/data';
@@ -12,6 +12,18 @@ import { doc, collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, se
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { useWebRTC } from '@/hooks/useWebRTC';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
 
 const RoomLoader = () => (
     <div className="flex flex-col h-dvh items-center justify-center gap-4">
@@ -58,6 +70,7 @@ export default function VoiceRoomPage() {
   const params = useParams();
   const firestore = useFirestore();
   const { user } = useUser();
+  const { toast } = useToast();
   const { roomId } = params;
 
   const [newMessage, setNewMessage] = useState('');
@@ -140,6 +153,25 @@ export default function VoiceRoomPage() {
     }
   };
 
+  const handleDeleteRoom = async () => {
+    if (!roomDocRef) return;
+    try {
+      await deleteDoc(roomDocRef);
+      toast({
+        title: "Oda Silindi",
+        description: "Oda başarıyla kapatıldı.",
+      });
+      router.push('/voice-lounge');
+    } catch (error) {
+      console.error("Error deleting room:", error);
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: "Oda silinirken bir sorun oluştu.",
+      });
+    }
+  };
+
 
   if (isLoading) {
       return <RoomLoader />;
@@ -161,6 +193,8 @@ export default function VoiceRoomPage() {
     return acc;
   }, [] as UserProfile[]) : [currentUserProfile];
 
+  const isOwner = user?.uid === room.ownerId;
+
   return (
     <div className="flex flex-col h-dvh overflow-hidden bg-gradient-to-b from-card to-background">
       {/* Peers' audio elements */}
@@ -176,9 +210,45 @@ export default function VoiceRoomPage() {
             <h1 className="text-xl font-bold">{room.title}</h1>
             <p className="text-sm text-muted-foreground">{participants?.length || 0} kişi dinliyor</p>
         </div>
-        <Button variant="ghost" size="icon" className="text-foreground">
-          <MoreHorizontal className="w-6 h-6" />
-        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+             <Button variant="ghost" size="icon" className="text-foreground">
+                <MoreHorizontal className="w-6 h-6" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-1">
+            {isOwner ? (
+              <>
+                 <Button variant="ghost" className="w-full justify-start">Odayı Yönet</Button>
+                 <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                         <Button variant="ghost" className="w-full justify-start text-destructive hover:text-destructive">
+                           <Trash2 className="w-4 h-4 mr-2" /> Odayı Sil
+                         </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Bu eylem geri alınamaz. Sesli sohbet odası kalıcı olarak kapatılacaktır.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>İptal</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteRoom} className="bg-destructive hover:bg-destructive/90">
+                          Evet, Odayı Sil
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+              </>
+            ) : (
+                 <Button variant="ghost" onClick={() => router.back()} className="w-full justify-start">
+                   <LogOut className="w-4 h-4 mr-2" /> Odadan Ayrıl
+                 </Button>
+            )}
+          </PopoverContent>
+        </Popover>
       </header>
       
       <div className="p-4">
@@ -205,7 +275,7 @@ export default function VoiceRoomPage() {
       </div>
 
       <div className="flex-1 flex flex-col relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-background to-transparent z-10 pointer-events-none" />
+        <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-t from-background to-transparent z-10 pointer-events-none" />
         <ScrollArea className="flex-1 p-4 space-y-4">
           <AnimatePresence>
               {messages?.map(message => {
