@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useDatabase, useUser } from '@/firebase';
-import { ref, onValue, off, set, remove } from 'firebase/database';
+import { ref, onValue, off, set, remove, onDisconnect } from 'firebase/database';
 
 const ICE_SERVERS = {
   iceServers: [
