@@ -27,12 +27,15 @@ const SettingsSection = ({ title, children }: { title: string, children: React.R
 
 const SettingsItem = ({ icon: Icon, label, href, target }: { icon: React.ElementType, label: string, href?: string, target?: string }) => (
     <li className="list-none">
-        <Link href={href!} passHref legacyBehavior>
-            <a target={target} rel={target === '_blank' ? 'noopener noreferrer' : undefined} className="flex items-center p-4 hover:bg-secondary cursor-pointer">
-                <Icon className="w-6 h-6 mr-4 text-primary" />
-                <span className="flex-1 font-medium">{label}</span>
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
-            </a>
+        <Link 
+            href={href!} 
+            target={target} 
+            rel={target === '_blank' ? 'noopener noreferrer' : undefined} 
+            className="flex items-center p-4 hover:bg-secondary cursor-pointer"
+        >
+            <Icon className="w-6 h-6 mr-4 text-primary" />
+            <span className="flex-1 font-medium">{label}</span>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
         </Link>
     </li>
 );
