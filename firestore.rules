@@ -89,6 +89,24 @@ service cloud.firestore {
         allow read, write: if isAdmin() || get(/databases/$(database)/documents/matches/$(matchId)).data.users.hasAny([request.auth.uid]);
       }
     }
+    
+    // --- VOICE ROOM OPERATIONS ---
+    match /voiceRooms/{roomId} {
+        // Anyone authenticated can read the list of public rooms
+        allow list, get: if request.auth != null;
+        
+        // Only the owner can delete the room.
+        allow delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+        
+        // Any authenticated user can create a room, but they must be the owner.
+        allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+        
+        // Only the owner can update room details (like title or password) or ban users.
+        // We check that only 'title', 'isPublic', 'passwordHash', and 'bannedUserIds' can be changed.
+        allow update: if request.auth != null && resource.data.ownerId == request.auth.uid
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['title', 'isPublic', 'passwordHash', 'bannedUserIds']);
+    }
 
     // --- ADMIN-ONLY COLLECTIONS (or specific access) ---
     match /reports/{reportId} {
@@ -110,3 +128,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
