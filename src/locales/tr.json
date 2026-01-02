@@ -22,9 +22,9 @@
             "superLikeDescription": "Süper Beğeni göndermek ve daha fazla dikkat çekmek için Gold'a yükselt.",
             "superLikeDescriptionWebview": "Daha fazla Süper Beğeni için web sitemizi ziyaret edebilirsin.",
             "panelDescription": "Yeni haklarına kalan süre:",
-            "manageAccountTitle": "Sınırsız Kaydırma Hakkı",
-            "manageAccountDescription": "Sınırsız kaydırma hakkı ve diğer tüm ayrıcalıklar için hesabını yönet.",
-            "manageAccountButton": "Hesabımı Web'de Yönet"
+            "manageAccountTitle": "Plan Detayları",
+            "manageAccountDescription": "Yeni hakların belirli bir süre sonra yenilenecektir. Mevcut plan detaylarını görüntülemek veya değiştirmek için hesabını yönetebilirsin.",
+            "manageAccountButton": "Hesabımı Yönet"
         }
     },
     "likes": {

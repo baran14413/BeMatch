@@ -21,10 +21,10 @@
             "superLikeTitle": "Out of Super Likes",
             "superLikeDescription": "Upgrade to Gold to send Super Likes and get noticed.",
             "superLikeDescriptionWebview": "You can get more Super Likes by visiting our website.",
-            "panelDescription": "Your new swipe rights will be available in:",
-            "manageAccountTitle": "Unlimited Swipes",
-            "manageAccountDescription": "Manage your account to get unlimited swipes and other premium features.",
-            "manageAccountButton": "Manage My Account"
+            "panelDescription": "Your new swipes will be available in:",
+            "manageAccountTitle": "Plan Details",
+            "manageAccountDescription": "Your new rights will be renewed after a certain period. You can manage your account to view or change your current plan details.",
+            "manageAccountButton": "Manage Account"
         }
     },
     "likes": {
