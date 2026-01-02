@@ -21,26 +21,6 @@ const poppins = Poppins({
   variable: '--font-poppins',
 });
 
-// Note: Metadata export is commented out because it can only be exported from a server component.
-// This component is marked as 'use client'.
-// export const metadata: Metadata = {
-//   title: 'BeMatch',
-//   description: 'Mükemmel eşini bul.',
-//   appleWebApp: {
-//     capable: true,
-//     statusBarStyle: 'black-translucent',
-//     title: 'BeMatch',
-//   },
-// };
-
-// export const viewport: Viewport = {
-//   width: 'device-width',
-//   initialScale: 1,
-//   maximumScale: 1,
-//   userScalable: false,
-//   viewportFit: 'cover',
-// };
-
 /**
  * Initializes Firebase Performance Monitoring. This component must be a child
  * of FirebaseClientProvider to have access to the initialized Firebase app.
@@ -107,7 +87,6 @@ export default function RootLayout({
   return (
     <html lang="tr" suppressHydrationWarning>
       <head>
-        {/* We can manually set title and meta tags in the head for client components */}
         <title>BeMatch</title>
         <meta name="description" content="Mükemmel eşini bul." />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />

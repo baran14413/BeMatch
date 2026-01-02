@@ -1,4 +1,3 @@
-
 {
     "discover": {
         "title": "Discover",
@@ -16,9 +15,16 @@
             "next": "LIKE"
         },
         "limit": {
-            "title": "Daily Swipe Limit Reached",
-            "description": "You have run out of swipes for today. For unlimited swipes, check out our account page on our website.",
-            "ok": "OK"
+            "title": "Daily Limit Reached",
+            "description": "You have run out of swipes for today. To get unlimited swipes, visit your account page on our website.",
+            "ok": "OK",
+            "superLikeTitle": "Out of Super Likes",
+            "superLikeDescription": "Upgrade to Gold to send Super Likes and get noticed.",
+            "superLikeDescriptionWebview": "You can get more Super Likes by visiting our website.",
+            "panelDescription": "Your new swipe rights will be available in:",
+            "manageAccountTitle": "Unlimited Swipes",
+            "manageAccountDescription": "Manage your account to get unlimited swipes and other premium features.",
+            "manageAccountButton": "Manage My Account"
         }
     },
     "likes": {
@@ -84,6 +90,9 @@
         "yearly": "Yearly",
         "mostPopular": "Most Popular",
         "choosePlan": "Choose Plan",
+        "noPackagesInWebview": "Manage Your Subscription",
+        "noPackagesInWebviewDescription": "To manage your subscription and view packages, please visit our website from a standard browser.",
+        "goToWebsite": "Go to Website",
         "features": {
             "noAds": "Ad-Free Experience",
             "unlimitedLikes": "Unlimited Likes",
@@ -128,6 +137,7 @@
         "platinumSub": "BeMatch Platinum",
         "nextBillDate": "Your next billing date is:",
         "manageSub": "Manage Subscription",
+        "manageSubWeb": "Manage Account on Web",
         "superLikes": "Super Likes",
         "getMore": "Get More",
         "tokens": "Tokens",

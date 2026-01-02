@@ -21,19 +21,21 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
-  const [locale, setLocale] = useState<Locale>('tr');
+  const [locale, setLocale] = useState<Locale>('tr'); // Default to Turkish
 
    useEffect(() => {
-    // In a real app, you might want to persist this to localStorage
     if (typeof window !== 'undefined') {
         const storedLocale = localStorage.getItem('locale') as Locale;
         if (storedLocale && (storedLocale === 'en' || storedLocale === 'tr')) {
             setLocale(storedLocale);
         } else {
-             // Fallback to browser language if no locale is stored
+             // If no locale is stored, detect browser language
             const browserLang = navigator.language.split('-')[0] as Locale;
-            if (browserLang === 'en' || browserLang === 'tr') {
-                setLocale(browserLang);
+            if (browserLang === 'tr') {
+                setLocale('tr');
+            } else {
+                // Default to English for any other language
+                setLocale('en');
             }
         }
     }

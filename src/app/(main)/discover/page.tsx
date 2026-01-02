@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, useMotionValue, useTransform, PanInfo, AnimatePresence } from 'framer-motion';
@@ -26,16 +25,7 @@ import { generateAiIcebreaker } from '@/ai/flows/generate-ai-icebreaker';
 import { mockProfiles } from '@/lib/mock-profiles';
 import { Card, CardContent } from '@/components/ui/card';
 import { useTwa } from '@/hooks/use-twa';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import SwipeLimitPanel from '@/components/discover/swipe-limit-panel';
 
 
 type SwipeDirection = 'left' | 'right' | 'up';
@@ -44,22 +34,6 @@ type SwipeType = 'like' | 'nope' | 'superlike';
 const MAX_VISIBLE_CARDS = 3;
 const DAILY_REWIND_LIMIT = 3;
 const DAILY_SWIPE_LIMIT = 10;
-/*
-const AD_FREQUENCY = 3; // Show an ad every 3 user profiles
-
-// --- Ad Injection Logic ---
-const injectAds = (profiles: UserProfile[]): SwipeItem[] => {
-  const items: SwipeItem[] = [];
-  let adCounter = 1;
-  profiles.forEach((profile, index) => {
-    items.push({ type: 'user', user: profile });
-    if ((index + 1) % AD_FREQUENCY === 0) {
-      items.push({ type: 'ad', id: `ad-${adCounter++}` });
-    }
-  });
-  return items;
-};
-*/
 
 // Haversine formula to calculate distance between two lat/lon points
 const getDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -77,45 +51,6 @@ const getDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number)
   const distance = R * c;
   return Math.round(distance);
 };
-
-/*
-const AdBanner = () => {
-    useEffect(() => {
-        try {
-            // @ts-ignore
-            (window.adsbygoogle = window.adsbygoogle || []).push({});
-        } catch (err) {
-            console.error(err);
-        }
-    }, []);
-
-    return (
-        <ins className="adsbygoogle"
-             style={{ display: "block" }}
-             data-ad-client="ca-pub-9707142962495660"
-             data-ad-slot="YOUR_AD_SLOT_ID" // TODO: Replace with your ad slot ID
-             data-ad-format="auto"
-             data-full-width-responsive="true"></ins>
-    );
-};
-*/
-/*
-const AdCard = ({ item }: { item: AdItem }) => {
-  return (
-    <Card className="w-full h-full bg-muted flex flex-col items-center justify-center p-4">
-        <CardContent className='w-full p-0'>
-             <div className="text-center text-muted-foreground mb-4">
-                <p className="text-xs font-semibold uppercase">Advertisement</p>
-            </div>
-            
-            <div className="w-full h-64 bg-background rounded-lg flex items-center justify-center">
-                 <AdBanner />
-            </div>
-        </CardContent>
-    </Card>
-  );
-};
-*/
 
 
 const SwipeableCard = ({
@@ -254,7 +189,7 @@ export default function DiscoverPage() {
   const [detailsProfile, setDetailsProfile] = useState<UserProfile | null>(null);
   const [compatibilityProfile, setCompatibilityProfile] = useState<UserProfile | null>(null);
   const [newlyMatchedProfile, setNewlyMatchedProfile] = useState<UserProfile | null>(null);
-  const [showSwipeLimitDialog, setShowSwipeLimitDialog] = useState(false);
+  const [showSwipeLimitPanel, setShowSwipeLimitPanel] = useState(false);
 
   const [profileIndex, setProfileIndex] = useState(0);
   const [visibleStack, setVisibleStack] = useState<SwipeItem[]>([]);
@@ -343,11 +278,6 @@ export default function DiscoverPage() {
         if (b.distance === undefined) return -1;
         return a.distance - b.distance;
       });
-
-    // Inject ads only if the user is not premium
-    /* if (!isPremium) {
-        return injectAds(filteredProfiles);
-    } */
     
     // For premium users, return only user items
     return filteredProfiles.map(p => ({ type: 'user', user: p }));
@@ -430,7 +360,7 @@ export default function DiscoverPage() {
         const swipesToday = (lastSwipeDate && isToday(lastSwipeDate)) ? (currentUserProfile.dailySwipeCount || 0) : 0;
         
         if (swipesToday >= DAILY_SWIPE_LIMIT) {
-            setShowSwipeLimitDialog(true);
+            setShowSwipeLimitPanel(true);
             return; // Stop swipe processing
         }
         
@@ -448,8 +378,6 @@ export default function DiscoverPage() {
     setHistory(prev => [{item: swipedItem, type: swipeType}, ...prev]);
     setProfileIndex(prev => prev + 1);
     
-    // If it's an ad, just dismiss it. Don't do any other logic.
-    // Ads can't be liked or superliked.
     if (swipedItem.type === 'ad') {
         return;
     }
@@ -457,7 +385,6 @@ export default function DiscoverPage() {
     // --- User-specific swipe logic ---
     const swipedProfile = swipedItem.user;
     
-    // If it's a mock profile and the user liked them, initiate an AI chat.
     if (swipedProfile.isSystemAccount && (swipeType === 'like' || swipeType === 'superlike')) {
         try {
             const matchId = [currentUserProfile.id, swipedProfile.id].sort().join('_');
@@ -530,8 +457,9 @@ export default function DiscoverPage() {
 
     if (direction === 'up' && !isPremium) {
         toast({
-            title: "Süper Beğeni Hakkın Kalmadı",
-            description: isWebView ? "Daha fazla Süper Beğeni için web sitemizi ziyaret edebilirsin." : "Süper Beğeni göndermek ve daha fazla dikkat çekmek için Gold'a yükselt.",
+            variant: "destructive",
+            title: t('discover.limit.superLikeTitle'),
+            description: isWebView ? t('discover.limit.superLikeDescriptionWebview') : t('discover.limit.superLikeDescription'),
             action: isWebView ? undefined : <Button onClick={() => router.push('/settings/subscriptions')}>Yükselt</Button>
         });
         return;
@@ -639,6 +567,9 @@ export default function DiscoverPage() {
   
   return (
     <>
+    {showSwipeLimitPanel && (
+        <SwipeLimitPanel onClose={() => setShowSwipeLimitPanel(false)} />
+    )}
     {newlyMatchedProfile && currentUserProfile && (
         <ItIsAMatch 
             currentUser={currentUserProfile}
@@ -646,21 +577,6 @@ export default function DiscoverPage() {
             onContinue={() => setNewlyMatchedProfile(null)}
         />
     )}
-     <AlertDialog open={showSwipeLimitDialog} onOpenChange={setShowSwipeLimitDialog}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>{t('discover.limit.title')}</AlertDialogTitle>
-                <AlertDialogDescription>
-                    {t('discover.limit.description')}
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogAction onClick={() => setShowSwipeLimitDialog(false)}>
-                    {t('discover.limit.ok')}
-                </AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-    </AlertDialog>
 
     <div className="flex flex-col h-full bg-gray-50 dark:bg-black pb-[env(safe-area-inset-bottom,0rem)]">
       <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden">
@@ -717,8 +633,6 @@ export default function DiscoverPage() {
         {showTutorial && <TutorialOverlay />}
       </div>
       
-      {/* Ad Banner - This can be moved or removed if AdCard is sufficient */}
-      
       <Sheet open={!!detailsProfile} onOpenChange={(isOpen) => !isOpen && setDetailsProfile(null)}>
         <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl flex flex-col">
             <SheetHeader className="pt-[calc(env(safe-area-inset-top,0rem)+0.75rem)]">
@@ -749,4 +663,3 @@ export default function DiscoverPage() {
     </>
   );
 }
-

@@ -1,4 +1,3 @@
-
 {
     "discover": {
         "title": "Keşfet",
@@ -16,9 +15,16 @@
             "next": "BEĞEN"
         },
         "limit": {
-            "title": "Günlük Kaydırma Limiti Doldu",
+            "title": "Günlük Limit Doldu",
             "description": "Bugünlük kaydırma hakkın bitti. Sınırsız kaydırma için web sitemizdeki hesabım sayfanı ziyaret edebilirsin.",
-            "ok": "Tamam"
+            "ok": "Tamam",
+            "superLikeTitle": "Süper Beğeni Hakkın Bitti",
+            "superLikeDescription": "Süper Beğeni göndermek ve daha fazla dikkat çekmek için Gold'a yükselt.",
+            "superLikeDescriptionWebview": "Daha fazla Süper Beğeni için web sitemizi ziyaret edebilirsin.",
+            "panelDescription": "Yeni haklarına kalan süre:",
+            "manageAccountTitle": "Sınırsız Kaydırma Hakkı",
+            "manageAccountDescription": "Sınırsız kaydırma hakkı ve diğer tüm ayrıcalıklar için hesabını yönet.",
+            "manageAccountButton": "Hesabımı Web'de Yönet"
         }
     },
     "likes": {
@@ -84,6 +90,9 @@
         "yearly": "Yıllık",
         "mostPopular": "En Popüler",
         "choosePlan": "Planı Seç",
+        "noPackagesInWebview": "Aboneliğini Yönet",
+        "noPackagesInWebviewDescription": "Aboneliğini yönetmek ve paketleri görüntülemek için lütfen web sitemizi standart bir tarayıcıdan ziyaret et.",
+        "goToWebsite": "Web Sitesine Git",
         "features": {
             "noAds": "Reklamsız Deneyim",
             "unlimitedLikes": "Sınırsız Beğeni",
@@ -130,6 +139,7 @@
         "platinumSub": "BeMatch Platinum",
         "nextBillDate": "Bir sonraki fatura tarihiniz:",
         "manageSub": "Aboneliği Yönet",
+        "manageSubWeb": "Hesabımı Web'de Yönet",
         "superLikes": "Süper Beğeni",
         "getMore": "Daha Fazla Al",
         "tokens": "Jetonlar",
