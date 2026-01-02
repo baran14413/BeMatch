@@ -146,21 +146,21 @@ export default function PersonalInfoPage() {
     return (
         <ScrollArea className="h-full">
             <div className="h-full bg-gray-50 dark:bg-black">
-                <header className="p-4 py-6 md:p-8 flex items-center gap-4 pt-[calc(env(safe-area-inset-top,0rem)+1.5rem)]">
+                <header className="p-4 flex items-center gap-4 pt-[calc(env(safe-area-inset-top,0rem)+1rem)]">
                     <Link href="/settings" passHref>
                         <Button variant="ghost" size="icon">
                             <ArrowLeft className="w-6 h-6" />
                         </Button>
                     </Link>
-                    <div>
-                        <h1 className="text-3xl font-bold text-primary">{t('personalInfoPage.title')}</h1>
-                        <p className="text-muted-foreground">{t('personalInfoPage.description')}</p>
+                    <div className="flex-1 min-w-0">
+                        <h1 className="text-3xl font-bold text-primary truncate">{t('personalInfoPage.title')}</h1>
+                        <p className="text-muted-foreground whitespace-normal">{t('personalInfoPage.description')}</p>
                     </div>
                 </header>
 
-                <div className="p-4 md:p-8 md:pt-0 space-y-8 pb-[calc(env(safe-area-inset-bottom,0rem)+2rem)]">
+                <div className="p-4 space-y-6 pb-[calc(env(safe-area-inset-bottom,0rem)+1rem)]">
                     {isLoading ? (
-                         <div className="space-y-8">
+                         <div className="space-y-6">
                             <Skeleton className="h-48 w-full" />
                             <Skeleton className="h-24 w-full" />
                             <Skeleton className="h-40 w-full" />
