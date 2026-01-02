@@ -30,17 +30,17 @@ const PackageCard = ({
     onPurchase,
     isPurchasingAny,
     isThisBeingPurchased,
-    isTwa,
+    isWebView,
 }:{
     pkg: SubscriptionPackage,
     onPurchase: (productId: string) => void,
     isPurchasingAny: boolean,
     isThisBeingPurchased: boolean,
-    isTwa: boolean;
+    isWebView: boolean;
 }) => {
     const { t } = useLanguage();
     const showSpinner = isThisBeingPurchased;
-    const isDisabled = isPurchasingAny || isTwa;
+    const isDisabled = isPurchasingAny || isWebView;
 
     return (
         <Card className={cn(
@@ -65,17 +65,19 @@ const PackageCard = ({
                 <CardDescription>{pkg.description}</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 space-y-8">
-                <div className="text-center">
-                    <span className="text-4xl font-bold">{pkg.price}</span>
-                    <span className="text-muted-foreground">{t(pkg.period)}</span>
-                </div>
+                {!isWebView && (
+                    <div className="text-center">
+                        <span className="text-4xl font-bold">{pkg.price}</span>
+                        <span className="text-muted-foreground">{t(pkg.period)}</span>
+                    </div>
+                )}
                 <ul className="space-y-4">
                     {pkg.features.map((feature, i) => (
                         <FeatureListItem key={i} text={t(feature.text)} included={feature.included} />
                     ))}
                 </ul>
             </CardContent>
-            {!isTwa && (
+            {!isWebView && (
                 <CardFooter className="flex-col gap-2 mt-4">
                     <Button 
                         className="w-full h-12 text-lg font-bold"
@@ -92,26 +94,26 @@ const PackageCard = ({
 };
 
 
-const TwaPurchaseInfoCard = () => (
+const WebViewInfoCard = () => (
     <Card className="lg:col-span-3 bg-blue-50 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
         <CardHeader>
              <div className="flex items-center gap-3">
                 <ExternalLink className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                <CardTitle className="text-blue-800 dark:text-blue-300">Abonelik Yönetimi</CardTitle>
+                <CardTitle className="text-blue-800 dark:text-blue-300">Premium Üyelik Avantajları</CardTitle>
             </div>
         </CardHeader>
         <CardContent>
             <p className="text-blue-700 dark:text-blue-300/90">
-                Google Play Store politikaları gereği, abonelik satın alma ve yönetme işlemleri yalnızca web sitemiz üzerinden yapılabilmektedir.
+                Premium özelliklere erişmek için web sitemizi ziyaret edebilirsiniz.
             </p>
             <p className="mt-2 text-sm text-blue-600 dark:text-blue-400/80">
-                Lütfen mobil veya masaüstü tarayıcınızdan web sitemizi ziyaret ederek işleminizi tamamlayın. Satın alımınız hesabınıza anında yansıyacaktır.
+                Lütfen mobil veya masaüstü tarayıcınızdan web sitemizi ziyaret ederek paketinizi seçin. Üyeliğiniz hesabınıza anında yansıyacaktır.
             </p>
         </CardContent>
         <CardFooter>
             <a href="https://bematch.app/settings/subscriptions" target="_blank" rel="noopener noreferrer" className="w-full">
                 <Button className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
-                    Web Sitesine Git
+                    Web Sitesini Ziyaret Et
                 </Button>
             </a>
         </CardFooter>
@@ -123,7 +125,7 @@ export default function SubscriptionsPage() {
     const { t } = useLanguage();
     const { toast } = useToast();
     const [purchasingId, setPurchasingId] = useState<string | null>(null);
-    const isTwa = useTwa();
+    const isWebView = useTwa();
 
     const { state, purchase } = useGooglePlayBilling({
         onPurchaseSuccess: () => {
@@ -172,24 +174,24 @@ export default function SubscriptionsPage() {
                         </Button>
                     </Link>
                     <div>
-                        <h1 className="text-3xl font-bold text-primary">{t('subscriptionsPage.title')}</h1>
-                        <p className="text-muted-foreground">{t('subscriptionsPage.description')}</p>
+                        <h1 className="text-3xl font-bold text-primary">{isWebView ? 'Premium Paketler' : t('subscriptionsPage.title')}</h1>
+                        <p className="text-muted-foreground">{isWebView ? 'Ayrıcalıklı özellikleri keşfedin.' : t('subscriptionsPage.description')}</p>
                     </div>
                 </header>
                 
                 <div className="px-4 md:px-8 pb-8 space-y-8 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start pb-[calc(env(safe-area-inset-bottom,0rem)+2rem)]">
-                   {isTwa ? <TwaPurchaseInfoCard /> : subscriptionPackages.map(pkg => (
+                   {subscriptionPackages.map(pkg => (
                        <PackageCard 
                           key={pkg.id} 
                           pkg={pkg}
                           onPurchase={handlePurchase}
                           isPurchasingAny={isPurchasingAny}
                           isThisBeingPurchased={isPurchasingAny && purchasingId === pkg.productId}
-                          isTwa={isTwa}
+                          isWebView={isWebView}
                         />
                    ))}
                 </div>
-                 {!isTwa && (
+                 {!isWebView && (
                      <div className="px-4 md:px-8 pb-8 text-center">
                         <p className="text-xs text-muted-foreground pt-2">Satın alma işleminiz Google Play üzerinden güvenli bir şekilde gerçekleştirilecektir.</p>
                     </div>

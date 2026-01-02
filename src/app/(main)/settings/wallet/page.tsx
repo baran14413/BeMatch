@@ -17,8 +17,9 @@ import { addMinutes, isFuture } from 'date-fns';
 import { Separator } from "@/components/ui/separator";
 import { useGooglePlayBilling } from "@/hooks/useGooglePlayBilling";
 import { useState } from 'react';
+import { useTwa } from "@/hooks/use-twa";
 
-const InfoCard = ({ icon: Icon, title, value, actionText, onActionClick, disabled = false, isLoading = false, description }: { icon: React.ElementType, title: string, value: string, actionText: string, onActionClick?: () => void, disabled?: boolean, isLoading?: boolean, description?: string }) => (
+const InfoCard = ({ icon: Icon, title, value, actionText, onActionClick, disabled = false, isLoading = false, description }: { icon: React.ElementType, title: string, value: string, actionText?: string, onActionClick?: () => void, disabled?: boolean, isLoading?: boolean, description?: string }) => (
     <Card className="text-center">
         <CardHeader className="items-center">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
@@ -64,6 +65,7 @@ export default function WalletPage() {
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
+    const isWebView = useTwa();
     
     const [purchasingId, setPurchasingId] = useState<string | null>(null);
 
@@ -155,7 +157,9 @@ export default function WalletPage() {
                                                 {userProfile.premiumExpiresAt ? format(userProfile.premiumExpiresAt.toDate(), 'dd MMMM yyyy', { locale: locale === 'tr' ? tr : enUS }) : 'N/A'}
                                             </span>
                                         </p>
-                                        <Button onClick={() => router.push('/settings/subscriptions')} variant="outline" className="mt-4 bg-transparent border-black text-black hover:bg-black/10">{t('walletPage.manageSub')}</Button>
+                                        {!isWebView && (
+                                            <Button onClick={() => router.push('/settings/subscriptions')} variant="outline" className="mt-4 bg-transparent border-black text-black hover:bg-black/10">{t('walletPage.manageSub')}</Button>
+                                        )}
                                     </CardContent>
                                 </div>
                             </Card>
@@ -163,7 +167,9 @@ export default function WalletPage() {
                              <Card className="text-center p-6">
                                 <CardTitle>{t('walletPage.noSubscription')}</CardTitle>
                                 <CardDescription className="mt-2">{t('walletPage.noSubscriptionDesc')}</CardDescription>
-                                <Button onClick={() => router.push('/settings/subscriptions')} className="mt-4">{t('walletPage.browsePackages')}</Button>
+                                {!isWebView && (
+                                    <Button onClick={() => router.push('/settings/subscriptions')} className="mt-4">{t('walletPage.browsePackages')}</Button>
+                                )}
                             </Card>
                         )}
                        
@@ -188,7 +194,9 @@ export default function WalletPage() {
                                      ) : (
                                         <>
                                             <p className="text-2xl font-bold">1</p>
-                                            <Button onClick={handleBoost} variant="secondary" className="w-full">{t('walletPage.boost.action')}</Button>
+                                            {!isWebView && (
+                                                <Button onClick={handleBoost} variant="secondary" className="w-full">{t('walletPage.boost.action')}</Button>
+                                            )}
                                         </>
                                      )}
                                 </CardContent>
@@ -197,43 +205,46 @@ export default function WalletPage() {
                                 icon={Star}
                                 title={t('walletPage.superLikes')}
                                 value={userProfile?.superLikes?.toString() || '0'}
-                                actionText={t('walletPage.getMore')}
                             />
                         </div>
-                        <Separator />
-                        <div className="space-y-4">
-                            <h2 className="text-2xl font-bold text-center">Süper Beğeni Satın Al</h2>
-                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                <InfoCard
-                                    icon={Star}
-                                    title="5 Süper Beğeni"
-                                    value={superLikePackages.superlike_5.price}
-                                    actionText="Satın Al"
-                                    onActionClick={() => handlePurchaseSuperLikes('superlike_5')}
-                                    isLoading={isPurchasingAny && purchasingId === 'superlike_5'}
-                                    disabled={isPurchasingAny}
-                                />
-                                <InfoCard
-                                    icon={Star}
-                                    title="15 Süper Beğeni"
-                                    value={superLikePackages.superlike_15.price}
-                                    actionText="Satın Al"
-                                    onActionClick={() => handlePurchaseSuperLikes('superlike_15')}
-                                    isLoading={isPurchasingAny && purchasingId === 'superlike_15'}
-                                    disabled={isPurchasingAny}
-                                />
-                                <InfoCard
-                                    icon={Star}
-                                    title="30 Süper Beğeni"
-                                    value={superLikePackages.superlike_30.price}
-                                    description="En Popüler"
-                                    actionText="Satın Al"
-                                    onActionClick={() => handlePurchaseSuperLikes('superlike_30')}
-                                    isLoading={isPurchasingAny && purchasingId === 'superlike_30'}
-                                    disabled={isPurchasingAny}
-                                />
-                            </div>
-                        </div>
+                        {!isWebView && (
+                            <>
+                                <Separator />
+                                <div className="space-y-4">
+                                    <h2 className="text-2xl font-bold text-center">Süper Beğeni Satın Al</h2>
+                                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        <InfoCard
+                                            icon={Star}
+                                            title="5 Süper Beğeni"
+                                            value={superLikePackages.superlike_5.price}
+                                            actionText="Satın Al"
+                                            onActionClick={() => handlePurchaseSuperLikes('superlike_5')}
+                                            isLoading={isPurchasingAny && purchasingId === 'superlike_5'}
+                                            disabled={isPurchasingAny}
+                                        />
+                                        <InfoCard
+                                            icon={Star}
+                                            title="15 Süper Beğeni"
+                                            value={superLikePackages.superlike_15.price}
+                                            actionText="Satın Al"
+                                            onActionClick={() => handlePurchaseSuperLikes('superlike_15')}
+                                            isLoading={isPurchasingAny && purchasingId === 'superlike_15'}
+                                            disabled={isPurchasingAny}
+                                        />
+                                        <InfoCard
+                                            icon={Star}
+                                            title="30 Süper Beğeni"
+                                            value={superLikePackages.superlike_30.price}
+                                            description="En Popüler"
+                                            actionText="Satın Al"
+                                            onActionClick={() => handlePurchaseSuperLikes('superlike_30')}
+                                            isLoading={isPurchasingAny && purchasingId === 'superlike_30'}
+                                            disabled={isPurchasingAny}
+                                        />
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
             </div>
