@@ -24,7 +24,8 @@
             "panelDescription": "Yeni haklarına kalan süre:",
             "manageAccountTitle": "Plan Detayları",
             "manageAccountDescription": "Yeni hakların belirli bir süre sonra yenilenecektir. Mevcut plan detaylarını görüntülemek veya değiştirmek için hesabını yönetebilirsin.",
-            "manageAccountButton": "Hesabımı Yönet"
+            "manageAccountButton": "Hesabımı Yönet",
+            "usedSwipes": "Kullanılan Hak"
         }
     },
     "likes": {

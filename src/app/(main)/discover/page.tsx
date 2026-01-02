@@ -138,7 +138,7 @@ const SwipeableCard = ({
             />
         </>
       ) : (
-          null // <AdCard item={item} />
+          null // Ad cards are currently disabled
       )}
     </motion.div>
   );
@@ -354,7 +354,7 @@ export default function DiscoverPage() {
     }
     if (visibleStack.length === 0 || !user || !firestore || !currentUserProfile || !currentUserDocRef) return;
 
-    // --- Daily Swipe Limit Check ---
+    // --- Daily Swipe Limit Check for ALL swipe types ---
     if (!isPremium) {
         const lastSwipeDate = currentUserProfile.lastSwipeAt?.toDate();
         const swipesToday = (lastSwipeDate && isToday(lastSwipeDate)) ? (currentUserProfile.dailySwipeCount || 0) : 0;
@@ -373,12 +373,12 @@ export default function DiscoverPage() {
 
     const swipedItem = visibleStack[visibleStack.length - 1];
     
-    // Common logic for both ads and users: advance the card stack
     const swipeType: SwipeType = direction === 'right' ? 'like' : direction === 'up' ? 'superlike' : 'nope';
     setHistory(prev => [{item: swipedItem, type: swipeType}, ...prev]);
     setProfileIndex(prev => prev + 1);
     
-    if (swipedItem.type === 'ad') {
+    // Skip further logic if it's an ad or a 'nope' swipe
+    if (swipedItem.type === 'ad' || swipeType === 'nope') {
         return;
     }
 
@@ -453,8 +453,6 @@ export default function DiscoverPage() {
     }
     
     // Regular swipe logic for real users
-    if (swipeType === 'nope') return;
-
     if (direction === 'up' && !isPremium) {
         toast({
             variant: "destructive",
@@ -567,8 +565,12 @@ export default function DiscoverPage() {
   
   return (
     <>
-    {showSwipeLimitPanel && (
-        <SwipeLimitPanel onClose={() => setShowSwipeLimitPanel(false)} />
+    {showSwipeLimitPanel && currentUserProfile && (
+        <SwipeLimitPanel 
+            onClose={() => setShowSwipeLimitPanel(false)}
+            swipesUsed={currentUserProfile.dailySwipeCount || 0}
+            swipeLimit={DAILY_SWIPE_LIMIT}
+        />
     )}
     {newlyMatchedProfile && currentUserProfile && (
         <ItIsAMatch 

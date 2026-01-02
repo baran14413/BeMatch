@@ -12,9 +12,11 @@ import { useTwa } from '@/hooks/use-twa';
 
 interface SwipeLimitPanelProps {
   onClose: () => void;
+  swipesUsed: number;
+  swipeLimit: number;
 }
 
-export default function SwipeLimitPanel({ onClose }: SwipeLimitPanelProps) {
+export default function SwipeLimitPanel({ onClose, swipesUsed, swipeLimit }: SwipeLimitPanelProps) {
   const { t, locale } = useLanguage();
   const router = useRouter();
   const isWebView = useTwa();
@@ -64,18 +66,24 @@ export default function SwipeLimitPanel({ onClose }: SwipeLimitPanelProps) {
           <X className="w-6 h-6" />
         </Button>
         <Timer className="w-20 h-20 text-primary mb-6" />
-        <h1 className="text-4xl font-bold mb-4">{t('discover.limit.title')}</h1>
+        <h1 className="text-4xl font-bold mb-2">{t('discover.limit.title')}</h1>
+        <p className="font-bold text-xl mb-4">{t('discover.limit.usedSwipes')}: {swipesUsed}/{swipeLimit}</p>
+
         <p className="text-white/80 text-lg mb-2">{t('discover.limit.panelDescription')}</p>
         <p className="text-primary font-bold text-xl mb-8">{timeRemaining}</p>
         
-        <Card className="w-full max-w-sm bg-white/10 border-white/20">
-          <CardContent className="p-6">
-            <h3 className="font-semibold text-lg">{t('discover.limit.manageAccountTitle')}</h3>
-            <p className="text-white/70 mt-2 mb-4 text-sm">{t('discover.limit.manageAccountDescription')}</p>
-            <Button className="w-full" onClick={handleManageAccount}>
-                {t('walletPage.manageSubWeb')}
-            </Button>
-          </CardContent>
+        <Card className="w-full max-w-sm bg-white/10 border-white/20 rounded-2xl relative overflow-hidden">
+            <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-primary/50 to-pink-500/50 opacity-50 blur-lg"></div>
+            <CardContent className="p-6 relative">
+                <h3 className="font-semibold text-lg">{t('discover.limit.manageAccountTitle')}</h3>
+                <p className="text-white/70 mt-2 mb-4 text-sm">{t('discover.limit.manageAccountDescription')}</p>
+                <Button 
+                    className="w-full h-12 text-lg font-bold bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:bg-primary/90"
+                    onClick={handleManageAccount}
+                >
+                    {t('discover.limit.manageAccountButton')}
+                </Button>
+            </CardContent>
         </Card>
 
       </motion.div>

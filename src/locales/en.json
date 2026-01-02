@@ -24,7 +24,8 @@
             "panelDescription": "Your new swipes will be available in:",
             "manageAccountTitle": "Plan Details",
             "manageAccountDescription": "Your new rights will be renewed after a certain period. You can manage your account to view or change your current plan details.",
-            "manageAccountButton": "Manage Account"
+            "manageAccountButton": "Manage Account",
+            "usedSwipes": "Used Swipes"
         }
     },
     "likes": {
