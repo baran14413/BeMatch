@@ -163,14 +163,10 @@ export default function WalletPage() {
                                             </span>
                                         </p>
                                         <div className="flex flex-wrap gap-2 mt-4">
-                                            {isWebView ? (
-                                                <Button onClick={handleManageAccount} variant="outline" className="bg-transparent border-black text-black hover:bg-black/10">
-                                                    <ExternalLink className="w-4 h-4 mr-2" />
-                                                    {t('walletPage.manageSubWeb')}
-                                                </Button>
-                                            ) : (
-                                                <Button onClick={() => router.push('/settings/subscriptions')} variant="outline" className="bg-transparent border-black text-black hover:bg-black/10">{t('walletPage.manageSub')}</Button>
-                                            )}
+                                            <Button onClick={handleManageAccount} variant="outline" className="bg-transparent border-black text-black hover:bg-black/10">
+                                                <ExternalLink className="w-4 h-4 mr-2" />
+                                                {t('walletPage.manageSubWeb')}
+                                            </Button>
                                         </div>
                                     </CardContent>
                                 </div>
@@ -179,12 +175,13 @@ export default function WalletPage() {
                              <Card className="text-center p-6">
                                 <CardTitle>{t('walletPage.noSubscription')}</CardTitle>
                                 <CardDescription className="mt-2">{t('walletPage.noSubscriptionDesc')}</CardDescription>
-                                {!isWebView && (
-                                    <Button onClick={() => router.push('/settings/subscriptions')} className="mt-4">{t('walletPage.browsePackages')}</Button>
-                                )}
+                                <Button onClick={handleManageAccount} className="mt-4">
+                                    {t('walletPage.manageSubWeb')}
+                                </Button>
                             </Card>
                         )}
                        
+                       {!isWebView && (
                         <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6">
                              <Card className="text-center">
                                 <CardHeader className="items-center">
@@ -206,9 +203,7 @@ export default function WalletPage() {
                                      ) : (
                                         <>
                                             <p className="text-2xl font-bold">1</p>
-                                            {!isWebView && (
-                                                <Button onClick={handleBoost} variant="secondary" className="w-full">{t('walletPage.boost.action')}</Button>
-                                            )}
+                                            <Button onClick={handleBoost} variant="secondary" className="w-full">{t('walletPage.boost.action')}</Button>
                                         </>
                                      )}
                                 </CardContent>
@@ -219,6 +214,7 @@ export default function WalletPage() {
                                 value={userProfile?.superLikes?.toString() || '0'}
                             />
                         </div>
+                       )}
                         {!isWebView && (
                             <>
                                 <Separator />

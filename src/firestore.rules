@@ -106,11 +106,19 @@ service cloud.firestore {
         allow update: if request.auth != null && resource.data.ownerId == request.auth.uid
                       && request.resource.data.diff(resource.data).affectedKeys()
                          .hasOnly(['title', 'isPublic', 'passwordHash', 'bannedUserIds']);
+      
+        // --- VOICE ROOM PARTICIPANTS SUBCOLLECTION ---
+        match /participants/{userId} {
+            // Anyone can see who is in the room.
+            allow read: if true;
+            // A user can only add or remove themselves from the participants list.
+            allow write, delete: if isOwner(userId);
+        }
 
       // --- VOICE ROOM MESSAGE SUBCOLLECTION ---
-      // For now, allow any authenticated user to read/write messages in any room.
-      // This should be locked down in a real app to only participants.
       match /messages/{messageId} {
+        // Only authenticated users can read/write messages in any room.
+        // For a more secure app, this would be locked down to only room participants.
         allow read, write: if request.auth != null;
       }
     }
