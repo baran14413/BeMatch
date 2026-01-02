@@ -22,6 +22,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 
@@ -275,7 +276,7 @@ export default function VoiceRoomPage() {
       </div>
 
       <div className="flex-1 flex flex-col relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-t from-background to-transparent z-10 pointer-events-none" />
+        <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-t from-transparent to-background z-10 pointer-events-none" />
         <ScrollArea className="flex-1 p-4 space-y-4">
           <AnimatePresence>
               {messages?.map(message => {
@@ -287,7 +288,7 @@ export default function VoiceRoomPage() {
           </AnimatePresence>
           <div ref={messagesEndRef} />
         </ScrollArea>
-        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-background to-transparent z-10 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-b from-transparent to-background z-10 pointer-events-none" />
       </div>
 
       <footer className="p-4 pb-[calc(env(safe-area-inset-bottom,0rem)+1rem)] z-10 space-y-3">
