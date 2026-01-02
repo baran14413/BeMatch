@@ -40,7 +40,7 @@ export default function SwipeLimitPanel({ onClose }: SwipeLimitPanelProps) {
   
   const handleManageAccount = () => {
     if (isWebView) {
-        window.open('https://bematch.app/settings/subscriptions', '_blank');
+        window.open('https://bematch.netlify.app/settings/subscriptions', '_blank');
     } else {
         router.push('/settings/subscriptions');
     }

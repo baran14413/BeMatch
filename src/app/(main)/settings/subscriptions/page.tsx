@@ -102,7 +102,7 @@ const WebViewInfoCard = () => (
             </p>
         </CardContent>
         <CardFooter>
-            <a href="https://bematch.app/settings/subscriptions" target="_blank" rel="noopener noreferrer" className="w-full">
+            <a href="https://bematch.netlify.app/settings/subscriptions" target="_blank" rel="noopener noreferrer" className="w-full">
                 <Button className="w-full">
                     Hesabımı Web'de Yönet
                 </Button>
@@ -166,7 +166,7 @@ export default function SubscriptionsPage() {
                     </Link>
                     <div>
                         <h1 className="text-3xl font-bold text-primary">{isWebView ? "Hesabımı Yönet" : t('subscriptionsPage.title')}</h1>
-                        <p className="text-muted-foreground">{isWebView ? "Abonelik ve paket detaylarını web sitemizden yönet." : t('subscriptionsPage.description')}</p>
+                        <p className="text-muted-foreground">{isWebView ? "Mevcut abonelik planını görüntülemek veya değiştirmek için hesabını web sitemizden yönetebilirsin." : t('subscriptionsPage.description')}</p>
                     </div>
                 </header>
                 

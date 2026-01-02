@@ -35,7 +35,7 @@ const BlurredLikesOverlay = () => {
     const handlePress = () => {
         if (isWebView) {
             // Open the management page in an external browser
-            window.open('https://bematch.app/settings/subscriptions', '_blank');
+            window.open('https://bematch.netlify.app/settings/subscriptions', '_blank');
         } else {
             // Navigate internally for web users
             router.push('/settings/subscriptions');

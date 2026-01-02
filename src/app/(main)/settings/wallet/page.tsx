@@ -127,7 +127,7 @@ export default function WalletPage() {
     const isPurchasingAny = billingState === 'PURCHASING';
     
     const handleManageAccount = () => {
-        window.open('https://bematch.app/settings/subscriptions', '_blank');
+        window.open('https://bematch.netlify.app/settings/subscriptions', '_blank');
     }
 
     return (
@@ -166,7 +166,7 @@ export default function WalletPage() {
                                             {isWebView ? (
                                                 <Button onClick={handleManageAccount} variant="outline" className="bg-transparent border-black text-black hover:bg-black/10">
                                                     <ExternalLink className="w-4 h-4 mr-2" />
-                                                    Hesabımı Web'de Yönet
+                                                    {t('walletPage.manageSubWeb')}
                                                 </Button>
                                             ) : (
                                                 <Button onClick={() => router.push('/settings/subscriptions')} variant="outline" className="bg-transparent border-black text-black hover:bg-black/10">{t('walletPage.manageSub')}</Button>
