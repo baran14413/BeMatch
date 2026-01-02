@@ -4,13 +4,14 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Hand, MicOff, MoreHorizontal, PhoneMissed, Send, ThumbsUp, Loader2 } from 'lucide-react';
+import { ArrowLeft, Hand, Mic, MicOff, MoreHorizontal, PhoneMissed, Send, ThumbsUp, Loader2 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDoc, useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import type { VoiceRoom, UserProfile, Message } from '@/lib/data';
-import { doc, collection, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, setDoc } from 'firebase/firestore';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
+import { useWebRTC } from '@/hooks/useWebRTC';
 
 const RoomLoader = () => (
     <div className="flex flex-col h-dvh items-center justify-center gap-4">
@@ -19,8 +20,7 @@ const RoomLoader = () => (
     </div>
 );
 
-function MessageBubble({ message, isMe }: { message: Message, isMe: boolean }) {
-  // We'll need user profiles to show names/avatars later
+function MessageBubble({ message, isMe, author }: { message: Message, isMe: boolean, author: UserProfile | undefined }) {
   return (
     <motion.div
       layout
@@ -32,8 +32,8 @@ function MessageBubble({ message, isMe }: { message: Message, isMe: boolean }) {
     >
       {!isMe && (
          <Avatar className="w-8 h-8">
-            <AvatarImage src={`https://i.pravatar.cc/150?u=${message.senderId}`} />
-            <AvatarFallback>U</AvatarFallback>
+            <AvatarImage src={author?.avatarUrl} />
+            <AvatarFallback>{author?.name?.charAt(0)}</AvatarFallback>
         </Avatar>
       )}
       <div className={cn(
@@ -42,7 +42,7 @@ function MessageBubble({ message, isMe }: { message: Message, isMe: boolean }) {
           ? 'rounded-tr-none bg-primary text-primary-foreground'
           : 'rounded-tl-none bg-secondary text-secondary-foreground'
       )}>
-        {!isMe && <p className="text-xs font-bold mb-1">Sender Name</p>}
+        {!isMe && <p className="text-xs font-bold mb-1">{author?.name}</p>}
         <p className="text-left whitespace-pre-wrap">{message.text}</p>
         <span className="text-xs self-end mt-1 opacity-70">
           {message.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -64,29 +64,58 @@ export default function VoiceRoomPage() {
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch room data
+  const currentUserProfileRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: currentUserProfile } = useDoc<UserProfile>(currentUserProfileRef);
+
   const roomDocRef = useMemoFirebase(() => {
     if (!firestore || !roomId) return null;
     return doc(firestore, 'voiceRooms', roomId as string);
   }, [firestore, roomId]);
   const { data: room, isLoading: isLoadingRoom } = useDoc<VoiceRoom>(roomDocRef);
 
-  // Fetch participants (placeholder for now)
    const participantsQuery = useMemoFirebase(() => {
     if (!firestore || !roomId) return null;
-    // In a real app, this would be a subcollection like 'voiceRooms/{roomId}/participants'
-    return query(collection(firestore, 'users'), orderBy('name', 'asc'));
+    return query(collection(firestore, 'voiceRooms', roomId as string, 'participants'));
   }, [firestore, roomId]);
   const { data: participants, isLoading: isLoadingParticipants } = useCollection<UserProfile>(participantsQuery);
   
-  // Fetch messages
   const messagesQuery = useMemoFirebase(() => {
     if (!firestore || !roomId) return null;
     return query(collection(firestore, 'voiceRooms', roomId as string, 'messages'), orderBy('timestamp', 'asc'));
   }, [firestore, roomId]);
   const { data: messages, isLoading: isLoadingMessages } = useCollection<Message>(messagesQuery);
   
-  const isLoading = isLoadingRoom || isLoadingParticipants || isLoadingMessages;
+  const {
+    localStream,
+    peers,
+    isMuted,
+    toggleMute,
+    speakingPeerId,
+  } = useWebRTC(roomId as string, user?.uid);
+
+  useEffect(() => {
+    if (!user || !roomId || !firestore || !currentUserProfile) return;
+
+    const participantRef = doc(firestore, 'voiceRooms', roomId as string, 'participants', user.uid);
+
+    setDoc(participantRef, currentUserProfile);
+
+    const handleBeforeUnload = () => {
+      deleteDoc(participantRef);
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      deleteDoc(participantRef);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [user, roomId, firestore, currentUserProfile]);
+
+
+  const isLoading = isLoadingRoom || isLoadingParticipants || isLoadingMessages || !currentUserProfile;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -125,34 +154,42 @@ export default function VoiceRoomPage() {
     );
   }
   
-  const mockParticipants = participants?.slice(0, room.participantCount) || [];
+  const allParticipants = participants ? [...participants, currentUserProfile].reduce((acc, p) => {
+    if (p && !acc.some(ap => ap.id === p.id)) {
+        acc.push(p);
+    }
+    return acc;
+  }, [] as UserProfile[]) : [currentUserProfile];
 
   return (
     <div className="flex flex-col h-dvh overflow-hidden bg-gradient-to-b from-card to-background">
-      {/* Header */}
+      {/* Peers' audio elements */}
+      {Object.entries(peers).map(([peerId, peer]) => (
+        <audio key={peerId} ref={el => el && (el.srcObject = peer.stream)} autoPlay />
+      ))}
+      
       <header className="flex items-center justify-between p-4 pt-[calc(env(safe-area-inset-top,0rem)+1rem)] z-10 border-b">
         <Button variant="ghost" size="icon" onClick={() => router.back()} className="text-foreground">
           <ArrowLeft className="w-6 h-6" />
         </Button>
         <div className="text-center">
             <h1 className="text-xl font-bold">{room.title}</h1>
-            <p className="text-sm text-muted-foreground">{room.participantCount} kişi dinliyor</p>
+            <p className="text-sm text-muted-foreground">{participants?.length || 0} kişi dinliyor</p>
         </div>
         <Button variant="ghost" size="icon" className="text-foreground">
           <MoreHorizontal className="w-6 h-6" />
         </Button>
       </header>
       
-      {/* Participants Grid */}
       <div className="p-4 border-b">
         <ScrollArea className="w-full whitespace-nowrap">
             <div className="flex items-center gap-6 pb-2">
-                {mockParticipants.map(participant => (
+                {allParticipants?.map(participant => (
                     <div key={participant.id} className="flex flex-col items-center gap-2 text-center w-20">
-                        <div className={cn("relative rounded-full p-1")}>
-                            <Avatar className={cn("w-16 h-16 border-2 border-transparent")}>
+                        <div className={cn("relative rounded-full p-0.5", speakingPeerId === participant.id && 'bg-gradient-to-tr from-primary to-blue-400 animate-pulse')}>
+                            <Avatar className={cn("w-16 h-16 border-2", speakingPeerId === participant.id ? 'border-background' : 'border-transparent')}>
                                 <AvatarImage src={participant.avatarUrl} alt={participant.name} />
-                                <AvatarFallback>{participant.name.charAt(0)}</AvatarFallback>
+                                <AvatarFallback>{participant.name?.charAt(0)}</AvatarFallback>
                             </Avatar>
                             {room.ownerId === participant.id && (
                                 <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1 leading-none">
@@ -167,17 +204,18 @@ export default function VoiceRoomPage() {
         </ScrollArea>
       </div>
 
-      {/* Chat Area */}
       <ScrollArea className="flex-1 p-4 space-y-4">
          <AnimatePresence>
-            {messages?.map(message => (
-                <MessageBubble key={message.id} message={message} isMe={message.senderId === user?.uid} />
-            ))}
+            {messages?.map(message => {
+                 const author = allParticipants.find(p => p.id === message.senderId);
+                 return (
+                     <MessageBubble key={message.id} message={message} isMe={message.senderId === user?.uid} author={author} />
+                 )
+            })}
         </AnimatePresence>
         <div ref={messagesEndRef} />
       </ScrollArea>
 
-      {/* Footer Controls */}
       <footer className="p-4 pb-[calc(env(safe-area-inset-bottom,0rem)+1rem)] border-t bg-background/80 backdrop-blur-md z-10 space-y-4">
         <div className="flex items-end gap-2">
             <Textarea 
@@ -201,8 +239,8 @@ export default function VoiceRoomPage() {
             <Button variant="secondary" size="icon" className="w-14 h-14 rounded-full text-muted-foreground">
                 <ThumbsUp className="w-6 h-6" />
             </Button>
-            <Button variant="secondary" size="icon" className="w-14 h-14 rounded-full text-muted-foreground">
-                <MicOff className="w-6 h-6" />
+            <Button variant="secondary" size="icon" className="w-14 h-14 rounded-full text-muted-foreground" onClick={toggleMute}>
+               {isMuted ? <MicOff className="w-6 h-6 text-destructive"/> : <Mic className="w-6 h-6" />}
             </Button>
             <Button variant="destructive" size="icon" className="w-14 h-14 rounded-full" onClick={() => router.back()}>
                 <PhoneMissed className="w-6 h-6" />

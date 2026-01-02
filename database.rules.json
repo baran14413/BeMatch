@@ -1,0 +1,24 @@
+{
+  "rules": {
+    "status": {
+      "$uid": {
+        // Anyone can read a user's status.
+        ".read": "auth != null",
+        // Only the authenticated user can write to their own status node.
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+    "webrtcSignals": {
+      "$roomId": {
+        "$userId": {
+          // A user can read any signal in a room they are a part of (implicit).
+          // For simplicity in this stage, we allow any authenticated user to read.
+          // In a production app, you would check if `auth.uid` is a participant in `/voiceRooms/$roomId`.
+          ".read": "auth != null",
+          // A user can only write their own signaling data.
+          ".write": "auth != null && auth.uid == $userId"
+        }
+      }
+    }
+  }
+}
