@@ -7,61 +7,41 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLanguage } from '@/context/language-context';
 import { Users, Plus, Headphones } from 'lucide-react';
 import Link from 'next/link';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
+import type { VoiceRoom } from '@/lib/data';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Mock data for the voice chat rooms
-const mockRooms = [
-  {
-    id: '1',
-    title: 'Gecenin Geyikleri',
-    imageUrl: 'https://picsum.photos/seed/room1/600/400',
-    participants: [
-      { id: 'u1', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026704d' },
-      { id: 'u2', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026704e' },
-      { id: 'u3', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026704f' },
-      { id: 'u4', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026704a' },
-    ],
-    maxParticipants: 7,
-  },
-  {
-    id: '2',
-    title: 'Müzik ve Sohbet',
-    imageUrl: 'https://picsum.photos/seed/room2/600/400',
-    participants: [
-      { id: 'u5', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026704b' },
-      { id: 'u6', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026704c' },
-    ],
-    maxParticipants: 7,
-  },
-  {
-    id: '3',
-    title: 'Hafta Sonu Planları',
-    imageUrl: 'https://picsum.photos/seed/room3/600/400',
-    participants: [
-      { id: 'u7', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026705d' },
-      { id: 'u8', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026705e' },
-      { id: 'u9', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026705f' },
-      { id: 'u10', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026705a' },
-      { id: 'u11', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026705b' },
-      { id: 'u12', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026705c' },
-      { id: 'u13', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026706d' },
-    ],
-    maxParticipants: 7,
-  },
-   {
-    id: '4',
-    title: 'Film Gecesi Kritikleri',
-    imageUrl: 'https://picsum.photos/seed/room4/600/400',
-    participants: [
-      { id: 'u14', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026706a' },
-      { id: 'u15', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026706b' },
-      { id: 'u16', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026706c' },
-    ],
-    maxParticipants: 7,
-  },
-];
+const RoomCardSkeleton = () => (
+    <Card className="overflow-hidden flex flex-col bg-card">
+        <Skeleton className="h-32 w-full" />
+        <CardContent className="p-4 flex-1">
+            <div className="flex -space-x-2 overflow-hidden mb-4">
+                 <Skeleton className="h-10 w-10 rounded-full" />
+                 <Skeleton className="h-10 w-10 rounded-full" />
+                 <Skeleton className="h-10 w-10 rounded-full" />
+            </div>
+            <div className="flex items-center">
+                <Skeleton className="h-4 w-24" />
+            </div>
+        </CardContent>
+        <CardFooter className="p-4 pt-0">
+            <Skeleton className="h-10 w-full" />
+        </CardFooter>
+    </Card>
+);
+
 
 export default function VoiceLoungePage() {
   const { t } = useLanguage();
+  const firestore = useFirestore();
+
+  const roomsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'voiceRooms'), orderBy('createdAt', 'desc'));
+  }, [firestore]);
+
+  const { data: rooms, isLoading } = useCollection<VoiceRoom>(roomsQuery);
 
   return (
     <ScrollArea className="h-full">
@@ -85,47 +65,64 @@ export default function VoiceLoungePage() {
         </header>
 
         <main className="p-4 md:p-8 md:pt-0 pb-[calc(env(safe-area-inset-bottom,0rem)+1rem)]">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mockRooms.map((room) => (
-              <Card key={room.id} className="overflow-hidden flex flex-col bg-card">
-                <CardHeader 
-                  className="p-0 relative h-32 flex flex-col justify-end"
-                  style={{
-                      backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.8), transparent), url(${room.imageUrl})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                  }}
-                >
-                  <div className="p-4">
-                     <CardTitle className="text-white text-xl">{room.title}</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4 flex-1">
-                  <div className="flex -space-x-2 overflow-hidden mb-4">
-                    {room.participants.slice(0, 8).map((p) => (
-                      <Avatar key={p.id} className="inline-block h-10 w-10 rounded-full ring-2 ring-card">
-                        <AvatarImage src={p.avatarUrl} />
-                        <AvatarFallback>{p.id}</AvatarFallback>
-                      </Avatar>
-                    ))}
-                  </div>
-                   <div className="flex items-center">
-                    <Users className="w-4 h-4 mr-2 text-muted-foreground" />
-                    <span className="text-sm font-medium text-muted-foreground">
-                      {room.participants.length} / {room.maxParticipants} Katılımcı
-                    </span>
-                  </div>
-                </CardContent>
-                <CardFooter className="p-4 pt-0">
-                  <Link href={`/voice-lounge/${room.id}`} passHref className="w-full">
-                    <Button className="w-full" disabled={room.participants.length >= room.maxParticipants}>
-                        {room.participants.length >= room.maxParticipants ? 'Oda Dolu' : 'Odaya Katıl'}
-                    </Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+          {isLoading ? (
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <RoomCardSkeleton />
+                <RoomCardSkeleton />
+                <RoomCardSkeleton />
+            </div>
+          ) : rooms && rooms.length > 0 ? (
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {rooms.map((room) => (
+                <Card key={room.id} className="overflow-hidden flex flex-col bg-card">
+                    <CardHeader 
+                    className="p-0 relative h-32 flex flex-col justify-end"
+                     style={{
+                        backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.8), transparent), url(https://picsum.photos/seed/${room.id}/600/400)`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                    }}
+                    >
+                    <div className="p-4">
+                        <CardTitle className="text-white text-xl">{room.title}</CardTitle>
+                    </div>
+                    </CardHeader>
+                    <CardContent className="p-4 flex-1">
+                    {/* Participant avatars can be fetched in a subcollection later */}
+                    <div className="flex -space-x-2 overflow-hidden mb-4">
+                        {Array.from({length: Math.min(room.participantCount, 5)}).map((_, i) => (
+                           <Avatar key={i} className="inline-block h-10 w-10 rounded-full ring-2 ring-card">
+                             <AvatarImage src={`https://i.pravatar.cc/150?u=${room.id}-${i}`} />
+                             <AvatarFallback>K</AvatarFallback>
+                           </Avatar>
+                        ))}
+                    </div>
+                    <div className="flex items-center">
+                        <Users className="w-4 h-4 mr-2 text-muted-foreground" />
+                        <span className="text-sm font-medium text-muted-foreground">
+                        {room.participantCount} / {room.maxParticipants} Katılımcı
+                        </span>
+                    </div>
+                    </CardContent>
+                    <CardFooter className="p-4 pt-0">
+                    <Link href={`/voice-lounge/${room.id}`} passHref className="w-full">
+                        <Button className="w-full" disabled={room.participantCount >= room.maxParticipants}>
+                            {room.participantCount >= room.maxParticipants ? 'Oda Dolu' : 'Odaya Katıl'}
+                        </Button>
+                    </Link>
+                    </CardFooter>
+                </Card>
+                ))}
+            </div>
+          ) : (
+             <div className="text-center py-16">
+                <p className="text-muted-foreground">Henüz aktif bir oda bulunmuyor.</p>
+                <Button className="mt-4">
+                  <Plus className="mr-2 h-4 w-4" />
+                  İlk Odayı Sen Oluştur
+                </Button>
+            </div>
+          )}
         </main>
       </div>
     </ScrollArea>

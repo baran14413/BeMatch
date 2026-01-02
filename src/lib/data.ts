@@ -1,6 +1,8 @@
 'use client';
 import type { ImagePlaceholder } from './placeholder-images';
 import { differenceInMinutes } from 'date-fns';
+import type { Timestamp } from 'firebase/firestore';
+
 
 export type PersonalityTrait = {
   trait: string;
@@ -142,3 +144,21 @@ export type UserItem = {
 };
 
 export type SwipeItem = UserItem | AdItem;
+
+export type VoiceRoom = {
+    id: string;
+    title: string;
+    ownerId: string;
+    isPublic: boolean;
+    passwordHash?: string;
+    participantCount: number;
+    maxParticipants: number;
+    createdAt: Timestamp;
+    bannedUserIds: string[];
+};
+
+export type WebRTCSignal = {
+    type: 'offer' | 'answer' | 'candidate';
+    sdp?: string;
+    candidate?: object;
+};

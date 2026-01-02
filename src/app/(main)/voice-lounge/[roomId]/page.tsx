@@ -4,36 +4,69 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Hand, MicOff, MoreHorizontal, PhoneMissed, Send, ThumbsUp } from 'lucide-react';
+import { ArrowLeft, Hand, MicOff, MoreHorizontal, PhoneMissed, Send, ThumbsUp, Loader2 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
+import { useDoc, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import type { VoiceRoom, UserProfile, Message } from '@/lib/data';
+import { doc, collection, query, orderBy } from 'firebase/firestore';
 
-// Mock data, to be replaced with real data later
-const mockRoomData = {
-  id: '1',
-  title: 'Gecenin Geyikleri',
-  participants: [
-    { id: 'u1', name: 'Ayşe', avatarUrl: 'https://i.pravatar.cc/150?u=ayse', isSpeaking: true, isModerator: true },
-    { id: 'u2', name: 'Burak', avatarUrl: 'https://i.pravatar.cc/150?u=burak', isSpeaking: false },
-    { id: 'u3', name: 'Can', avatarUrl: 'https://i.pravatar.cc/150?u=can', isSpeaking: false },
-    { id: 'u4', name: 'Derya', avatarUrl: 'https://i.pravatar.cc/150?u=derya', isSpeaking: false },
-    { id: 'u5', name: 'Emre', avatarUrl: 'https://i.pravatar.cc/150?u=emre', isSpeaking: false },
-    { id: 'u6', name: 'Selin', avatarUrl: 'https://i.pravatar.cc/150?u=selin', isSpeaking: false },
-  ],
-  messages: [
-      {id: 'm1', senderId: 'u2', text: 'Bu film hakkında ne düşünüyorsunuz?', timestamp: '10:30'},
-      {id: 'm2', senderId: 'u1', text: 'Bence harikaydı! Özellikle sonu çok etkileyiciydi.', timestamp: '10:31'},
-      {id: 'm3', senderId: 'u3', text: 'Katılıyorum, hiç beklemiyordum.', timestamp: '10:32'},
-  ]
-};
+const RoomLoader = () => (
+    <div className="flex flex-col h-dvh items-center justify-center gap-4">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+        <p className="text-muted-foreground">Odaya bağlanılıyor...</p>
+    </div>
+);
 
 
 export default function VoiceRoomPage() {
   const router = useRouter();
   const params = useParams();
+  const firestore = useFirestore();
   const { roomId } = params;
+
+  // Fetch room data
+  const roomDocRef = useMemoFirebase(() => {
+    if (!firestore || !roomId) return null;
+    return doc(firestore, 'voiceRooms', roomId as string);
+  }, [firestore, roomId]);
+  const { data: room, isLoading: isLoadingRoom } = useDoc<VoiceRoom>(roomDocRef);
+
+  // Fetch participants (placeholder for now)
+   const participantsQuery = useMemoFirebase(() => {
+    if (!firestore || !roomId) return null;
+    // In a real app, this would be a subcollection like 'voiceRooms/{roomId}/participants'
+    return query(collection(firestore, 'users'), orderBy('name', 'asc'));
+  }, [firestore, roomId]);
+  const { data: participants, isLoading: isLoadingParticipants } = useCollection<UserProfile>(participantsQuery);
   
-  const room = mockRoomData; // Use mock data for now
-  const currentUser = room.participants[1]; // Assume current user is Burak for mock
+  // Fetch messages (placeholder for now)
+  const messagesQuery = useMemoFirebase(() => {
+    if (!firestore || !roomId) return null;
+    // This would be 'voiceRooms/{roomId}/messages'
+    return query(collection(firestore, 'matches', 'chatId_placeholder', 'messages'));
+  }, [firestore, roomId]);
+  const { data: messages, isLoading: isLoadingMessages } = useCollection<Message>(messagesQuery);
+  
+  const isLoading = isLoadingRoom || isLoadingParticipants || isLoadingMessages;
+
+  if (isLoading) {
+      return <RoomLoader />;
+  }
+
+  if (!room) {
+    // Handle case where room doesn't exist
+    // You might want to redirect or show a "not found" message
+    return (
+        <div className="flex flex-col h-dvh items-center justify-center gap-4">
+            <p className="text-destructive">Oda bulunamadı.</p>
+            <Button onClick={() => router.back()}>Geri Dön</Button>
+        </div>
+    );
+  }
+  
+  // For now, we'll use a slice of the fetched users as mock participants
+  const mockParticipants = participants?.slice(0, room.participantCount) || [];
+  const currentUser = mockParticipants[1]; // Assume current user is the second one for mock UI
 
   return (
     <div className="flex flex-col h-dvh overflow-hidden bg-gradient-to-b from-card to-background">
@@ -44,7 +77,7 @@ export default function VoiceRoomPage() {
         </Button>
         <div className="text-center">
             <h1 className="text-xl font-bold">{room.title}</h1>
-            <p className="text-sm text-muted-foreground">{room.participants.length} kişi dinliyor</p>
+            <p className="text-sm text-muted-foreground">{room.participantCount} kişi dinliyor</p>
         </div>
         <Button variant="ghost" size="icon" className="text-foreground">
           <MoreHorizontal className="w-6 h-6" />
@@ -55,14 +88,14 @@ export default function VoiceRoomPage() {
       <div className="p-4 border-b">
         <ScrollArea className="w-full whitespace-nowrap">
             <div className="flex items-center gap-6 pb-2">
-                {room.participants.map(participant => (
+                {mockParticipants.map(participant => (
                     <div key={participant.id} className="flex flex-col items-center gap-2 text-center w-20">
-                        <div className={cn("relative rounded-full p-1", participant.isSpeaking && "bg-primary/50")}>
-                            <Avatar className={cn("w-16 h-16 border-2", participant.isSpeaking ? 'border-primary' : 'border-transparent')}>
+                        <div className={cn("relative rounded-full p-1")}>
+                            <Avatar className={cn("w-16 h-16 border-2 border-transparent")}>
                                 <AvatarImage src={participant.avatarUrl} alt={participant.name} />
                                 <AvatarFallback>{participant.name.charAt(0)}</AvatarFallback>
                             </Avatar>
-                            {participant.isModerator && (
+                            {room.ownerId === participant.id && (
                                 <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1 leading-none">
                                     <Hand className="w-3 h-3" />
                                 </div>
@@ -77,25 +110,7 @@ export default function VoiceRoomPage() {
 
       {/* Chat Area */}
       <ScrollArea className="flex-1 p-4 space-y-4">
-        {room.messages.map(message => {
-            const isMe = message.senderId === currentUser.id;
-            const sender = room.participants.find(p => p.id === message.senderId);
-            return (
-                <div key={message.id} className={cn("flex items-end gap-2", isMe ? "justify-end" : "justify-start")}>
-                    {!isMe && (
-                         <Avatar className="w-8 h-8">
-                            <AvatarImage src={sender?.avatarUrl} alt={sender?.name} />
-                            <AvatarFallback>{sender?.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                    )}
-                    <div className={cn("max-w-[75%] rounded-2xl px-4 py-2", isMe ? "bg-primary text-primary-foreground rounded-br-none" : "bg-secondary rounded-bl-none")}>
-                        {!isMe && <p className="text-xs font-bold text-primary pb-1">{sender?.name}</p>}
-                        <p>{message.text}</p>
-                        <p className="text-xs text-right opacity-70 mt-1">{message.timestamp}</p>
-                    </div>
-                </div>
-            )
-        })}
+        {/* Messages will be rendered here from `messages` state */}
       </ScrollArea>
 
       {/* Footer Controls */}
