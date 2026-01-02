@@ -85,35 +85,35 @@ export default function VoiceLoungePage() {
         </header>
 
         <main className="p-4 md:p-8 md:pt-0 pb-[calc(env(safe-area-inset-bottom,0rem)+1rem)]">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {mockRooms.map((room) => (
-              <Card key={room.id} className="overflow-hidden flex flex-col">
-                <CardHeader className="p-0 relative h-32">
-                  <Image
-                    src={room.imageUrl}
-                    alt={room.title}
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className="absolute bottom-0 left-0 p-4">
+              <Card key={room.id} className="overflow-hidden flex flex-col bg-card">
+                <CardHeader 
+                  className="p-0 relative h-32 flex flex-col justify-end"
+                  style={{
+                      backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.8), transparent), url(${room.imageUrl})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                  }}
+                >
+                  <div className="p-4">
                      <CardTitle className="text-white text-xl">{room.title}</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent className="p-4 flex-1">
-                  <div className="flex items-center mb-3">
-                    <Users className="w-4 h-4 mr-2 text-muted-foreground" />
-                    <span className="text-sm font-medium text-muted-foreground">
-                      {room.participants.length} / {room.maxParticipants} Katılımcı
-                    </span>
-                  </div>
-                  <div className="flex -space-x-2 overflow-hidden">
+                  <div className="flex -space-x-2 overflow-hidden mb-4">
                     {room.participants.slice(0, 8).map((p) => (
-                      <Avatar key={p.id} className="inline-block h-8 w-8 rounded-full ring-2 ring-background">
+                      <Avatar key={p.id} className="inline-block h-10 w-10 rounded-full ring-2 ring-card">
                         <AvatarImage src={p.avatarUrl} />
                         <AvatarFallback>{p.id}</AvatarFallback>
                       </Avatar>
                     ))}
+                  </div>
+                   <div className="flex items-center">
+                    <Users className="w-4 h-4 mr-2 text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {room.participants.length} / {room.maxParticipants} Katılımcı
+                    </span>
                   </div>
                 </CardContent>
                 <CardFooter className="p-4 pt-0">
