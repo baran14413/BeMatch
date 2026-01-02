@@ -17,6 +17,7 @@ import { tr, enUS } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { sendEmailVerification } from 'firebase/auth';
 import { usePageVisibility } from '@/hooks/use-page-visibility';
+import { AnimatePresence, motion } from 'framer-motion';
 
 const InfoItem = ({ label, value }: { label: string, value: string | React.ReactNode }) => (
     <div className="flex justify-between items-center py-3">
@@ -136,7 +137,7 @@ export default function PersonalInfoPage() {
     const isLoading = isUserLoading || isProfileLoading;
     
     const originalNameIsSet = !!userProfile?.firstName && !!userProfile?.lastName;
-    const nameHasChanged = originalNameIsSet && (firstName !== userProfile.firstName || lastName !== userProfile.lastName);
+    const nameHasChanged = originalNameIsSet && (firstName.trim() !== userProfile.firstName || lastName.trim() !== userProfile.lastName);
 
     if (!isClient) {
       return null;
@@ -158,46 +159,70 @@ export default function PersonalInfoPage() {
                 </header>
 
                 <div className="p-4 md:p-8 md:pt-0 space-y-8 pb-[calc(env(safe-area-inset-bottom,0rem)+2rem)]">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>{t('personalInfoPage.profileDetails')}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            {isLoading ? (
-                                <div className="space-y-4 py-2">
-                                    <Skeleton className="h-10 w-full" />
-                                    <Skeleton className="h-10 w-full" />
-                                    <Skeleton className="h-8 w-full" />
-                                    <Skeleton className="h-8 w-full" />
-                                </div>
-                            ) : userProfile && user ? (
-                                <>
+                    {isLoading ? (
+                         <div className="space-y-8">
+                            <Skeleton className="h-48 w-full" />
+                            <Skeleton className="h-24 w-full" />
+                            <Skeleton className="h-40 w-full" />
+                        </div>
+                    ) : userProfile && user ? (
+                        <>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Profil Bilgileri</CardTitle>
+                                    <CardDescription>Bu bilgiler profilinde herkese açık olarak görünür.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="firstName">{t('personalInfoPage.firstName')}</Label>
                                         <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
                                     </div>
-                                     <div className="space-y-2">
+                                    <div className="space-y-2">
                                         <Label htmlFor="lastName">{t('personalInfoPage.lastName')}</Label>
                                         <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
                                     </div>
+                                </CardContent>
+                            </Card>
+
+                            <AnimatePresence>
+                                {nameHasChanged && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -10 }}
+                                    >
+                                        <Button onClick={handleSaveChanges} disabled={isSaving} className="w-full md:w-auto">
+                                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                            {t('common.save')}
+                                        </Button>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Hesap Detayları</CardTitle>
+                                    <CardDescription>Bu bilgiler gizlidir ve profilinde görünmez.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
                                     <div className="divide-y">
                                         <InfoItem label={t('personalInfoPage.age')} value={userProfile.age.toString()} />
                                         <InfoItem 
                                             label="E-posta" 
                                             value={
-                                            <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-2">
                                                 <span>{user.email}</span>
                                                 {user.emailVerified ? (
-                                                    <div className="flex items-center gap-1 text-green-600">
-                                                        <BadgeCheck className="w-5 h-5" />
-                                                        <span className="text-sm font-medium">{t('personalInfoPage.verified')}</span>
+                                                    <div className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400 font-medium py-1 px-2.5 rounded-full bg-green-500/10">
+                                                        <BadgeCheck className="w-4 h-4" />
+                                                        <span>{t('personalInfoPage.verified')}</span>
                                                     </div>
                                                 ) : (
-                                                    <Button size="sm" variant="outline" onClick={handleSendVerification} disabled={isSendingVerification}>
+                                                    <Button size="sm" variant="outline" onClick={handleSendVerification} disabled={isSendingVerification} className="h-auto">
                                                         {isSendingVerification ? (
                                                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                                                         ) : (
-                                                             <AlertTriangle className="w-4 h-4 mr-2 text-yellow-500" />
+                                                            <AlertTriangle className="w-4 h-4 mr-2 text-yellow-500" />
                                                         )}
                                                         {t('personalInfoPage.verify')}
                                                     </Button>
@@ -205,40 +230,23 @@ export default function PersonalInfoPage() {
                                             </div>
                                         } />
                                     </div>
-                                </>
-                            ) : (
-                                <p>{t('profile.notFound')}</p>
-                            )}
-                        </CardContent>
-                    </Card>
-                    
-                    {nameHasChanged && (
-                         <Button onClick={handleSaveChanges} disabled={isSaving} className="w-full md:w-auto">
-                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                            {t('common.save')}
-                        </Button>
-                    )}
+                                </CardContent>
+                            </Card>
 
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>{t('personalInfoPage.sessionActivity')}</CardTitle>
-                            <CardDescription>{t('personalInfoPage.sessionDescription')}</CardDescription>
-                        </CardHeader>
-                        <CardContent className="divide-y">
-                             {isLoading ? (
-                                <div className="space-y-4 py-2">
-                                    <Skeleton className="h-10 w-full" />
-                                    <Skeleton className="h-10 w-full" />
-                                </div>
-                             ) : (
-                                <>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>{t('personalInfoPage.sessionActivity')}</CardTitle>
+                                    <CardDescription>{t('personalInfoPage.sessionDescription')}</CardDescription>
+                                </CardHeader>
+                                <CardContent className="divide-y">
                                     <SessionItem icon={Clock} title={t('personalInfoPage.activeNow')} time={lastSignInTime} />
                                     <SessionItem icon={Calendar} title={t('personalInfoPage.accountCreation')} time={creationTime} />
-                                </>
-                             )}
-                        </CardContent>
-                    </Card>
+                                </CardContent>
+                            </Card>
+                        </>
+                    ) : (
+                        <p>{t('profile.notFound')}</p>
+                    )}
                 </div>
             </div>
         </ScrollArea>
