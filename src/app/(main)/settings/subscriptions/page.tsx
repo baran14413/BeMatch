@@ -90,8 +90,7 @@ const PackageCard = ({
 
 const WebViewInfoCard = () => {
     const handleRedirect = () => {
-        const intentUrl = "intent://bematch.netlify.app/settings/subscriptions#Intent;scheme=https;package=com.android.chrome;end";
-        window.location.href = intentUrl;
+        window.open('https://bematch.netlify.app/settings/subscriptions', '_blank');
     };
 
     return (

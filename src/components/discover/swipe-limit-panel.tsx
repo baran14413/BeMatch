@@ -40,8 +40,7 @@ export default function SwipeLimitPanel({ onClose }: SwipeLimitPanelProps) {
   
   const handleManageAccount = () => {
     if (isWebView) {
-        const intentUrl = "intent://bematch.netlify.app/settings/subscriptions#Intent;scheme=https;package=com.android.chrome;end";
-        window.location.href = intentUrl;
+        window.open('https://bematch.netlify.app/settings/subscriptions', '_blank');
     } else {
         router.push('/settings/subscriptions');
     }
@@ -74,7 +73,7 @@ export default function SwipeLimitPanel({ onClose }: SwipeLimitPanelProps) {
             <h3 className="font-semibold text-lg">{t('discover.limit.manageAccountTitle')}</h3>
             <p className="text-white/70 mt-2 mb-4 text-sm">{t('discover.limit.manageAccountDescription')}</p>
             <Button className="w-full" onClick={handleManageAccount}>
-                {t('discover.limit.manageAccountButton')}
+                {t('walletPage.manageSubWeb')}
             </Button>
           </CardContent>
         </Card>

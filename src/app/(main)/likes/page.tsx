@@ -34,11 +34,8 @@ const BlurredLikesOverlay = () => {
 
     const handlePress = () => {
         if (isWebView) {
-            // Force open in external browser using an intent URL
-            const intentUrl = "intent://bematch.netlify.app/settings/subscriptions#Intent;scheme=https;package=com.android.chrome;end";
-            window.location.href = intentUrl;
+            window.open('https://bematch.netlify.app/settings/subscriptions', '_blank');
         } else {
-            // Navigate internally for web users
             router.push('/settings/subscriptions');
         }
     }
