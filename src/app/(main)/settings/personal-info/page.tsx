@@ -158,7 +158,7 @@ export default function PersonalInfoPage() {
                     </div>
                 </header>
 
-                <div className="p-4 space-y-6 pb-[calc(env(safe-area-inset-bottom,0rem)+1rem)]">
+                <div className="p-4 space-y-6 pb-[calc(env(safe-area-inset-bottom,0rem)+1rem)] max-w-2xl mx-auto">
                     {isLoading ? (
                          <div className="space-y-6">
                             <Skeleton className="h-48 w-full" />

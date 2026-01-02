@@ -110,6 +110,7 @@ export default function RootLayout({
         {/* We can manually set title and meta tags in the head for client components */}
         <title>BeMatch</title>
         <meta name="description" content="Mükemmel eşini bul." />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <link rel="manifest" href="/manifest.json" />
         <Script
           id="adsbygoogle-init"

@@ -25,6 +25,7 @@ import ItIsAMatch from '@/components/discover/it-is-a-match';
 import { generateAiIcebreaker } from '@/ai/flows/generate-ai-icebreaker';
 import { mockProfiles } from '@/lib/mock-profiles';
 import { Card, CardContent } from '@/components/ui/card';
+import { useTwa } from '@/hooks/use-twa';
 
 
 type SwipeDirection = 'left' | 'right' | 'up';
@@ -233,6 +234,7 @@ export default function DiscoverPage() {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const router = useRouter();
+  const isWebView = useTwa();
   
   const [detailsProfile, setDetailsProfile] = useState<UserProfile | null>(null);
   const [compatibilityProfile, setCompatibilityProfile] = useState<UserProfile | null>(null);
@@ -496,8 +498,8 @@ export default function DiscoverPage() {
     if (direction === 'up' && !isPremium) {
         toast({
             title: "Süper Beğeni İçin Yükselt!",
-            description: "Süper Beğeni göndermek ve daha fazla dikkat çekmek için Gold'a yükselt.",
-            action: <Button onClick={() => router.push('/settings/subscriptions')}>Yükselt</Button>
+            description: isWebView ? "Premium özellikleri web sitemizden yönetebilirsiniz." : "Süper Beğeni göndermek ve daha fazla dikkat çekmek için Gold'a yükselt.",
+            action: isWebView ? undefined : <Button onClick={() => router.push('/settings/subscriptions')}>Yükselt</Button>
         });
         return;
     }
@@ -557,7 +559,7 @@ export default function DiscoverPage() {
           }));
       });
 
-  }, [visibleStack, user, firestore, currentUserProfile, toast, t, router, locale, showTutorial, isPremium]);
+  }, [visibleStack, user, firestore, currentUserProfile, toast, t, router, locale, showTutorial, isPremium, isWebView]);
 
   const isLoading = isUserLoading || isLoadingProfiles || !currentUserProfile;
 
