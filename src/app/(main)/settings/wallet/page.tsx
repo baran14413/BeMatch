@@ -1,7 +1,7 @@
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Crown, Star, Gem, ArrowLeft, Loader2, Zap } from "lucide-react";
+import { Crown, Star, Gem, ArrowLeft, Loader2, Zap, ExternalLink } from "lucide-react";
 import Link from 'next/link';
 import { useLanguage } from "@/context/language-context";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -124,6 +124,10 @@ export default function WalletPage() {
     };
 
     const isPurchasingAny = billingState === 'PURCHASING';
+    
+    const handleManageAccount = () => {
+        window.open('https://bematch.app/settings/subscriptions', '_blank');
+    }
 
     return (
         <ScrollArea className="h-full">
@@ -157,9 +161,16 @@ export default function WalletPage() {
                                                 {userProfile.premiumExpiresAt ? format(userProfile.premiumExpiresAt.toDate(), 'dd MMMM yyyy', { locale: locale === 'tr' ? tr : enUS }) : 'N/A'}
                                             </span>
                                         </p>
-                                        {!isWebView && (
-                                            <Button onClick={() => router.push('/settings/subscriptions')} variant="outline" className="mt-4 bg-transparent border-black text-black hover:bg-black/10">{t('walletPage.manageSub')}</Button>
-                                        )}
+                                        <div className="flex flex-wrap gap-2 mt-4">
+                                            {isWebView ? (
+                                                <Button onClick={handleManageAccount} variant="outline" className="bg-transparent border-black text-black hover:bg-black/10">
+                                                    <ExternalLink className="w-4 h-4 mr-2" />
+                                                    Hesabımı Web'de Yönet
+                                                </Button>
+                                            ) : (
+                                                <Button onClick={() => router.push('/settings/subscriptions')} variant="outline" className="bg-transparent border-black text-black hover:bg-black/10">{t('walletPage.manageSub')}</Button>
+                                            )}
+                                        </div>
                                     </CardContent>
                                 </div>
                             </Card>
