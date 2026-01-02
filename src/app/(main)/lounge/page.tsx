@@ -103,7 +103,7 @@ export default function LoungePage() {
     <div className="h-full flex flex-col bg-background text-foreground">
       {/* Conversation List */}
       <div className="flex flex-col h-full">
-          <header className="p-4 border-b flex justify-between items-center">
+          <header className="p-3 px-4 flex justify-between items-center">
             <h1 className="text-2xl font-bold text-foreground">{t('lounge.conversations')}</h1>
             <Button variant="ghost" size="icon" onClick={() => setIsEditMode(!isEditMode)} className="text-muted-foreground">
                 {isEditMode ? t('common.done') : <Pencil className="w-5 h-5" />}
@@ -124,7 +124,7 @@ export default function LoungePage() {
                         ))}
                     </div>
                 ) : conversations.length > 0 ? conversations.map((convo) => (
-                    <div key={convo.chatId} className="flex items-center">
+                    <div key={convo.chatId} className="flex items-center border-b">
                          <AnimatePresence>
                             {isEditMode && (
                                 <motion.div
@@ -171,7 +171,7 @@ export default function LoungePage() {
                          </AnimatePresence>
                         <Link href={`/chat/${convo.chatId}`} className="flex-1">
                             <div className={cn(
-                                "px-3 py-2 flex items-center gap-3 cursor-pointer rounded-lg w-full",
+                                "px-3 py-3 flex items-center gap-3 cursor-pointer rounded-lg w-full",
                                 "hover:bg-secondary/50 transition-colors duration-200"
                             )}>
                                 <Avatar className="h-12 w-12">
