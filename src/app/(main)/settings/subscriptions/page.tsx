@@ -30,17 +30,15 @@ const PackageCard = ({
     onPurchase,
     isPurchasingAny,
     isThisBeingPurchased,
-    isWebView,
 }:{
     pkg: SubscriptionPackage,
     onPurchase: (productId: string) => void,
     isPurchasingAny: boolean,
     isThisBeingPurchased: boolean,
-    isWebView: boolean;
 }) => {
     const { t } = useLanguage();
     const showSpinner = isThisBeingPurchased;
-    const isDisabled = isPurchasingAny || isWebView;
+    const isDisabled = isPurchasingAny;
 
     return (
         <Card className={cn(
@@ -65,30 +63,26 @@ const PackageCard = ({
                 <CardDescription>{pkg.description}</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 space-y-8">
-                {!isWebView && (
-                    <div className="text-center">
-                        <span className="text-4xl font-bold">{pkg.price}</span>
-                        <span className="text-muted-foreground">{t(pkg.period)}</span>
-                    </div>
-                )}
+                <div className="text-center">
+                    <span className="text-4xl font-bold">{pkg.price}</span>
+                    <span className="text-muted-foreground">{t(pkg.period)}</span>
+                </div>
                 <ul className="space-y-4">
                     {pkg.features.map((feature, i) => (
                         <FeatureListItem key={i} text={t(feature.text)} included={feature.included} />
                     ))}
                 </ul>
             </CardContent>
-            {!isWebView && (
-                <CardFooter className="flex-col gap-2 mt-4">
-                    <Button 
-                        className="w-full h-12 text-lg font-bold"
-                        style={{ background: `linear-gradient(to right, ${pkg.colors.from}, ${pkg.colors.to})`, color: 'white' }}
-                        onClick={() => onPurchase(pkg.productId)}
-                        disabled={isDisabled}
-                    >
-                        {showSpinner ? <Loader2 className="animate-spin" /> : t('subscriptionsPage.choosePlan')}
-                    </Button>
-                </CardFooter>
-            )}
+            <CardFooter className="flex-col gap-2 mt-4">
+                <Button 
+                    className="w-full h-12 text-lg font-bold"
+                    style={{ background: `linear-gradient(to right, ${pkg.colors.from}, ${pkg.colors.to})`, color: 'white' }}
+                    onClick={() => onPurchase(pkg.productId)}
+                    disabled={isDisabled}
+                >
+                    {showSpinner ? <Loader2 className="animate-spin" /> : t('subscriptionsPage.choosePlan')}
+                </Button>
+            </CardFooter>
         </Card>
     );
 };
@@ -99,21 +93,21 @@ const WebViewInfoCard = () => (
         <CardHeader>
              <div className="flex items-center gap-3">
                 <ExternalLink className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                <CardTitle className="text-blue-800 dark:text-blue-300">Premium Üyelik Avantajları</CardTitle>
+                <CardTitle className="text-blue-800 dark:text-blue-300">Premium Paketleri Görüntüle</CardTitle>
             </div>
         </CardHeader>
         <CardContent>
             <p className="text-blue-700 dark:text-blue-300/90">
-                Premium özelliklere erişmek için web sitemizi ziyaret edebilirsiniz.
+                Premium özelliklere erişmek ve abonelik başlatmak için lütfen web sitemizi ziyaret edin.
             </p>
             <p className="mt-2 text-sm text-blue-600 dark:text-blue-400/80">
-                Lütfen mobil veya masaüstü tarayıcınızdan web sitemizi ziyaret ederek paketinizi seçin. Üyeliğiniz hesabınıza anında yansıyacaktır.
+                Ödeme işlemleri yalnızca harici bir tarayıcı (Chrome, Safari vb.) üzerinden güvenli bir şekilde yapılabilir.
             </p>
         </CardContent>
         <CardFooter>
             <a href="https://bematch.app/settings/subscriptions" target="_blank" rel="noopener noreferrer" className="w-full">
                 <Button className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
-                    Web Sitesini Ziyaret Et
+                    Web Sitesine Git
                 </Button>
             </a>
         </CardFooter>
@@ -174,22 +168,25 @@ export default function SubscriptionsPage() {
                         </Button>
                     </Link>
                     <div>
-                        <h1 className="text-3xl font-bold text-primary">{isWebView ? 'Premium Paketler' : t('subscriptionsPage.title')}</h1>
-                        <p className="text-muted-foreground">{isWebView ? 'Ayrıcalıklı özellikleri keşfedin.' : t('subscriptionsPage.description')}</p>
+                        <h1 className="text-3xl font-bold text-primary">{t('subscriptionsPage.title')}</h1>
+                        <p className="text-muted-foreground">{t('subscriptionsPage.description')}</p>
                     </div>
                 </header>
                 
                 <div className="px-4 md:px-8 pb-8 space-y-8 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start pb-[calc(env(safe-area-inset-bottom,0rem)+2rem)]">
-                   {subscriptionPackages.map(pkg => (
-                       <PackageCard 
-                          key={pkg.id} 
-                          pkg={pkg}
-                          onPurchase={handlePurchase}
-                          isPurchasingAny={isPurchasingAny}
-                          isThisBeingPurchased={isPurchasingAny && purchasingId === pkg.productId}
-                          isWebView={isWebView}
-                        />
-                   ))}
+                   {isWebView ? (
+                       <WebViewInfoCard />
+                   ) : (
+                       subscriptionPackages.map(pkg => (
+                           <PackageCard 
+                              key={pkg.id} 
+                              pkg={pkg}
+                              onPurchase={handlePurchase}
+                              isPurchasingAny={isPurchasingAny}
+                              isThisBeingPurchased={isPurchasingAny && purchasingId === pkg.productId}
+                            />
+                       ))
+                   )}
                 </div>
                  {!isWebView && (
                      <div className="px-4 md:px-8 pb-8 text-center">
