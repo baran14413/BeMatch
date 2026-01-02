@@ -34,8 +34,9 @@ const BlurredLikesOverlay = () => {
 
     const handlePress = () => {
         if (isWebView) {
-            // Open the management page in an external browser
-            window.open('https://bematch.netlify.app/settings/subscriptions', '_blank');
+            // Force open in external browser using an intent URL
+            const intentUrl = "intent://bematch.netlify.app/settings/subscriptions#Intent;scheme=https;package=com.android.chrome;end";
+            window.location.href = intentUrl;
         } else {
             // Navigate internally for web users
             router.push('/settings/subscriptions');
@@ -46,9 +47,9 @@ const BlurredLikesOverlay = () => {
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-4 text-center bg-black/60 backdrop-blur-md">
             <Crown className="w-16 h-16 text-yellow-400 mb-4" />
             <h3 className="text-xl font-bold text-white">Seni Beğenenleri Gör</h3>
-            <p className="text-white/80 mt-2 mb-6">BeMatch Gold'a yükselterek seni beğenen herkesi anında gör ve eşleşme şansını artır.</p>
+            <p className="text-white/80 mt-2 mb-6">Mevcut plan detaylarını görüntülemek veya değiştirmek için hesabını yönetebilirsin.</p>
             <Button onClick={handlePress} className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold">
-                {isWebView ? 'Hesabımı Web\'de Yönet' : 'Gold\'u Keşfet'}
+                Hesabımı Yönet
             </Button>
         </div>
     );

@@ -127,7 +127,8 @@ export default function WalletPage() {
     const isPurchasingAny = billingState === 'PURCHASING';
     
     const handleManageAccount = () => {
-        window.open('https://bematch.netlify.app/settings/subscriptions', '_blank');
+        const intentUrl = "intent://bematch.netlify.app/settings/subscriptions#Intent;scheme=https;package=com.android.chrome;end";
+        window.location.href = intentUrl;
     }
 
     return (

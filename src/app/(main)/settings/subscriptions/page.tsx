@@ -88,28 +88,34 @@ const PackageCard = ({
 };
 
 
-const WebViewInfoCard = () => (
-    <Card className="lg:col-span-3 bg-secondary border border-border">
-        <CardHeader>
-             <div className="flex items-center gap-3">
-                <ExternalLink className="w-6 h-6 text-primary" />
-                <CardTitle>Hesabını Yönet</CardTitle>
-            </div>
-        </CardHeader>
-        <CardContent>
-            <p className="text-muted-foreground">
-                Mevcut abonelik planını görüntülemek veya değiştirmek için hesabını web sitemizden yönetebilirsin.
-            </p>
-        </CardContent>
-        <CardFooter>
-            <a href="https://bematch.netlify.app/settings/subscriptions" target="_blank" rel="noopener noreferrer" className="w-full">
-                <Button className="w-full">
+const WebViewInfoCard = () => {
+    const handleRedirect = () => {
+        const intentUrl = "intent://bematch.netlify.app/settings/subscriptions#Intent;scheme=https;package=com.android.chrome;end";
+        window.location.href = intentUrl;
+    };
+
+    return (
+        <Card className="lg:col-span-3 bg-secondary border border-border">
+            <CardHeader>
+                 <div className="flex items-center gap-3">
+                    <ExternalLink className="w-6 h-6 text-primary" />
+                    <CardTitle>Hesabını Yönet</CardTitle>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <p className="text-muted-foreground">
+                    Mevcut abonelik planını görüntülemek veya değiştirmek için hesabını web sitemizden yönetebilirsin.
+                </p>
+            </CardContent>
+            <CardFooter>
+                <Button onClick={handleRedirect} className="w-full">
                     Hesabımı Web'de Yönet
                 </Button>
-            </a>
-        </CardFooter>
-    </Card>
-);
+            </CardFooter>
+        </Card>
+    );
+};
+
 
 
 export default function SubscriptionsPage() {
@@ -165,7 +171,7 @@ export default function SubscriptionsPage() {
                         </Button>
                     </Link>
                     <div>
-                        <h1 className="text-3xl font-bold text-primary">{isWebView ? "Hesabımı Yönet" : t('subscriptionsPage.title')}</h1>
+                        <h1 className="text-3xl font-bold text-primary">{isWebView ? "Hesabını Yönet" : t('subscriptionsPage.title')}</h1>
                         <p className="text-muted-foreground">{isWebView ? "Mevcut abonelik planını görüntülemek veya değiştirmek için hesabını web sitemizden yönetebilirsin." : t('subscriptionsPage.description')}</p>
                     </div>
                 </header>

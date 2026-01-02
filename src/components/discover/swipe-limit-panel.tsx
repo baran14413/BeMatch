@@ -40,7 +40,8 @@ export default function SwipeLimitPanel({ onClose }: SwipeLimitPanelProps) {
   
   const handleManageAccount = () => {
     if (isWebView) {
-        window.open('https://bematch.netlify.app/settings/subscriptions', '_blank');
+        const intentUrl = "intent://bematch.netlify.app/settings/subscriptions#Intent;scheme=https;package=com.android.chrome;end";
+        window.location.href = intentUrl;
     } else {
         router.push('/settings/subscriptions');
     }
