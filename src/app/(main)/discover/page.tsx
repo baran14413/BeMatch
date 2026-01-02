@@ -33,6 +33,7 @@ type SwipeType = 'like' | 'nope' | 'superlike';
 
 const MAX_VISIBLE_CARDS = 3;
 const DAILY_REWIND_LIMIT = 3;
+/*
 const AD_FREQUENCY = 3; // Show an ad every 3 user profiles
 
 // --- Ad Injection Logic ---
@@ -47,6 +48,7 @@ const injectAds = (profiles: UserProfile[]): SwipeItem[] => {
   });
   return items;
 };
+*/
 
 // Haversine formula to calculate distance between two lat/lon points
 const getDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -65,7 +67,7 @@ const getDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number)
   return Math.round(distance);
 };
 
-
+/*
 const AdBanner = () => {
     useEffect(() => {
         try {
@@ -85,7 +87,8 @@ const AdBanner = () => {
              data-full-width-responsive="true"></ins>
     );
 };
-
+*/
+/*
 const AdCard = ({ item }: { item: AdItem }) => {
   return (
     <Card className="w-full h-full bg-muted flex flex-col items-center justify-center p-4">
@@ -93,7 +96,7 @@ const AdCard = ({ item }: { item: AdItem }) => {
              <div className="text-center text-muted-foreground mb-4">
                 <p className="text-xs font-semibold uppercase">Advertisement</p>
             </div>
-            {/* The actual ad container */}
+            
             <div className="w-full h-64 bg-background rounded-lg flex items-center justify-center">
                  <AdBanner />
             </div>
@@ -101,6 +104,7 @@ const AdCard = ({ item }: { item: AdItem }) => {
     </Card>
   );
 };
+*/
 
 
 const SwipeableCard = ({
@@ -188,7 +192,7 @@ const SwipeableCard = ({
             />
         </>
       ) : (
-          <AdCard item={item} />
+          null // <AdCard item={item} />
       )}
     </motion.div>
   );
@@ -329,9 +333,9 @@ export default function DiscoverPage() {
       });
 
     // Inject ads only if the user is not premium
-    if (!isPremium) {
+    /* if (!isPremium) {
         return injectAds(filteredProfiles);
-    }
+    } */
     
     // For premium users, return only user items
     return filteredProfiles.map(p => ({ type: 'user', user: p }));
@@ -375,7 +379,7 @@ export default function DiscoverPage() {
         toast({
             title: "Günlük Geri Alma Hakkı Doldu",
             description: "Sınırsız geri alma için Gold'a yükselt!",
-            action: <Button onClick={() => router.push('/settings/subscriptions')}>Yükselt</Button>
+            action: isWebView ? undefined : <Button onClick={() => router.push('/settings/subscriptions')}>Yükselt</Button>
         });
         return;
     }
@@ -497,8 +501,8 @@ export default function DiscoverPage() {
 
     if (direction === 'up' && !isPremium) {
         toast({
-            title: "Süper Beğeni İçin Yükselt!",
-            description: isWebView ? "Premium özellikleri web sitemizden yönetebilirsiniz." : "Süper Beğeni göndermek ve daha fazla dikkat çekmek için Gold'a yükselt.",
+            title: "Süper Beğeni Hakkın Kalmadı",
+            description: isWebView ? "Daha fazla Süper Beğeni için web sitemizi ziyaret edebilirsin." : "Süper Beğeni göndermek ve daha fazla dikkat çekmek için Gold'a yükselt.",
             action: isWebView ? undefined : <Button onClick={() => router.push('/settings/subscriptions')}>Yükselt</Button>
         });
         return;
