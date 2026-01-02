@@ -136,9 +136,30 @@
                 "type": "number"
             }
         },
+        "isPremium": {
+          "type": "boolean",
+          "description": "Indicates if the user has an active premium subscription."
+        },
+        "subscriptionId": {
+            "type": "string",
+            "description": "The product ID of the user's current subscription (e.g., 'monthly-base')."
+        },
+        "purchaseToken": {
+            "type": "string",
+            "description": "The Google Play purchase token for the current subscription, used for validation."
+        },
+        "expiryDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The expiration date of the user's current subscription."
+        },
+        "autoRenewing": {
+            "type": "boolean",
+            "description": "Indicates if the subscription is set to auto-renew."
+        },
         "premiumTier": {
             "type": "string",
-            "enum": ["plus", "gold", "platinum"],
+            "enum": ["plus", "gold", "platinum", "weekly"],
             "description": "The premium subscription tier of the user."
         },
         "premiumExpiresAt": {
@@ -416,6 +437,36 @@
         "status": { "type": "string", "enum": ["pending", "reviewed", "resolved"], "description": "The current status of the report." }
       },
       "required": ["id", "reporterId", "reportedUserId", "reason", "timestamp", "status"]
+    },
+    "VoiceRoom": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "VoiceRoom",
+        "type": "object",
+        "description": "Represents a voice chat room.",
+        "properties": {
+            "id": { "type": "string", "description": "Unique ID for the voice room." },
+            "title": { "type": "string", "description": "The title of the voice room." },
+            "ownerId": { "type": "string", "description": "The UID of the user who owns the room." },
+            "isPublic": { "type": "boolean", "description": "True if the room is public, false if it's password-protected." },
+            "passwordHash": { "type": "string", "description": "Hashed password for private rooms. Optional." },
+            "participantCount": { "type": "number", "description": "The current number of participants." },
+            "maxParticipants": { "type": "number", "description": "The maximum number of participants allowed." },
+            "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the room was created." },
+            "bannedUserIds": { "type": "array", "items": { "type": "string" }, "description": "A list of UIDs of users banned from this room." }
+        },
+        "required": ["id", "title", "ownerId", "isPublic", "participantCount", "maxParticipants", "createdAt"]
+    },
+    "WebRTCSignal": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "WebRTCSignal",
+        "type": "object",
+        "description": "Represents a WebRTC signaling message (offer, answer, or ICE candidate) for a specific user in a room.",
+        "properties": {
+            "type": { "type": "string", "enum": ["offer", "answer", "candidate"], "description": "The type of WebRTC signal." },
+            "sdp": { "type": "string", "description": "The Session Description Protocol (SDP) string for 'offer' and 'answer' types." },
+            "candidate": { "type": "object", "description": "The ICE candidate object for 'candidate' types." }
+        },
+        "required": ["type"]
     }
   },
   "auth": {
@@ -594,8 +645,47 @@
             { "name": "reportId", "description": "The unique ID of the report." }
           ]
         }
+      },
+      {
+        "path": "/voiceRooms/{roomId}",
+        "definition": {
+            "entityName": "VoiceRoom",
+            "schema": { "$ref": "#/entities/VoiceRoom" },
+            "description": "Stores metadata for a voice chat room.",
+            "params": [
+                { "name": "roomId", "description": "The unique ID of the voice room." }
+            ]
+        }
+      },
+      {
+        "path": "/voiceRooms/{roomId}/messages/{messageId}",
+        "definition": {
+          "entityName": "Message",
+          "schema": { "$ref": "#/entities/Message" },
+          "description": "Stores messages within a specific voice room.",
+          "params": [
+            { "name": "roomId", "description": "The unique ID of the voice room." },
+            { "name": "messageId", "description": "The unique ID of the message." }
+          ]
+        }
       }
     ],
     "reasoning": "This Firestore structure is designed to support the Nexus dating app's core features while adhering to the principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). It prioritizes security, scalability, and debuggability.\\n\\n**Authorization Independence via Denormalization:**\\n*   User profiles are stored under `/users/{userId}`. Data needing authorization context from the user profile is denormalized to avoid `get()` calls in security rules. For example, prompt answers created by a user are stored in a subcollection `/users/{userId}/promptAnswers/{promptAnswerId}`. The prompt answer documents do not require any authorization data copied because access is solely based on path and `request.auth.uid`.\\n*   Matches between users are stored in a top-level `/matches/{matchId}` collection, which contains an array of `users`. Messages sent within a match are stored in a subcollection `/matches/{matchId}/messages/{messageId}`.  The message documents do not require any authorization data copied because access is solely based on path and `request.auth.uid`.\\n\\n**Structural Segregation (Homogeneous Security Posture):**\\n*   Private user data (profiles, prompt answers, matches, and messages) is kept separate from potentially public data. This separation ensures that each collection has a clear and consistent security posture, avoiding the need for complex logic within security rules.\\n\\n**Access Modeling (Standardization and Consistency):**\\n*   **Private Data:** User profiles and their associated data (prompt answers, swipes) utilize the path-based ownership pattern `/users/{userId}/*`. This approach allows straightforward security rules based on `request.auth.uid == userId`.\\n*   **Collaborative Data:** Matches and messages are secured using the `users` array in the parent match document."
+  },
+  "database": {
+      "structure": [
+          {
+              "path": "/status/{userId}",
+              "description": "Tracks the online/offline presence of users."
+          },
+          {
+              "path": "/webrtcSignals/{roomId}/{userId}",
+              "definition": {
+                  "entityName": "WebRTCSignal",
+                  "schema": { "$ref": "#/entities/WebRTCSignal" },
+                  "description": "Used for WebRTC signaling (offers, answers, ICE candidates) within a specific voice room."
+              }
+          }
+      ]
   }
 }

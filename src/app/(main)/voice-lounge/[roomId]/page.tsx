@@ -6,9 +6,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, Hand, MicOff, MoreHorizontal, PhoneMissed, Send, ThumbsUp, Loader2 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
-import { useDoc, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useDoc, useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import type { VoiceRoom, UserProfile, Message } from '@/lib/data';
-import { doc, collection, query, orderBy } from 'firebase/firestore';
+import { doc, collection, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
 
 const RoomLoader = () => (
     <div className="flex flex-col h-dvh items-center justify-center gap-4">
@@ -17,12 +19,50 @@ const RoomLoader = () => (
     </div>
 );
 
+function MessageBubble({ message, isMe }: { message: Message, isMe: boolean }) {
+  // We'll need user profiles to show names/avatars later
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, transition: { duration: 0.1 } }}
+      transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+      className={cn("group w-full flex items-start gap-2.5", isMe ? "justify-end" : "")}
+    >
+      {!isMe && (
+         <Avatar className="w-8 h-8">
+            <AvatarImage src={`https://i.pravatar.cc/150?u=${message.senderId}`} />
+            <AvatarFallback>U</AvatarFallback>
+        </Avatar>
+      )}
+      <div className={cn(
+        "max-w-[70%] break-words p-3 px-4 rounded-2xl relative flex flex-col",
+        isMe
+          ? 'rounded-tr-none bg-primary text-primary-foreground'
+          : 'rounded-tl-none bg-secondary text-secondary-foreground'
+      )}>
+        {!isMe && <p className="text-xs font-bold mb-1">Sender Name</p>}
+        <p className="text-left whitespace-pre-wrap">{message.text}</p>
+        <span className="text-xs self-end mt-1 opacity-70">
+          {message.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </span>
+      </div>
+    </motion.div>
+  );
+}
+
 
 export default function VoiceRoomPage() {
   const router = useRouter();
   const params = useParams();
   const firestore = useFirestore();
+  const { user } = useUser();
   const { roomId } = params;
+
+  const [newMessage, setNewMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch room data
   const roomDocRef = useMemoFirebase(() => {
@@ -39,23 +79,44 @@ export default function VoiceRoomPage() {
   }, [firestore, roomId]);
   const { data: participants, isLoading: isLoadingParticipants } = useCollection<UserProfile>(participantsQuery);
   
-  // Fetch messages (placeholder for now)
+  // Fetch messages
   const messagesQuery = useMemoFirebase(() => {
     if (!firestore || !roomId) return null;
-    // This would be 'voiceRooms/{roomId}/messages'
-    return query(collection(firestore, 'matches', 'chatId_placeholder', 'messages'));
+    return query(collection(firestore, 'voiceRooms', roomId as string, 'messages'), orderBy('timestamp', 'asc'));
   }, [firestore, roomId]);
   const { data: messages, isLoading: isLoadingMessages } = useCollection<Message>(messagesQuery);
   
   const isLoading = isLoadingRoom || isLoadingParticipants || isLoadingMessages;
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !user || !roomId || isSending) return;
+
+    setIsSending(true);
+    try {
+        const messagesColRef = collection(firestore, 'voiceRooms', roomId as string, 'messages');
+        await addDoc(messagesColRef, {
+            senderId: user.uid,
+            text: newMessage.trim(),
+            timestamp: serverTimestamp()
+        });
+        setNewMessage('');
+    } catch (error) {
+        console.error("Error sending message:", error);
+    } finally {
+        setIsSending(false);
+    }
+  };
+
 
   if (isLoading) {
       return <RoomLoader />;
   }
 
   if (!room) {
-    // Handle case where room doesn't exist
-    // You might want to redirect or show a "not found" message
     return (
         <div className="flex flex-col h-dvh items-center justify-center gap-4">
             <p className="text-destructive">Oda bulunamadı.</p>
@@ -64,9 +125,7 @@ export default function VoiceRoomPage() {
     );
   }
   
-  // For now, we'll use a slice of the fetched users as mock participants
   const mockParticipants = participants?.slice(0, room.participantCount) || [];
-  const currentUser = mockParticipants[1]; // Assume current user is the second one for mock UI
 
   return (
     <div className="flex flex-col h-dvh overflow-hidden bg-gradient-to-b from-card to-background">
@@ -110,14 +169,33 @@ export default function VoiceRoomPage() {
 
       {/* Chat Area */}
       <ScrollArea className="flex-1 p-4 space-y-4">
-        {/* Messages will be rendered here from `messages` state */}
+         <AnimatePresence>
+            {messages?.map(message => (
+                <MessageBubble key={message.id} message={message} isMe={message.senderId === user?.uid} />
+            ))}
+        </AnimatePresence>
+        <div ref={messagesEndRef} />
       </ScrollArea>
 
       {/* Footer Controls */}
       <footer className="p-4 pb-[calc(env(safe-area-inset-bottom,0rem)+1rem)] border-t bg-background/80 backdrop-blur-md z-10 space-y-4">
         <div className="flex items-end gap-2">
-            <Textarea placeholder="Bir mesaj yaz..." className="flex-1 resize-none rounded-2xl" rows={1} />
-            <Button size="icon" className="rounded-full h-10 w-10"><Send className="w-5 h-5"/></Button>
+            <Textarea 
+              placeholder="Bir mesaj yaz..." 
+              className="flex-1 resize-none rounded-2xl" 
+              rows={1}
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                  }
+              }}
+            />
+            <Button size="icon" className="rounded-full h-10 w-10" onClick={handleSendMessage} disabled={isSending}>
+              {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5"/>}
+            </Button>
         </div>
         <div className="flex items-center justify-center gap-4">
             <Button variant="secondary" size="icon" className="w-14 h-14 rounded-full text-muted-foreground">
