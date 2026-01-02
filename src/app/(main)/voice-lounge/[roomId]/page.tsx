@@ -168,7 +168,7 @@ export default function VoiceRoomPage() {
         <audio key={peerId} ref={el => el && (el.srcObject = peer.stream)} autoPlay />
       ))}
       
-      <header className="flex items-center justify-between p-4 pt-[calc(env(safe-area-inset-top,0rem)+1rem)] z-10 border-b">
+      <header className="flex items-center justify-between p-4 pt-[calc(env(safe-area-inset-top,0rem)+1rem)] z-10">
         <Button variant="ghost" size="icon" onClick={() => router.back()} className="text-foreground">
           <ArrowLeft className="w-6 h-6" />
         </Button>
@@ -181,7 +181,7 @@ export default function VoiceRoomPage() {
         </Button>
       </header>
       
-      <div className="p-4 border-b">
+      <div className="p-4">
         <ScrollArea className="w-full whitespace-nowrap">
             <div className="flex items-center gap-6 pb-2">
                 {allParticipants?.map(participant => (
@@ -204,19 +204,23 @@ export default function VoiceRoomPage() {
         </ScrollArea>
       </div>
 
-      <ScrollArea className="flex-1 p-4 space-y-4">
-         <AnimatePresence>
-            {messages?.map(message => {
-                 const author = allParticipants.find(p => p.id === message.senderId);
-                 return (
-                     <MessageBubble key={message.id} message={message} isMe={message.senderId === user?.uid} author={author} />
-                 )
-            })}
-        </AnimatePresence>
-        <div ref={messagesEndRef} />
-      </ScrollArea>
+      <div className="flex-1 flex flex-col relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-background to-transparent z-10 pointer-events-none" />
+        <ScrollArea className="flex-1 p-4 space-y-4">
+          <AnimatePresence>
+              {messages?.map(message => {
+                  const author = allParticipants.find(p => p.id === message.senderId);
+                  return (
+                      <MessageBubble key={message.id} message={message} isMe={message.senderId === user?.uid} author={author} />
+                  )
+              })}
+          </AnimatePresence>
+          <div ref={messagesEndRef} />
+        </ScrollArea>
+        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-background to-transparent z-10 pointer-events-none" />
+      </div>
 
-      <footer className="p-4 pb-[calc(env(safe-area-inset-bottom,0rem)+1rem)] border-t bg-background/80 backdrop-blur-md z-10 space-y-4">
+      <footer className="p-4 pb-[calc(env(safe-area-inset-bottom,0rem)+1rem)] z-10 space-y-3">
         <div className="flex items-end gap-2">
             <Textarea 
               placeholder="Bir mesaj yaz..." 
@@ -236,14 +240,14 @@ export default function VoiceRoomPage() {
             </Button>
         </div>
         <div className="flex items-center justify-center gap-4">
-            <Button variant="secondary" size="icon" className="w-14 h-14 rounded-full text-muted-foreground">
-                <ThumbsUp className="w-6 h-6" />
+            <Button variant="secondary" size="icon" className="w-12 h-12 rounded-full text-muted-foreground">
+                <ThumbsUp className="w-5 h-5" />
             </Button>
             <Button variant="secondary" size="icon" className="w-14 h-14 rounded-full text-muted-foreground" onClick={toggleMute}>
                {isMuted ? <MicOff className="w-6 h-6 text-destructive"/> : <Mic className="w-6 h-6" />}
             </Button>
-            <Button variant="destructive" size="icon" className="w-14 h-14 rounded-full" onClick={() => router.back()}>
-                <PhoneMissed className="w-6 h-6" />
+            <Button variant="destructive" size="icon" className="w-12 h-12 rounded-full" onClick={() => router.back()}>
+                <PhoneMissed className="w-5 h-5" />
             </Button>
         </div>
       </footer>
