@@ -11,17 +11,7 @@ export default function Home() {
     const { user, isUserLoading } = useUser();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const [showWelcomeVideo, setShowWelcomeVideo] = useState(false);
-
-    useEffect(() => {
-      // Sadece istemci tarafında çalışır
-      if (typeof window !== 'undefined') {
-        const hasSeenVideo = localStorage.getItem('hasSeenWelcomeVideo');
-        if (!hasSeenVideo) {
-          setShowWelcomeVideo(true);
-        }
-      }
-    }, []);
+    const [showWelcomeVideo, setShowWelcomeVideo] = useState(true); // Always show on load
 
     useEffect(() => {
         // If the user lands here after a logout, ensure the history stack is cleared.
@@ -33,7 +23,6 @@ export default function Home() {
     }, [user, isUserLoading, router, searchParams]);
 
     const handleVideoClose = () => {
-        localStorage.setItem('hasSeenWelcomeVideo', 'true');
         setShowWelcomeVideo(false);
     };
 
