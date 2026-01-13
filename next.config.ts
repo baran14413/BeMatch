@@ -1,7 +1,13 @@
-import type {NextConfig} from 'next';
+
+import type { NextConfig } from 'next';
+
+const withPWA = require("@ducanh2912/next-pwa").default({
+    dest: "public",
+    register: true,
+    skipWaiting: true,
+});
 
 const nextConfig: NextConfig = {
-  /* config options here */
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -9,7 +15,14 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+        port: '',
+        pathname: '/**',
+      },
       {
         protocol: 'https',
         hostname: 'placehold.co',
@@ -28,8 +41,15 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+       {
+        protocol: 'https',
+        hostname: 'i.pravatar.cc',
+        port: '',
+        pathname: '/**',
+      }
     ],
   },
 };
 
-export default nextConfig;
+// Only apply PWA wrapper in production
+export default process.env.NODE_ENV === 'production' ? withPWA(nextConfig) : nextConfig;

@@ -1,0 +1,145 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAdmin() {
+      // Allow if the user has the 'admin' role in their custom claims.
+      return request.auth.token.role == 'admin';
+    }
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // --- RATE LIMITING FUNCTION ---
+    // This is a good utility function to have, but not strictly used in the current rules.
+    function isRateLimited(path, field, duration) {
+      let lastActionTime = get(path).data[field];
+      if (!lastActionTime) {
+        return false;
+      }
+      return request.time - lastActionTime < duration;
+    }
+
+    // --- USER OPERATIONS ---
+    match /users/{userId} {
+      // Admins can read any profile.
+      // Any authenticated user can read any profile (for the discover screen).
+      allow read: if request.auth != null;
+      // Admins can write to any profile, users can only write to their own.
+      allow write: if isAdmin() || isOwner(userId);
+    }
+    
+    // --- USER SUBCOLLECTIONS ---
+    match /users/{userId}/{document=**} {
+        // Users can only read/write documents under their own profile. Admins can do anything.
+        allow read, write: if isAdmin() || isOwner(userId);
+    }
+
+    // --- SWIPE OPERATIONS ---
+    match /users/{targetUserId}/likedBy/{likerId} {
+      // An admin can read any 'likedBy' document.
+      // A user can read a 'likedBy' document if they are the one being liked (target) or the one who liked (liker).
+      allow read: if isAdmin() || (request.auth != null && (isOwner(targetUserId) || isOwner(likerId)));
+      // A user can only create a like document if they are the liker.
+      // Also, enforce that the data being written is correct.
+      allow create: if isOwner(likerId)
+                      && request.resource.data.likerId == likerId
+                      && request.resource.data.likerName is string
+                      && request.resource.data.likerAvatar is string;
+      // Admins or the user who created the like can update/delete it.
+      allow update, delete: if isAdmin() || isOwner(likerId);
+    }
+
+    // --- MATCH OPERATIONS ---
+    match /matches/{matchId} {
+      function isParticipant() {
+        return request.auth != null && request.auth.uid in resource.data.users;
+      }
+      
+      function userCanCreate() {
+        let userId = request.auth.uid;
+        // Find the other user's ID from the users array in the match document being created
+        let otherUserId = request.resource.data.users.filter(id => id != userId)[0];
+        
+        let denormalizedSelf = request.resource.data[('user_info_' + userId)];
+        let denormalizedOther = request.resource.data[('user_info_' + otherUserId)];
+
+        return request.auth != null 
+                && userId in request.resource.data.users
+                // Check if the other user has a 'like' document for the current user in their 'likedBy' subcollection
+                && exists(/databases/$(database)/documents/users/$(otherUserId)/likedBy/$(userId))
+                // Ensure denormalized data is present and correct for security
+                && denormalizedSelf.name is string
+                && denormalizedSelf.avatarUrl is string
+                && denormalizedOther.name is string
+                && denormalizedOther.avatarUrl is string;
+      }
+      
+      // Admins or participants of the match can read/list.
+      allow get, list: if isAdmin() || isParticipant();
+      allow update, delete: if isAdmin() || isParticipant();
+      allow create: if isAdmin() || userCanCreate();
+
+      // --- MESSAGE SUBCOLLECTION ---
+      match /messages/{messageId} {
+        // Admins or participants of the parent match can read/write messages.
+        allow read, write: if isAdmin() || get(/databases/$(database)/documents/matches/$(matchId)).data.users.hasAny([request.auth.uid]);
+      }
+    }
+    
+    // --- VOICE ROOM OPERATIONS ---
+    match /voiceRooms/{roomId} {
+        // Anyone authenticated can read the list of public rooms
+        allow list, get: if request.auth != null;
+        
+        // Only the owner can delete the room.
+        allow delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+        
+        // Any authenticated user can create a room, but they must be the owner.
+        allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+        
+        // Only the owner can update room details (like title or password) or ban users.
+        // We check that only 'title', 'isPublic', 'passwordHash', and 'bannedUserIds' can be changed.
+        allow update: if request.auth != null && resource.data.ownerId == request.auth.uid
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['title', 'isPublic', 'passwordHash', 'bannedUserIds']);
+      
+        // --- VOICE ROOM PARTICIPANTS SUBCOLLECTION ---
+        match /participants/{userId} {
+            // Anyone can see who is in the room.
+            allow read: if true;
+            // A user can only add or remove themselves from the participants list.
+            allow write, delete: if isOwner(userId);
+        }
+
+      // --- VOICE ROOM MESSAGE SUBCOLLECTION ---
+      match /messages/{messageId} {
+        // Only authenticated users can read/write messages in any room.
+        // For a more secure app, this would be locked down to only room participants.
+        allow read, write: if request.auth != null;
+      }
+    }
+
+    // --- ADMIN-ONLY COLLECTIONS (or specific access) ---
+    match /reports/{reportId} {
+      // Any authenticated user can create a report, but only if they are the reporter listed in the document.
+      allow create: if request.auth != null && request.resource.data.reporterId == request.auth.uid;
+      // Only admins can read, update, or delete reports.
+      allow read, update, delete: if isAdmin();
+    }
+    
+    match /deletedUsers/{userId} {
+      allow write: if isOwner(userId); // A user can log their own deletion.
+      allow read: if isAdmin(); // Only admins can read deletion logs.
+    }
+    
+    // Example for a settings collection, readable by anyone, writable only by admins.
+    match /systemSettings/maintenance {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

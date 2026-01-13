@@ -1,0 +1,589 @@
+{
+    "discover": {
+        "title": "Keşfet",
+        "noMoreProfiles": "Gösterilecek başka profil yok.",
+        "newMatch": "Yeni bir eşleşme!",
+        "matchToastTitle": "Eşleştin!",
+        "matchToastDescription": "{name} ile birbirinizi beğendiniz.",
+        "profileDetailsTitle": "Profil Detayları",
+        "profileDetailsDescription": "{name} kullanıcısının profil detayları",
+        "distanceAway": "{distance} km uzaklıkta",
+        "aboutMe": "Hakkımda",
+        "myVoiceNote": "Sesli notum",
+        "tutorial": {
+            "previous": "GEÇ",
+            "next": "BEĞEN"
+        },
+        "limit": {
+            "title": "Günlük Hakkın Bitti",
+            "description": "Bugünlük kaydırma hakkın bitti. Sınırsız kaydırma için web sitemizdeki hesabım sayfanı ziyaret edebilirsin.",
+            "ok": "Tamam",
+            "superLikeTitle": "Süper Beğeni Hakkın Bitti",
+            "superLikeDescription": "Süper Beğeni göndermek ve daha fazla dikkat çekmek için Gold'a yükselt.",
+            "superLikeDescriptionWebview": "Hesabını web sitemizde yöneterek daha fazla Süper Beğeni alabilirsin.",
+            "panelDescription": "Yeni haklarına kalan süre:",
+            "manageAccountTitle": "Plan Detayları",
+            "manageAccountDescription": "Yeni hakların belirli bir süre sonra yenilenecektir. Mevcut plan detaylarını görüntülemek veya değiştirmek için hesabını yönetebilirsin.",
+            "manageAccountButton": "Hesabımı Yönet",
+            "usedSwipes": "Kullanılan Hak",
+            "refreshed": "Hazır!"
+        }
+    },
+    "likes": {
+        "title": "Beğeniler",
+        "noLikesYet": "Seni henüz beğenen kimse yok."
+    },
+    "lounge": {
+        "title": "Sohbet",
+        "newMatches": "Yeni Eşleşmeler",
+        "conversations": "Sohbetler",
+        "chatInputPlaceholder": "Bir mesaj gönder...",
+        "noConversations": "Henüz hiç sohbetin yok.",
+        "startChatting": "Sohbeti başlat...",
+        "chatDeletedTitle": "Sohbet Silindi",
+        "chatDeletedDescription": "Sohbet başarıyla silindi.",
+        "chatDeleteError": "Sohbet silinirken bir hata oluştu.",
+        "deleteChatConfirmationTitle": "Sohbeti Silmek İstediğine Emin misin?",
+        "deleteChatConfirmationDescription": "Bu işlem geri alınamaz. Sohbet kalıcı olarak silinecektir.",
+        "ai": {
+            "title": "Yapay Zeka Buzkıran",
+            "description": "Sohbeti başlatmak için yapay zeka destekli bir mesaj oluştur.",
+            "generating": "Oluşturuluyor...",
+            "generate": "Oluştur",
+            "errorTitle": "AI Buzkıran Hatası",
+            "errorDescription": "Buzkıran oluşturulurken bir sorun oluştu.",
+            "errorCreating": "Buzkıran oluşturulamadı.",
+            "name": "İsim",
+            "age": "Yaş",
+            "bio": "Biyo",
+            "prompts": "İstemler"
+        }
+    },
+    "profile": {
+        "title": "Profil",
+        "getGold": "BeMatch Gold Alın",
+        "goldDescription": "Sizi kimlerin beğendiğini görün ve sınırsız kaydırın!",
+        "myPhotos": "Fotoğraflarım",
+        "profilePhoto": "Profil fotoğrafı",
+        "notFound": "Profil bulunamadı."
+    },
+    "settings": {
+        "title": "Ayarlar",
+        "description": "Hesabını ve tercihlerini yönet.",
+        "account": "Hesap Ayarları",
+        "personalInfo": "Kişisel Bilgiler",
+        "wallet": "Cüzdanım",
+        "editInterests": "İlgi Alanlarını Düzenle",
+        "editGallery": "Galeriyi Düzenle",
+        "discovery": "Keşfet Ayarları",
+        "location": "Konum",
+        "preferences": "Tercihler",
+        "app": "Uygulama Ayarları",
+        "application": "Uygulama",
+        "privacySecurity": "Gizlilik ve Güvenlik",
+        "session": "Oturum",
+        "logout": "Çıkış Yap"
+    },
+    "subscriptionsPage": {
+        "title": "Premium Paketler",
+        "description": "Tüm ayrıcalıklardan yararlan ve zirveye oyna.",
+        "weekly": "Haftalık",
+        "monthly": "Aylık",
+        "yearly": "Yıllık",
+        "mostPopular": "En Popüler",
+        "choosePlan": "Planı Seç",
+        "noPackagesInWebview": "Aboneliğini Yönet",
+        "noPackagesInWebviewDescription": "Aboneliğini yönetmek ve paketleri görüntülemek için lütfen web sitemizi standart bir tarayıcıdan ziyaret et.",
+        "goToWebsite": "Web Sitesine Git",
+        "features": {
+            "noAds": "Reklamsız Deneyim",
+            "unlimitedLikes": "Sınırsız Beğeni",
+            "unlimitedSwipes": "Sınırsız Kaydırma",
+            "unlimitedRewind": "Sınırsız Geri Alma",
+            "seeWhoLikesYou": "Seni Kimlerin Beğendiğini Gör",
+            "superLikesWeeklyGold": "Haftada 5 Süper Beğeni",
+            "boostMonthly": "Ayda 1 Ücretsiz Boost",
+            "passport": "Pasaport ile Farklı Konumlarda Keşfet",
+            "priorityLikes": "Öncelikli Beğeniler (Listelerde üste çık)"
+        }
+    },
+    "galleryPage": {
+        "description": "Fotoğraflarını ekle, çıkar veya yeniden sırala.",
+        "uploading": "Yükleniyor...",
+        "photoAdded": "Fotoğraf başarıyla eklendi!",
+        "errorAddingPhoto": "Fotoğraf eklenirken hata oluştu.",
+        "photoRemoved": "Fotoğraf başarıyla kaldırıldı.",
+        "errorRemovingPhoto": "Fotoğraf kaldırılırken hata oluştu.",
+        "errorLastPhoto": "Son fotoğrafını silemezsin.",
+        "deleteConfirmTitle": "Bu fotoğrafı silmek istediğine emin misin?",
+        "deleteConfirmDescription": "Bu işlem geri alınamaz. Bu fotoğraf profilinden kalıcı olarak silinecektir.",
+        "deleteConfirmAction": "Sil"
+    },
+    "personalInfoPage": {
+        "title": "Kişisel Bilgiler",
+        "description": "Bu bilgiler profilinde görünür ve düzenlenemez.",
+        "profileDetails": "Profil Detayları",
+        "firstName": "Ad",
+        "lastName": "Soyad",
+        "age": "Yaş",
+        "sessionActivity": "Oturum Hareketleri",
+        "sessionDescription": "Aktif oturumlarını ve giriş yaptığın cihazları gör.",
+        "activeNow": "Aktif Oturum",
+        "accountCreation": "Hesap Oluşturulma",
+        "verified": "Doğrulandı",
+        "verify": "Doğrula"
+    },
+    "walletPage": {
+        "title": "Cüzdanım",
+        "description": "Aboneliklerini ve jetonlarını yönet.",
+        "goldSub": "BeMatch Gold",
+        "plusSub": "BeMatch Plus",
+        "platinumSub": "BeMatch Platinum",
+        "nextBillDate": "Bir sonraki fatura tarihiniz:",
+        "manageSub": "Aboneliği Yönet",
+        "manageSubWeb": "Hesabımı Web'de Yönet",
+        "superLikes": "Süper Beğeni",
+        "getMore": "Daha Fazla Al",
+        "tokens": "Jetonlar",
+        "addTokens": "Jeton Yükle",
+        "noSubscription": "Aktif bir aboneliğiniz bulunmuyor.",
+        "noSubscriptionDesc": "Hesabınızı yönetmek için web sitemizi ziyaret edin.",
+        "browsePackages": "Paketlere Göz At",
+        "boost": {
+            "title": "Profil Öne Çıkarma",
+            "description": "30 dakika boyunca daha fazla kişi tarafından görül.",
+            "action": "Profili Öne Çıkar",
+            "remaining": "1 Öne Çıkarma hakkın kaldı",
+            "active": "Öne çıkarma aktif!",
+            "activeDesc": "Profilin daha fazla kişiye gösteriliyor.",
+            "success": "Profilin 30 dakika boyunca öne çıkarıldı!"
+        }
+    },
+    "interestsPage": {
+        "title": "İlgi Alanlarını Düzenle",
+        "description": "Profilinde göstereceğin en fazla {count} ilgi alanı seç.",
+        "save": "Değişiklikleri Kaydet",
+        "selected": "{count} / {max} seçildi",
+        "limitTitle": "İlgi Alanı Limiti Doldu",
+        "limitDescription": "En fazla {count} ilgi alanı seçebilirsiniz.",
+        "saveSuccessTitle": "İlgi Alanları Kaydedildi",
+        "saveSuccessDescription": "İlgi alanların başarıyla güncellendi.",
+        "saveErrorTitle": "İlgi Alanları Kaydedilemedi",
+        "saveErrorDescription": "İlgi alanların kaydedilirken bir hata oluştu. Lütfen tekrar dene."
+    },
+    "locationPage": {
+        "title": "Konum",
+        "description": "Eşleşme önerileri için konumunu yönet.",
+        "currentLocation": "Mevcut Konum",
+        "lastUpdated": "Son Güncelleme",
+        "infoText": "BeMatch, sana daha iyi öneriler sunmak için cihazının konumunu kullanır. Konumunu sadece eşleşme potansiyeli olan kişilere yaklaşık bir mesafede göstermek için kullanırız.",
+        "updateLocation": "Konumu Güncelle",
+        "updatingLocation": "Güncelleniyor...",
+        "updateToastTitle": "Konum Güncellendi!",
+        "updateToastDescription": "Yeni konumun başarıyla ayarlandı.",
+        "newLocation": "Yeni konum",
+        "noSupport": "Bu tarayıcı konum servisini desteklemiyor.",
+        "permissionDenied": "Konum izni reddedildi. Lütfen tarayıcı ayarlarından izin verin.",
+        "errorUpdating": "Profildeki konum güncellenemedi.",
+        "findingLocation": "Konum bulunuyor..."
+    },
+    "applicationPage": {
+        "title": "Uygulama Ayarları",
+        "description": "Uygulama verilerini ve ayarlarını yönet.",
+        "appearance": "Görünüm",
+        "theme": "Tema",
+        "themeDescription": "Uygulama genelinde kullanılacak temayı seçin.",
+        "selectTheme": "Tema Seç",
+        "light": "Aydınlık",
+        "dark": "Karanlık",
+        "system": "Sistem",
+        "language": "Dil",
+        "languageDescription": "Uygulamanın dilini seçin.",
+        "selectLanguage": "Dil Seç",
+        "dataManagement": "Veri Yönetimi",
+        "clearCache": "Önbelleği Temizle",
+        "clearCacheDescription": "Uygulama performansını artırmak için geçici verileri sil.",
+        "clear": "Temizle",
+        "cacheClearedTitle": "Önbellek Temizlendi",
+        "cacheClearedDescription": "Uygulama verileri ve önbellek başarıyla temizlendi.",
+        "cacheSize": "Mevcut Önbellek Boyutu",
+        "lastCleared": "Son Temizlenme",
+        "neverCleared": "Daha önce temizlenmedi"
+    },
+    "preferencesPage": {
+        "title": "Tercihler",
+        "description": "Keşfet ayarlarını yönet.",
+        "showMe": "Bana Şunları Göster",
+        "locationTitle": "Konum",
+        "globalMode": "Global",
+        "globalModeDescription": "Dünyanın dört bir yanından insanları gör.",
+        "maxDistance": "Maksimum Mesafe",
+        "ageRange": "Yaş Aralığı",
+        "save": "Değişiklikleri Kaydet",
+        "saveSuccessTitle": "Tercihler Kaydedildi",
+        "saveSuccessDescription": "Keşfet tercihlerin güncellendi.",
+        "saveErrorTitle": "Tercihler Kaydedilemedi"
+    },
+    "securityPage": {
+        "title": "Gizlilik ve Güvenlik",
+        "description": "Şifreni değiştir veya hesabını yönet.",
+        "changePassword": "Şifre Değiştir",
+        "changePasswordDescription": "Güvenliğin için yeni bir şifre belirle.",
+        "lastPasswordUpdate": "Son şifre güncellemeniz",
+        "currentPassword": "Mevcut Şifre",
+        "newPassword": "Yeni Şifre",
+        "confirmNewPassword": "Yeni Şifreyi Onayla",
+        "passwordHintCurrent": "Mevcut şifreniz",
+        "passwordHintNew": "Yeni bir şifre oluşturun",
+        "passwordHintConfirm": "Yeni şifrenizi doğrulayın",
+        "savePassword": "Şifreyi Değiştir",
+        "passwordSameAsCurrent": "Yeni şifre mevcut şifrenizle aynı olamaz.",
+        "deleteAccountTitle": "Hesabı Kalıcı Olarak Sil",
+        "deleteAccountWarning": "Bu işlem geri alınamaz. Hesabını silmek tüm eşleşmelerini, sohbetlerini ve profil bilgilerini kalıcı olarak yok edecektir.",
+        "deleteAccountInfo": "Devam etmek istediğine eminsen, lütfen aşağıdaki butona tıkla.",
+        "startDeletion": "Hesabımı Silme İşlemini Başlat",
+        "deleteModal": {
+            "step0Title": "Gitmeden önce bir dakikanızı alabilir miyiz?",
+            "step0Description": "Ayrılma nedeninizi öğrenmek isteriz. Geri bildiriminiz, BeMatch'i herkes için daha iyi hale getirmemize yardımcı olur.",
+            "step1Title": "Hesabını Silmek Üzeresin. Emin misin?",
+            "step1Description": "Bu işlem kesinlikle geri alınamaz. Onaylamak için lütfen şifreni gir.",
+            "passwordLabel": "Şifre",
+            "passwordPlaceholder": "Onaylamak için şifrenizi girin",
+            "confirmDelete": "Evet, Hesabımı Kalıcı Olarak Sil"
+        },
+        "deletionReasons": {
+            "privacy": "Gizlilik endişelerim var.",
+            "matches": "İyi eşleşmeler bulamadım.",
+            "break": "Ara vermek istiyorum.",
+            "met_someone": "Biriyle tanıştım.",
+            "technical": "Uygulamada çok fazla teknik sorun var.",
+            "other": "Başka bir neden."
+        },
+        "resetTitle": "Şifre Sıfırla",
+        "resetDescription": "Hesabın için yeni ve güçlü bir şifre oluştur.",
+        "verifyingCode": "İsteğiniz doğrulanıyor...",
+        "resetButton": "Yeni Şifreyi Ayarla",
+        "resetError": {
+            "title": "Hata",
+            "codeMissing": "Şifre sıfırlama kodu eksik veya geçersiz.",
+            "weakPassword": "Şifre güvenlik gereksinimlerini karşılamıyor.",
+            "generic": "Bilinmeyen bir hata oluştu. Lütfen tekrar deneyin.",
+            "invalidTitle": "Geçersiz veya Süresi Dolmuş Bağlantı",
+            "invalidDescription": "Şifre sıırlama bağlantısı geçersiz veya süresi dolmuş. Lütfen yeni bir tane talep edin.",
+            "backToLogin": "Giriş Sayfasına Dön"
+        },
+        "resetSuccess": {
+            "title": "Şifre Değiştirildi!",
+            "description": "Şifren başarıyla güncellendi. Şimdi giriş yapabilirsin."
+        }
+    },
+    "onboarding": {
+        "stepNameTitle": "Adınız nedir?",
+        "firstName": "Adın",
+        "firstNamePlaceholder": "Adınız",
+        "lastName": "Soyadın",
+        "lastNamePlaceholder": "Soyadınız",
+        "stepAgeTitle": "Doğum tarihin nedir?",
+        "ageInfo": "Devam etmek için 18 yaşında veya daha büyük olmalısın.",
+        "currentAge": "Yaşın: {age}",
+        "invalidDate": "Lütfen geçerli bir tarih girin.",
+        "stepGenderTitle": "Bize kendinden bahset",
+        "gender": {
+            "yourGender": "Cinsiyetiniz",
+            "woman": "Kadın",
+            "man": "Erkek"
+        },
+        "interestedIn": {
+            "showMe": "Bana şunları göster",
+            "men": "Erkekler",
+            "women": "Kadınlar",
+            "everyone": "Herkes",
+            "everyoneDescription": "Sana kadın ve erkek profiller karışık gösterilecektir."
+        },
+        "stepGoalsTitle": "Burada ne arıyorsunuz?",
+        "goals": {
+            "longTerm": "Uzun süreli ilişki",
+            "casual": "Sıradan bir şeyler",
+            "chat": "Sohbet etmek için yeni arkadaşlar"
+        },
+        "stepInterestsTitle": "İlgi alanların neler?",
+        "stepLocationTitle": "Nerede yaşıyorsun?",
+        "location": {
+            "info": "Yakınındaki eşleşmeleri bulmak için lütfen konum servislerini etkinleştir.",
+            "enableButton": "Konumu Etkinleştir"
+        },
+        "stepDistanceTitle": "Mesafe tercihini ayarla",
+        "distance": {
+            "info": "Bu ayarı daha sonra Ayarlar menüsünden dilediğin zaman değiştirebilirsin."
+        },
+        "stepBioTitle": "Bize kendinden bahset",
+        "bio": {
+            "placeholder": "Kendin hakkında bir şeyler yaz...",
+            "remaining": "{count} karakter kaldı"
+        },
+        "stepPhotosTitle": "En iyi fotoğraflarını ekle",
+        "photos": {
+            "info": "Devam etmek için en az 1 fotoğraf ekle. En fazla {count} fotoğraf ekleyebilirsin.",
+            "addButton": "Fotoğraf Ekle",
+            "previewAlt": "Yükleme önizlemesi",
+            "profilePhotoHint": "İlk seçtiğiniz fotoğraf, profil fotoğrafınız olarak ayarlanacaktır."
+        },
+        "credentials": {
+            "emailTitle": "E-posta adresin nedir?",
+            "passwordTitle": "Bir şifre oluştur",
+            "email": "E-posta",
+            "emailPlaceholder": "eposta@adresiniz.com",
+            "password": "Şifre",
+            "passwordPlaceholder": "Bir şifre oluşturun",
+            "passwordPolicy": "Şifreniz en az 8 karakter uzunluğunda olmalı, harf ve rakam içermelidir.",
+            "confirmPassword": "Şifreyi Onayla",
+            "confirmPasswordPlaceholder": "Şifrenizi doğrulayın",
+            "passwordMismatch": "Şifreler eşleşmiyor."
+        },
+        "welcome": {
+            "legal_agreement": "Hesabı oluşturarak, <terms>Kullanım Koşullarımızı</terms> ve <privacy>Gizlilik Politikamızı</privacy> kabul etmiş olursunuz."
+        },
+        "haveAccount": "Zaten bir hesabın var mı?",
+        "createAccount": "Hesabı Oluştur",
+        "toasts": {
+            "successTitle": "Hesap oluşturuldu!",
+            "successDescription": "BeMatch'e hoş geldiniz.",
+            "errorTitle": "Kayıt sırasında hata oluştu",
+            "errorDescription": "Lütfen bilgilerinizi kontrol edip tekrar deneyin.",
+            "emailInUse": "Bu e-posta adresi zaten kullanılıyor.",
+            "checkingEmail": "E-posta kontrol ediliyor..."
+        }
+    },
+    "login": {
+        "title": "BeMatch",
+        "description": "Mükemmel eşini bulmak için giriş yap.",
+        "email": "E-posta",
+        "emailPlaceholder": "eposta@adresiniz.com",
+        "password": "Şifre",
+        "passwordPlaceholder": "Şifreniz",
+        "button": "Giriş Yap",
+        "noAccount": "Hesabın yok mu?",
+        "createAccount": "Yeni Hesap Oluştur",
+        "successTitle": "Giriş başarılı!",
+        "successDescription": "Tekrar hoş geldin.",
+        "errorTitle": "Giriş yapılamadı",
+        "errorDescription": "E-posta veya şifreniz yanlış.",
+        "forgotPassword": {
+            "trigger": "Şifreni mi unuttun?",
+            "title": "Şifreni Sıfırla",
+            "description": "Hesabına kayıtlı e-posta adresini gir. Şifreni sıfırlaman için sana bir bağlantı göndereceğiz.",
+            "button": "Sıfırlama E-postası Gönder",
+            "emailRequired": "Lütfen bir e-posta adresi girin.",
+            "successTitle": "E-posta Gönderildi!",
+            "successDescription": "Şifre sıfırlama talimatları için lütfen gelen kutunu (ve spam klasörünü!) kontrol et.",
+            "errorTitle": "Hata",
+            "userNotFound": "Bu e-posta adresi ile kayıtlı bir kullanıcı bulunamadı."
+        }
+    },
+    "passwordStrength": {
+        "weak": "Zayıf",
+        "medium": "Orta",
+        "strong": "Güçlü"
+    },
+    "interests": {
+        "music": "Müzik",
+        "travel": "Seyahat",
+        "gaming": "Oyun",
+        "movies": "Filmler",
+        "reading": "Okumak",
+        "cooking": "Yemek yapmak",
+        "sports": "Spor",
+        "fitness": "Fitness",
+        "art": "Sanat",
+        "photography": "Fotoğrafçılık",
+        "hiking": "Doğa Yürüyüşü",
+        "dancing": "Dans",
+        "technology": "Teknoloji",
+        "fashion": "Moda",
+        "yoga": "Yoga",
+        "camping": "Kamp",
+        "theater": "Tiyatro",
+        "volunteering": "Gönüllülük"
+    },
+    "common": {
+        "km": "km",
+        "back": "Geri",
+        "next": "İleri",
+        "save": "Kaydet",
+        "reload": "Tekrar Yükle",
+        "daysAgo": "gün önce",
+        "nowActive": "Şimdi aktif",
+        "edit": "Düzenle",
+        "day": "Gün",
+        "month": "Ay",
+        "year": "Yıl",
+        "dayPlaceholder": "GG",
+        "monthPlaceholder": "AA",
+        "yearPlaceholder": "YYYY",
+        "tryAgain": "Tekrar Dene",
+        "done": "Bitti",
+        "error": "Hata",
+        "cancel": "İptal",
+        "delete": "Sil",
+        "continue": "Devam",
+        "goBack": "Geri"
+    },
+    "chat": {
+        "online": "Çevrimiçi",
+        "offline": "Çevrimdışı",
+        "today": "bugün",
+        "yesterday": "dün",
+        "you": "Siz",
+        "unblockPrompt": "Engeli kaldır?",
+        "blockedByOther": "Bu kullanıcı tarafından engellendin.",
+        "blockedUser": "{name} kullanıcısını engelledin.",
+        "systemChatDisabled": "Sistem mesajlarına yanıt veremezsiniz.",
+        "edited": "(düzenlendi)",
+        "editedPrefix": "(Düzenlendi)",
+        "lastMessageVoice": "🎤 Sesli Mesaj",
+        "lastMessagePhoto": "📷 Fotoğraf",
+        "repliedImageAlt": "yanıtlanan resim",
+        "sentImageAlt": "gönderilen resim",
+        "editingMessage": "Mesaj Düzenleniyor",
+        "replyingTo": "Yanıtlanıyor",
+        "manageAccount": "Hesabımı Web'de Yönet",
+        "actions": {
+            "reply": "Yanıtla",
+            "edit": "Düzenle",
+            "delete": "Sil",
+            "block": "Engelle",
+            "report": "Şikayet Et"
+        },
+        "toasts": {
+            "messageDeletedTitle": "Mesaj Silindi",
+            "messageDeletedDescription": "Mesaj başarıyla silindi.",
+            "voiceSendError": "Sesli mesaj gönderilemedi",
+            "recordStartErrorTitle": "Ses kaydı başlatılamadı",
+            "recordStartErrorDescription": "Lütfen mikrofon izni verdiğinizden emin olun.",
+            "imageSent": "Fotoğraf gönderildi!",
+            "imageSendError": "Fotoğraf gönderilemedi",
+            "viewOnceSet": "Resim tek seferlik gönderilecek şekilde ayarlandı.",
+            "userBlocked": "{name} engellendi.",
+            "blockError": "Kullanıcı engellenemedi.",
+            "userUnblocked": "{name} kullanıcısının engeli kaldırıldı.",
+            "unblockError": "Engeli kaldırma işlemi başarısız oldu.",
+            "userReported": "Kullanıcı şikayet edildi.",
+            "verifyEmailPrompt": "Güvenliğiniz için lütfen e-postanızı doğrulayın.",
+            "resendEmailButton": "E-postayı Tekrar Gönder",
+            "emailInUse": "Bu e-posta adresi zaten kullanılıyor.",
+            "checkingEmail": "E-posta kontrol ediliyor..."
+        },
+        "deleteModal": {
+            "title": "Mesajı Silmek İstediğine Emin misin?",
+            "description": "Bu işlem geri alınamaz. Mesaj kalıcı olarak silinecektir."
+        },
+        "imagePreview": {
+            "title": "Gönderilecek Resim Önizlemesi",
+            "alt": "Gönderilecek resim",
+            "captionPlaceholder": "Bir başlık ekle..."
+        },
+        "viewOnce": {
+            "title": "Tek Seferlik Resim",
+            "alt": "Tek seferlik resim",
+            "opened_by_me": "Açıldı",
+            "opened_by_them": "Tek seferlik resmi açtın"
+        },
+        "placeholders": {
+            "q1": "Bugün canını sıkan bir şey oldu mu?",
+            "q2": "Bir sonraki tatilinde nereye gitmek istersin?",
+            "q3": "En sevdiğin film hangisi ve neden?",
+            "q4": "Bir süper gücün olsa bu ne olurdu ve onunla ne yapardın?",
+            "q5": "Bu hafta sonu için heyecan verici planların var mı?"
+        }
+    },
+    "legal": {
+        "title": "Yasal Bilgiler",
+        "terms": {
+            "title": "Kullanım Koşulları",
+            "section1": {
+                "title": "1. Hizmetlerin Kabulü",
+                "content": "BeMatch hizmetlerini kullanarak, bu Kullanım Koşullarını kabul etmiş sayılırsınız. Bu koşulları kabul etmiyorsanız, hizmetlerimizi kullanmamalısınız."
+            },
+            "section2": {
+                "title": "2. Uygunluk",
+                "content": "BeMatch'i kullanmak için en az 18 yaşında olmalısınız. Hizmetlerimizi kullanarak 18 yaş ve üzeri olduğunuzu beyan ve garanti edersiniz."
+            },
+            "section3": {
+                "title": "3. Topluluk Kuralları",
+                "content": "Tüm kullanıcılara saygılı davranmalısınız. Taciz, nefret söylemi, çıplaklık veya yasa dışı faaliyetlere izin verilmez. Bu kuralların ihlali, hesabınızın askıya alınmasına veya silinmesine neden olabilir."
+            },
+            "section4": {
+                "title": "4. Sorumluluk Reddi",
+                "content": "BeMatch, diğer kullanıcılarla olan etkileşimlerinizden sorumlu değildir. Kendi güvenliğinizden siz sorumlusunuz. Kişisel bilgilerinizi paylaşırken dikkatli olun."
+            }
+        },
+        "privacy": {
+            "title": "Gizlilik Politikası",
+            "section1": {
+                "title": "1. Topladığımız Bilgiler",
+                "content": "Profilinizi oluşturmak için adınız, e-postanız, doğum tarihiniz, fotoğraflarınız ve konumunuz gibi bilgileri toplarız. Bu bilgiler, size daha iyi eşleşmeler sunmak için kullanılır."
+            },
+            "section2": {
+                "title": "2. Bilgilerin Kullanımı",
+                "content": "Bilgileriniz, hizmetlerimizi sağlamak, geliştirmek ve kişiselleştirmek için kullanılır. Bilgileriniz, izniniz olmadan üçüncü taraflarla pazarlama amacıyla paylaşılmaz."
+            },
+            "section3": {
+                "title": "3. Veri Güvenliği",
+                "content": "Verilerinizi korumak için endüstri standardı güvenlik önlemleri alıyoruz. Ancak hiçbir sistemin %100 güvenli olmadığını unutmayın."
+            }
+        },
+        "faq": {
+            "title": "SSS",
+            "q1": {
+                "title": "BeMatch Gold nedir?",
+                "content": "BeMatch Gold, sizi kimlerin beğendiğini görmenizi, sınırsız beğeni hakkı elde etmenizi ve reklamları kaldırmanızı sağlayan premium bir aboneliktir."
+            },
+            "q2": {
+                "title": "Hesabımı nasıl silebilirim?",
+                "content": "Hesabınızı silmek için 'Ayarlar' menüsündeki 'Gizlilik ve Güvenlik' bölümüne gidebilirsiniz. Bu işlemin geri alınamayacağını unutmayın."
+            },
+            "q3": {
+                "title": "Bir kullanıcıyı nasıl şikayet edebilirim?",
+                "content": "Bir kullanıcının profilindeki menüden 'Şikayet Et' seçeneğini kullanarak uygunsuz davranışları bize bildirebilirsiniz."
+            }
+        }
+    },
+    "match": {
+        "title": "Eşleştin!",
+        "description": "Sen ve {name} birbirinizi beğendiniz.",
+        "sendMessage": "Mesaj Gönder",
+        "keepSwiping": "Keşfetmeye Devam Et"
+    },
+    "report": {
+        "title": "Kullanıcıyı Şikayet Et",
+        "description": "Topluluğumuzu güvende tutmamıza yardımcı olun.",
+        "reasonTitle": "Şikayet Nedeni",
+        "reasonDescription": "Lütfen şikayetiniz için en uygun nedeni seçin.",
+        "descriptionTitle": "Açıklama (İsteğe Bağlı)",
+        "descriptionInfo": "Lütfen olay hakkında daha fazla bilgi verin.",
+        "descriptionPlaceholder": "Neler olduğunu anlatın...",
+        "submitButton": "Raporu Gönder",
+        "successTitle": "Rapor Gönderildi",
+        "successDescription": "Geri bildiriminiz için teşekkür ederiz. Ekibimiz durumu en kısa sürede inceleyecektir.",
+        "errorTitle": "Hata",
+        "errorDescription": "Rapor gönderilirken bir sorun oluştu. Lütfen tekrar deneyin.",
+        "reasonRequired": "Lütfen bir neden belirtin.",
+        "loginRequired": "Giriş yapmanız gerekli.",
+        "blockConfirmTitle": "Kullanıcıyı Engelle?",
+        "blockConfirmDescription": "Bu kullanıcıyı engellemek ve eşleşmeyi kaldırmak istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+        "yesBlock": "Evet, Engelle ve Kaldır",
+        "noThanks": "Hayır, Teşekkürler",
+        "blockSuccessTitle": "Kullanıcı engellendi ve sohbet kaldırıldı.",
+        "blockErrorDescription": "Kullanıcı engellenirken bir hata oluştu. Lütfen tekrar deneyin."
+    },
+    "notifications": {
+        "title": "Bildirimler",
+        "description": "Yeni eşleşmeler ve mesajlar gibi önemli güncellemelerden anında haberdar ol.",
+        "notSupported": "Bu cihazda desteklenmiyor",
+        "active": "Bildirimler aktif",
+        "enableButton": "Bildirimlere İzin Ver",
+        "blockedButton": "Bildirimler Engellendi",
+        "blockedTitle": "Bildirimler Engellendi",
+        "blockedDescription": "Bildirimleri etkinleştirmek için tarayıcı ayarlarınızı değiştirmeniz gerekiyor."
+    }
+}

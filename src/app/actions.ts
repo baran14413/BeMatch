@@ -1,17 +1,26 @@
-"use server";
+'use server';
 
 import {
-  generatePersonalizedTestimonial,
-  type GeneratePersonalizedTestimonialInput,
-} from '@/ai/flows/generate-personalized-testimonials';
+  generateAiIcebreaker as generateAiIcebreakerFlow,
+  type GenerateAiIcebreakerInput,
+  type GenerateAiIcebreakerOutput,
+} from '@/ai/flows/generate-ai-icebreaker';
 
-export async function getPersonalizedTestimonial(input: GeneratePersonalizedTestimonialInput): Promise<string> {
-  try {
-    const personalizedText = await generatePersonalizedTestimonial(input);
-    return personalizedText;
-  } catch (error) {
-    console.error('Error generating personalized testimonial:', error);
-    // Return base testimonial as a fallback
-    return `Error: Could not generate personalized content. ${input.baseTestimonial}`;
-  }
+import {
+  generateAiChatResponse as generateAiChatResponseFlow,
+  type GenerateAiChatResponseInput,
+  type GenerateAiChatResponseOutput,
+} from '@/ai/flows/generate-ai-chat-response';
+
+
+export async function generateAiIcebreaker(
+  input: GenerateAiIcebreakerInput
+): Promise<GenerateAiIcebreakerOutput> {
+  return await generateAiIcebreakerFlow(input);
+}
+
+export async function generateAiChatResponse(
+  input: GenerateAiChatResponseInput
+): Promise<GenerateAiChatResponseOutput> {
+  return await generateAiChatResponseFlow(input);
 }
