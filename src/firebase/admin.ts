@@ -1,79 +1,85 @@
-{
-  "name": "nextn",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev --turbopack",
-    "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
-    "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "build": "NODE_ENV=production next build",
-    "start": "next start",
-    "lint": "next lint",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@ducanh2912/next-pwa": "^10.2.7",
-    "@genkit-ai/google-genai": "^1.20.0",
-    "@genkit-ai/next": "^1.20.0",
-    "@hookform/resolvers": "3.10.0",
-    "@radix-ui/react-accordion": "^1.2.0",
-    "@radix-ui/react-alert-dialog": "^1.1.1",
-    "@radix-ui/react-avatar": "^1.1.0",
-    "@radix-ui/react-checkbox": "^1.1.1",
-    "@radix-ui/react-collapsible": "^1.1.0",
-    "@radix-ui/react-dialog": "^1.1.1",
-    "@radix-ui/react-dropdown-menu": "^2.1.1",
-    "@radix-ui/react-label": "^2.1.0",
-    "@radix-ui/react-menubar": "^1.1.1",
-    "@radix-ui/react-popover": "^1.1.1",
-    "@radix-ui/react-progress": "^1.1.0",
-    "@radix-ui/react-radio-group": "^1.2.0",
-    "@radix-ui/react-scroll-area": "^1.1.0",
-    "@radix-ui/react-select": "^2.1.1",
-    "@radix-ui/react-separator": "^1.1.0",
-    "@radix-ui/react-slider": "^1.2.0",
-    "@radix-ui/react-slot": "^1.1.0",
-    "@radix-ui/react-switch": "^1.1.0",
-    "@radix-ui/react-tabs": "^1.1.0",
-    "@radix-ui/react-toast": "^1.2.1",
-    "@radix-ui/react-tooltip": "^1.1.2",
-    "class-variance-authority": "^0.7.0",
-    "clsx": "^2.1.1",
-    "date-fns": "^3.6.0",
-    "dotenv": "^16.4.5",
-    "embla-carousel-react": "^8.1.5",
-    "emoji-picker-react": "^4.10.0",
-    "firebase": "^10.12.2",
-    "firebase-admin": "^12.1.1",
-    "framer-motion": "^11.2.12",
-    "genkit": "^1.20.0",
-    "googleapis": "^140.0.1",
-    "js-cookie": "^3.0.5",
-    "lucide-react": "^0.400.0",
-    "next": "^15.0.5",
-    "next-themes": "^0.3.0",
-    "patch-package": "^8.0.0",
-    "react": "^18.2.0",
-    "react-day-picker": "^8.10.1",
-    "react-dom": "^18.2.0",
-    "react-hook-form": "7.52.1",
-    "recharts": "^2.12.7",
-    "tailwind-merge": "^2.3.0",
-    "tailwindcss-animate": "^1.0.7",
-    "uuid": "^10.0.0",
-    "zod": "^3.23.8",
-    "wav": "^1.0.2"
-  },
-  "devDependencies": {
-    "@types/js-cookie": "^3.0.6",
-    "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
-    "@types/uuid": "^9.0.0",
-    "@types/wav": "^1.0.3",
-    "genkit-cli": "^1.20.0",
-    "postcss": "^8",
-    "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+
+'server-only';
+import * as admin from 'firebase-admin';
+
+// Define the structure for the cached Firebase Admin application instance.
+interface FirebaseAdminApp {
+  auth: admin.auth.Auth;
+  db: admin.firestore.Firestore;
+}
+
+// Use a singleton pattern to ensure Firebase Admin is initialized only once.
+let adminApp: FirebaseAdminApp | undefined;
+
+/**
+ * Retrieves the service account credentials from the environment variable.
+ * This is the secure way to handle credentials in a deployment environment.
+ * @returns {admin.ServiceAccount | null} The service account object or null.
+ */
+function getServiceAccount(): admin.ServiceAccount | null {
+    if (process.env.SERVICE_ACCOUNT_KEY) {
+        try {
+            // The environment variable is expected to be a base64 encoded JSON string.
+            const serviceAccountJson = Buffer.from(process.env.SERVICE_ACCOUNT_KEY, 'base64').toString('utf-8');
+            return JSON.parse(serviceAccountJson);
+        } catch (e) {
+            console.error('Error parsing SERVICE_ACCOUNT_KEY from environment variable:', e);
+            return null;
+        }
+    }
+    // In a deployed environment, we don't fall back to a local file.
+    // The environment variable is required.
+    return null;
+}
+
+
+/**
+ * A getter function to initialize and/or retrieve the Firebase Admin services.
+ * This ensures that initialization only happens once per server instance.
+ * Returns null if credentials are not available, preventing build failures.
+ * @returns {FirebaseAdminApp | null} The initialized Firebase Admin services or null.
+ */
+export function getFirebaseAdmin(): FirebaseAdminApp | null {
+  // If the adminApp instance already exists, return it to avoid re-initialization.
+  if (adminApp) {
+    return adminApp;
+  }
+  
+  const serviceAccount = getServiceAccount();
+
+  // If serviceAccount is null, log a specific warning and return null.
+  if (!serviceAccount) {
+    // This check runs on the server, so the log will appear in your server console/terminal.
+    console.warn(
+        'Firebase Admin initialization skipped: SERVICE_ACCOUNT_KEY environment variable is not set or is invalid. Admin features will be disabled.'
+    );
+    return null;
+  }
+  
+  try {
+    // Initialize the app only if it hasn't been initialized yet.
+    if (admin.apps.length === 0) {
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount),
+        });
+    }
+
+    // Create and cache the admin app instance with the required services.
+    adminApp = {
+      auth: admin.auth(),
+      db: admin.firestore(),
+    };
+
+    console.log("Firebase Admin SDK initialized successfully.");
+    return adminApp;
+
+  } catch (error: any) {
+    // This will catch any parsing errors or other initialization issues.
+    console.error("Firebase Admin SDK Initialization Error:", error.message);
+    // Provide a more helpful error message if the key is likely malformed.
+    if (error.message.includes('Invalid credential')) {
+         console.error('Hint: The service account key might be corrupted or malformed. Please check the environment variable.');
+    }
+    return null; // Return null on error to prevent crashing.
   }
 }
