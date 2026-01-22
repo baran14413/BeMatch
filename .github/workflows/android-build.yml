@@ -54,7 +54,7 @@ jobs:
         working-directory: android
 
       - name: Upload App Bundle
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: app-release-bundle
           path: android/app/build/outputs/bundle/release/app-release.aab
