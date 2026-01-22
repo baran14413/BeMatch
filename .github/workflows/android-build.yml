@@ -1,0 +1,60 @@
+
+name: Build Android App Bundle
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Sync Capacitor project
+        run: npx cap sync android
+
+      - name: Decode Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          echo $KEYSTORE_BASE64 | base64 --decode > android/app/release-key.keystore
+          
+      - name: Create Keystore Properties
+        env:
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+        run: |
+          echo "storePassword=${{ secrets.STORE_PASSWORD }}" > android/keystore.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/keystore.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/keystore.properties
+          echo "storeFile=app/release-key.keystore" >> android/keystore.properties
+
+      - name: Set gradlew permissions
+        run: chmod +x android/gradlew
+        working-directory: android
+
+      - name: Build App Bundle
+        run: ./gradlew bundleRelease
+        working-directory: android
+
+      - name: Upload App Bundle
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-release-bundle
+          path: android/app/build/outputs/bundle/release/app-release.aab
