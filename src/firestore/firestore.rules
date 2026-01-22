@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. KULLANICI PROFİLLERİ (SAHİPLİK İZNİ)
+    // Kullanıcı kendi profilini ve altındaki her şeyi (fotoğraf, ayar vb.) okuyup yazabilir.
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 2. GENEL PROFİL OKUMA (KEŞFET)
+    // Herkes, başkalarının ana profil bilgilerini (isim, resim) görebilir.
+    match /users/{userId} {
+      allow read: if request.auth != null;
+    }
+
+    // 3. BEĞENİ ATMA (SWIPE İZNİ)
+    // Bir kullanıcı (Liker), başkasının (Target) "likedBy" kutusuna 
+    // sadece kendi ID'siyle dosya oluşturabilir ve okuyabilir.
+    match /users/{targetUserId}/likedBy/{likerId} {
+      allow read, write: if request.auth != null && request.auth.uid == likerId;
+    }
+
+    // 4. EŞLEŞMELER (MATCHES İZNİ)
+    // Kullanıcılar eşleşme dosyasını oluşturabilir ve okuyabilir.
+    match /matches/{matchId} {
+      allow read, write: if request.auth != null && request.auth.uid in resource.data.users;
+    }
+
+    // 5. MESAJLAŞMA
+    // Sohbetin içindeki mesajları okuma ve yazma izni.
+    match /matches/{matchId}/messages/{messageId} {
+      allow read, write: if request.auth != null && get(/databases/$(database)/documents/matches/$(matchId)).data.users.hasAny([request.auth.uid]);
+    }
+    
+  }
+}

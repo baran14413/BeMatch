@@ -1,0 +1,88 @@
+{
+  "placeholderImages": [
+    {
+      "id": "auth-bg",
+      "description": "Abstract 3D mesh background for the authentication screen",
+      "imageUrl": "https://images.unsplash.com/photo-1690029670784-155329105e58?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8YWJzdHJhY3QlMjBuZXR3b3JrfGVufDB8fHx8MTc2NDY0NDQ0OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract network"
+    },
+    {
+      "id": "bematch-logo",
+      "description": "Official BeMatch logo",
+      "imageUrl": "https://images.unsplash.com/photo-1580473828758-718abc902934?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxoZWFydCUyMGxvZ298ZW58MHx8fHwxNzY1NTYxOTMyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "heart logo"
+    },
+    {
+      "id": "user-1-avatar",
+      "description": "Avatar for user Sarah",
+      "imageUrl": "https://images.unsplash.com/photo-1557053910-d9eadeed1c58?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHBvcnRyYWl0fGVufDB8fHx8MTc2NDcwNjIzNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman portrait"
+    },
+    {
+      "id": "user-1-p1",
+      "description": "Profile picture 1 for user Sarah",
+      "imageUrl": "https://images.unsplash.com/photo-1659892603525-cf7845582784?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx3b21hbiUyMGhpa2luZ3xlbnwwfHx8fDE3NjQ3MTM4ODN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman hiking"
+    },
+    {
+      "id": "user-1-p2",
+      "description": "Profile picture 2 for user Sarah",
+      "imageUrl": "https://images.unsplash.com/photo-1611244420030-b22f359eee31?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHx3b21hbiUyMHBhaW50aW5nfGVufDB8fHx8MTc2NDY0NjQ0NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman painting"
+    },
+    {
+      "id": "user-2-avatar",
+      "description": "Avatar for user Alex",
+      "imageUrl": "https://images.unsplash.com/photo-1607031542107-f6f46b5d54e9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjQ2Njg4OTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man portrait"
+    },
+    {
+      "id": "user-2-p1",
+      "description": "Profile picture 1 for user Alex",
+      "imageUrl": "https://images.unsplash.com/photo-1692649841833-3401769683bc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxtYW4lMjBjaXR5c2NhcGV8ZW58MHx8fHwxNzY0NzEzODgzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man cityscape"
+    },
+    {
+      "id": "user-2-p2",
+      "description": "Profile picture 2 for user Alex",
+      "imageUrl": "https://images.unsplash.com/photo-1564998090566-fc0f37eb6085?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxtYW4lMjBjb25jZXJ0fGVufDB8fHx8MTc2NDcxMzg4M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man concert"
+    },
+    {
+      "id": "user-3-avatar",
+      "description": "Avatar for user Chloe",
+      "imageUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHx3b21hbiUyMHNtaWxpbmd8ZW58MHx8fHwxNzY0NzA1ODUwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman smiling"
+    },
+    {
+      "id": "user-3-p1",
+      "description": "Profile picture 1 for user Chloe",
+      "imageUrl": "https://images.unsplash.com/photo-1532347922424-c652d9b7208e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHx3b21hbiUyMGJlYWNofGVufDB8fHx8MTc2NDYyNjg4Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman beach"
+    },
+    {
+      "id": "user-4-avatar",
+      "description": "Avatar for user Ben",
+      "imageUrl": "https://images.unsplash.com/photo-1725866546799-4cc16f6cba23?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtYW4lMjBzbWlsaW5nfGVufDB8fHx8MTc2NDYzODk4NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man smiling"
+    },
+    {
+      "id": "user-4-p1",
+      "description": "Profile picture 1 for user Ben",
+      "imageUrl": "https://images.unsplash.com/photo-1624891510199-17fb92093b0e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxtYW4lMjBjYWZlfGVufDB8fHx8MTc2NDY1NTMzM3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man cafe"
+    },
+    {
+      "id": "user-5-avatar",
+      "description": "Avatar for user Maya",
+      "imageUrl": "https://images.unsplash.com/photo-1526835746352-0b9da4054862?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHx3b21hbiUyMHByb2ZpbGV8ZW58MHx8fHwxNzY0NjcxNzAyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman profile"
+    },
+    {
+      "id": "user-6-avatar",
+      "description": "Avatar for user Leo",
+      "imageUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxtYW4lMjBwcm9maWxlfGVufDB8fHx8MTc2NDcwMzA5Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man profile"
+    }
+  ]
+}

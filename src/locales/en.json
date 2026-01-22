@@ -1,0 +1,587 @@
+{
+    "discover": {
+        "title": "Discover",
+        "noMoreProfiles": "No more profiles to show.",
+        "newMatch": "New Match!",
+        "matchToastTitle": "It's a Match!",
+        "matchToastDescription": "You and {name} have liked each other.",
+        "profileDetailsTitle": "Profile Details",
+        "profileDetailsDescription": "Profile details for {name}",
+        "distanceAway": "{distance} km away",
+        "aboutMe": "About Me",
+        "myVoiceNote": "My Voice Note",
+        "tutorial": {
+            "previous": "PASS",
+            "next": "LIKE"
+        },
+        "limit": {
+            "title": "You're Out of Swipes",
+            "description": "You have run out of swipes for today. To get unlimited swipes, visit your account page on our website.",
+            "ok": "OK",
+            "superLikeTitle": "Out of Super Likes",
+            "superLikeDescription": "Upgrade to Gold to send Super Likes and get noticed.",
+            "superLikeDescriptionWebview": "You can get more Super Likes by managing your account on our website.",
+            "panelDescription": "Your new swipes will be available:",
+            "manageAccountTitle": "Plan Details",
+            "manageAccountDescription": "Your rights will be renewed after a certain period. You can manage your account to view or change your current plan details.",
+            "manageAccountButton": "Manage Account",
+            "usedSwipes": "Used Swipes",
+            "refreshed": "Ready!"
+        }
+    },
+    "likes": {
+        "title": "Likes",
+        "noLikesYet": "Nobody has liked you yet."
+    },
+    "lounge": {
+        "title": "Lounge",
+        "newMatches": "New Matches",
+        "conversations": "Conversations",
+        "chatInputPlaceholder": "Send a message...",
+        "noConversations": "You have no conversations yet.",
+        "startChatting": "Start the conversation...",
+        "chatDeletedTitle": "Chat Deleted",
+        "chatDeletedDescription": "The chat has been successfully deleted.",
+        "chatDeleteError": "An error occurred while deleting the chat.",
+        "deleteChatConfirmationTitle": "Are you sure you want to delete the chat?",
+        "deleteChatConfirmationDescription": "This action cannot be undone. The chat will be permanently deleted.",
+        "ai": {
+            "title": "AI Icebreaker",
+            "description": "Generate an AI-powered message to start the conversation.",
+            "generating": "Generating...",
+            "generate": "Generate",
+            "errorTitle": "AI Icebreaker Error",
+            "errorDescription": "There was a problem generating the icebreaker.",
+            "errorCreating": "Could not create icebreaker.",
+            "name": "Name",
+            "age": "Age",
+            "bio": "Bio",
+            "prompts": "Prompts"
+        }
+    },
+    "profile": {
+        "title": "Profile",
+        "getGold": "Get BeMatch Gold",
+        "goldDescription": "See who likes you & get unlimited swipes!",
+        "myPhotos": "My Photos",
+        "profilePhoto": "Profile photo",
+        "notFound": "Profile not found."
+    },
+    "settings": {
+        "title": "Settings",
+        "description": "Manage your account and preferences.",
+        "account": "Account Settings",
+        "personalInfo": "Personal Info",
+        "wallet": "Wallet",
+        "editInterests": "Edit Interests",
+        "editGallery": "Edit Gallery",
+        "discovery": "Discovery Settings",
+        "location": "Location",
+        "preferences": "Preferences",
+        "app": "Application Settings",
+        "application": "Application",
+        "privacySecurity": "Privacy and Security",
+        "session": "Session",
+        "logout": "Log Out"
+    },
+    "subscriptionsPage": {
+        "title": "Premium Packages",
+        "description": "Enjoy all the privileges and play at the top.",
+        "weekly": "Weekly",
+        "monthly": "Monthly",
+        "yearly": "Yearly",
+        "mostPopular": "Most Popular",
+        "choosePlan": "Choose Plan",
+        "noPackagesInWebview": "Manage Your Subscription",
+        "noPackagesInWebviewDescription": "To manage your subscription and view packages, please visit our website from a standard browser.",
+        "goToWebsite": "Go to Website",
+        "features": {
+            "noAds": "Ad-Free Experience",
+            "unlimitedLikes": "Unlimited Likes",
+            "unlimitedSwipes": "Unlimited Swipes",
+            "unlimitedRewind": "Unlimited Rewinds",
+            "seeWhoLikesYou": "See Who Likes You",
+            "superLikesWeeklyGold": "5 Super Likes per week",
+            "boostMonthly": "1 Free Boost per month",
+            "passport": "Passport to any location",
+            "priorityLikes": "Priority Likes (be seen first)"
+        }
+    },
+    "galleryPage": {
+        "description": "Add, remove, or reorder your photos.",
+        "uploading": "Uploading...",
+        "photoAdded": "Photo added successfully!",
+        "errorAddingPhoto": "Error adding photo.",
+        "photoRemoved": "Photo removed successfully.",
+        "errorRemovingPhoto": "Error removing photo.",
+        "errorLastPhoto": "You cannot delete your last photo.",
+        "deleteConfirmTitle": "Are you sure you want to delete this photo?",
+        "deleteConfirmDescription": "This action cannot be undone. This photo will be permanently deleted from your profile.",
+        "deleteConfirmAction": "Delete"
+    },
+    "personalInfoPage": {
+        "title": "Personal Info",
+        "description": "This information appears on your profile and cannot be edited.",
+        "profileDetails": "Profile Details",
+        "firstName": "First Name",
+        "lastName": "Last Name",
+        "age": "Age",
+        "sessionActivity": "Session Activity",
+        "sessionDescription": "See your active sessions and logged-in devices.",
+        "activeNow": "Active Session",
+        "accountCreation": "Account Creation"
+    },
+    "walletPage": {
+        "title": "My Wallet",
+        "description": "Manage your subscriptions and tokens.",
+        "goldSub": "BeMatch Gold",
+        "plusSub": "BeMatch Plus",
+        "platinumSub": "BeMatch Platinum",
+        "nextBillDate": "Your next billing date is:",
+        "manageSub": "Manage Subscription",
+        "manageSubWeb": "Manage Account on Web",
+        "superLikes": "Super Likes",
+        "getMore": "Get More",
+        "tokens": "Tokens",
+        "addTokens": "Add Tokens",
+        "noSubscription": "You don't have an active subscription.",
+        "noSubscriptionDesc": "To manage your account, please visit our website.",
+        "browsePackages": "Browse Packages",
+        "boost": {
+            "title": "Profile Boost",
+            "description": "Get seen by more people for 30 minutes.",
+            "action": "Boost Profile",
+            "remaining": "1 Boost remaining",
+            "active": "Boost active!",
+            "activeDesc": "Your profile is being shown to more people.",
+            "success": "Profile boosted for 30 minutes!"
+        }
+    },
+    "interestsPage": {
+        "title": "Edit Interests",
+        "description": "Select up to {count} interests to show on your profile.",
+        "save": "Save Changes",
+        "selected": "Selected {count} of {max}",
+        "limitTitle": "Interest Limit Reached",
+        "limitDescription": "You can select a maximum of {count} interests.",
+        "saveSuccessTitle": "Interests Saved",
+        "saveSuccessDescription": "Your interests have been successfully updated.",
+        "saveErrorTitle": "Error Saving Interests",
+        "saveErrorDescription": "An error occurred while saving your interests. Please try again."
+    },
+    "locationPage": {
+        "title": "Location",
+        "description": "Manage your location for match suggestions.",
+        "currentLocation": "Current Location",
+        "lastUpdated": "Last Updated",
+        "infoText": "BeMatch uses your device's location to provide better suggestions. We only use your location to show you an approximate distance to potential matches.",
+        "updateLocation": "Update Location",
+        "updatingLocation": "Updating...",
+        "updateToastTitle": "Location Updated!",
+        "updateToastDescription": "Your new location has been set successfully.",
+        "newLocation": "New location",
+        "noSupport": "Geolocation is not supported by this browser.",
+        "permissionDenied": "Location permission denied. Please enable it in your browser settings.",
+        "errorUpdating": "Failed to update location in profile.",
+        "findingLocation": "Getting location..."
+    },
+    "applicationPage": {
+        "title": "Application Settings",
+        "description": "Manage application data and settings.",
+        "appearance": "Appearance",
+        "theme": "Theme",
+        "themeDescription": "Select the theme to be used throughout the application.",
+        "selectTheme": "Select Theme",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System",
+        "language": "Language",
+        "languageDescription": "Select the application's language.",
+        "selectLanguage": "Select Language",
+        "dataManagement": "Data Management",
+        "clearCache": "Clear Cache",
+        "clearCacheDescription": "Delete temporary data to improve application performance.",
+        "clear": "Clear",
+        "cacheClearedTitle": "Cache Cleared",
+        "cacheClearedDescription": "Application data and cache have been cleared successfully.",
+        "cacheSize": "Current Cache Size",
+        "lastCleared": "Last Cleared",
+        "neverCleared": "Never cleared"
+    },
+    "preferencesPage": {
+        "title": "Preferences",
+        "description": "Manage your discovery settings.",
+        "showMe": "Show Me",
+        "locationTitle": "Location",
+        "globalMode": "Global",
+        "globalModeDescription": "See people from around the world.",
+        "maxDistance": "Maximum Distance",
+        "ageRange": "Age Range",
+        "save": "Save Changes",
+        "saveSuccessTitle": "Preferences Saved",
+        "saveSuccessDescription": "Your discovery preferences have been updated.",
+        "saveErrorTitle": "Error Saving Preferences"
+    },
+    "securityPage": {
+        "title": "Privacy and Security",
+        "description": "Change your password or manage your account.",
+        "changePassword": "Change Password",
+        "changePasswordDescription": "Set a new password for your security.",
+        "lastPasswordUpdate": "Your last password update",
+        "currentPassword": "Current Password",
+        "newPassword": "New Password",
+        "confirmNewPassword": "Confirm New Password",
+        "passwordHintCurrent": "Your current password",
+        "passwordHintNew": "Create a new password",
+        "passwordHintConfirm": "Confirm your new password",
+        "savePassword": "Change Password",
+        "passwordSameAsCurrent": "New password cannot be the same as the current password.",
+        "deleteAccountTitle": "Permanently Delete Account",
+        "deleteAccountWarning": "This action is irreversible. Deleting your account will permanently destroy all your matches, chats, and profile information.",
+        "deleteAccountInfo": "If you're sure you want to proceed, please click the button below.",
+        "startDeletion": "Start Account Deletion Process",
+        "deleteModal": {
+            "step0Title": "Can we have a moment before you go?",
+            "step0Description": "We'd like to know why you're leaving. Your feedback helps us make BeMatch better for everyone.",
+            "step1Title": "You are about to delete your account. Are you sure?",
+            "step1Description": "This action is absolutely irreversible. To confirm, please enter your password.",
+            "passwordLabel": "Password",
+            "passwordPlaceholder": "Enter your password to confirm",
+            "confirmDelete": "Yes, Permanently Delete My Account"
+        },
+        "deletionReasons": {
+            "privacy": "I have privacy concerns.",
+            "matches": "I didn't find good matches.",
+            "break": "I want to take a break.",
+            "met_someone": "I met someone.",
+            "technical": "There are too many technical issues with the app.",
+            "other": "Another reason."
+        },
+        "resetTitle": "Reset Password",
+        "resetDescription": "Create a new, strong password for your account.",
+        "verifyingCode": "Verifying your request...",
+        "resetButton": "Set New Password",
+        "resetError": {
+            "title": "Error",
+            "codeMissing": "Password reset code is missing or invalid.",
+            "weakPassword": "Password does not meet the security requirements.",
+            "generic": "An unknown error occurred. Please try again.",
+            "invalidTitle": "Invalid or Expired Link",
+            "invalidDescription": "The password reset link is either invalid or has expired. Please request a new one.",
+            "backToLogin": "Back to Login"
+        },
+        "resetSuccess": {
+            "title": "Password Changed!",
+            "description": "Your password has been successfully updated. You can now log in."
+        }
+    },
+    "onboarding": {
+        "stepNameTitle": "What's your name?",
+        "firstName": "First Name",
+        "firstNamePlaceholder": "Your first name",
+        "lastName": "Last Name",
+        "lastNamePlaceholder": "Your last name",
+        "stepAgeTitle": "What is your date of birth?",
+        "ageInfo": "You must be 18 or older to continue.",
+        "currentAge": "Your Age: {age}",
+        "invalidDate": "Please enter a valid date.",
+        "stepGenderTitle": "Tell us about you",
+        "gender": {
+            "yourGender": "Your Gender",
+            "woman": "Woman",
+            "man": "Man"
+        },
+        "interestedIn": {
+            "showMe": "Show me",
+            "men": "Men",
+            "women": "Women",
+            "everyone": "Everyone",
+            "everyoneDescription": "You will be shown profiles of both men and women."
+        },
+        "stepGoalsTitle": "What are you looking for here?",
+        "goals": {
+            "longTerm": "Long-term relationship",
+            "casual": "Something casual",
+            "chat": "New friends to chat with"
+        },
+        "stepInterestsTitle": "What are your interests?",
+        "stepLocationTitle": "Where do you live?",
+        "location": {
+            "info": "Please enable location services to find matches near you.",
+            "enableButton": "Enable Location"
+        },
+        "stepDistanceTitle": "Set your distance preference",
+        "distance": {
+            "info": "You can change this anytime from the Settings menu."
+        },
+        "stepBioTitle": "Tell us about yourself",
+        "bio": {
+            "placeholder": "Write a few sentences about yourself...",
+            "remaining": "{count} characters remaining"
+        },
+        "stepPhotosTitle": "Add your best photos",
+        "photos": {
+            "info": "Add at least 1 photo to continue. You can add up to {count} photos.",
+            "addButton": "Add Photo",
+            "previewAlt": "Upload preview",
+            "profilePhotoHint": "The first photo you select will be your profile picture."
+        },
+        "credentials": {
+            "emailTitle": "What's your email?",
+            "passwordTitle": "Create a password",
+            "email": "Email",
+            "emailPlaceholder": "email@youraddress.com",
+            "password": "Password",
+            "passwordPlaceholder": "Create a password",
+            "passwordPolicy": "Your password must be at least 8 characters long and contain letters and numbers.",
+            "confirmPassword": "Confirm Password",
+            "confirmPasswordPlaceholder": "Confirm your password",
+            "passwordMismatch": "Passwords do not match."
+        },
+        "welcome": {
+            "legal_agreement": "By creating an account, you agree to our <terms>Terms of Use</terms> and <privacy>Privacy Policy</privacy>."
+        },
+        "haveAccount": "Already have an account?",
+        "createAccount": "Create Account",
+        "toasts": {
+            "successTitle": "Account created!",
+            "successDescription": "Welcome to BeMatch.",
+            "errorTitle": "Registration Error",
+            "errorDescription": "Please check your information and try again.",
+            "emailInUse": "This email address is already in use.",
+            "checkingEmail": "Checking email..."
+        }
+    },
+    "login": {
+        "title": "BeMatch",
+        "description": "Log in to find your perfect match.",
+        "email": "Email",
+        "emailPlaceholder": "email@youraddress.com",
+        "password": "Password",
+        "passwordPlaceholder": "Your password",
+        "button": "Log In",
+        "noAccount": "Don't have an account?",
+        "createAccount": "Create New Account",
+        "successTitle": "Login successful!",
+        "successDescription": "Welcome back.",
+        "errorTitle": "Login failed",
+        "errorDescription": "Your email or password is a wrong.",
+        "forgotPassword": {
+            "trigger": "Forgot your password?",
+            "title": "Reset Your Password",
+            "description": "Enter the email address associated with your account, and we'll send you a link to reset your password.",
+            "button": "Send Reset Email",
+            "emailRequired": "Please enter an email address.",
+            "successTitle": "Email Sent!",
+            "successDescription": "Please check your inbox (and spam folder!) for password reset instructions.",
+            "errorTitle": "Error",
+            "userNotFound": "No user was found with this email address."
+        }
+    },
+    "passwordStrength": {
+        "weak": "Weak",
+        "medium": "Medium",
+        "strong": "Strong"
+    },
+    "interests": {
+        "music": "Music",
+        "travel": "Travel",
+        "gaming": "Gaming",
+        "movies": "Movies",
+        "reading": "Reading",
+        "cooking": "Cooking",
+        "sports": "Sports",
+        "fitness": "Fitness",
+        "art": "Art",
+        "photography": "Photography",
+        "hiking": "Hiking",
+        "dancing": "Dancing",
+        "technology": "Technology",
+        "fashion": "Fashion",
+        "yoga": "Yoga",
+        "camping": "Camping",
+        "theater": "Theater",
+        "volunteering": "Volunteering"
+    },
+    "common": {
+        "km": "km",
+        "back": "Back",
+        "next": "Next",
+        "save": "Save",
+        "reload": "Reload",
+        "daysAgo": "days ago",
+        "nowActive": "Active now",
+        "edit": "Edit",
+        "day": "Day",
+        "month": "Month",
+        "year": "Year",
+        "dayPlaceholder": "DD",
+        "monthPlaceholder": "MM",
+        "yearPlaceholder": "YYYY",
+        "tryAgain": "Try Again",
+        "done": "Done",
+        "error": "Error",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "continue": "Continue",
+        "goBack": "Go Back"
+    },
+    "chat": {
+        "online": "Online",
+        "offline": "Offline",
+        "today": "today",
+        "yesterday": "yesterday",
+        "you": "You",
+        "unblockPrompt": "Unblock this user?",
+        "blockedByOther": "You have been blocked by this user.",
+        "blockedUser": "You have blocked {name}.",
+        "systemChatDisabled": "You cannot reply to system messages.",
+        "edited": "(edited)",
+        "editedPrefix": "(Edited)",
+        "lastMessageVoice": "🎤 Voice Message",
+        "lastMessagePhoto": "📷 Photo",
+        "repliedImageAlt": "replied image",
+        "sentImageAlt": "sent image",
+        "editingMessage": "Editing Message",
+        "replyingTo": "Replying to",
+        "manageAccount": "Manage Account on Web",
+        "actions": {
+            "reply": "Reply",
+            "edit": "Edit",
+            "delete": "Delete",
+            "block": "Block",
+            "report": "Report"
+        },
+        "toasts": {
+            "messageDeletedTitle": "Message Deleted",
+            "messageDeletedDescription": "The message has been successfully deleted.",
+            "voiceSendError": "Failed to send voice message",
+            "recordStartErrorTitle": "Could not start audio recording",
+            "recordStartErrorDescription": "Please make sure you have given microphone permission.",
+            "imageSent": "Photo sent!",
+            "imageSendError": "Failed to send photo",
+            "viewOnceSet": "Photo set to be sent once.",
+            "userBlocked": "{name} has been blocked.",
+            "blockError": "Could not block user.",
+            "userUnblocked": "Unblocked {name}.",
+            "unblockError": "Failed to unblock user.",
+            "userReported": "User reported.",
+            "verifyEmailPrompt": "For your security, please verify your email.",
+            "resendEmailButton": "Resend Email",
+            "emailInUse": "This email address is already in use.",
+            "checkingEmail": "Checking email..."
+        },
+        "deleteModal": {
+            "title": "Are you sure you want to delete the message?",
+            "description": "This action cannot be undone. The message will be permanently deleted."
+        },
+        "imagePreview": {
+            "title": "Image Preview to Send",
+            "alt": "Image to send",
+            "captionPlaceholder": "Add a caption..."
+        },
+        "viewOnce": {
+            "title": "One-time Photo",
+            "alt": "One-time photo",
+            "opened_by_me": "Opened",
+            "opened_by_them": "You opened the one-time photo"
+        },
+        "placeholders": {
+            "q1": "Did anything upset you today?",
+            "q2": "Where do you want to go on your next vacation?",
+            "q3": "What's your favorite movie and why?",
+            "q4": "If you had a superpower, what would it be and what would you do with it?",
+            "q5": "Do you have any exciting plans for this weekend?"
+        }
+    },
+    "legal": {
+        "title": "Legal Information",
+        "terms": {
+            "title": "Terms of Use",
+            "section1": {
+                "title": "1. Acceptance of Services",
+                "content": "By using BeMatch services, you agree to these Terms of Use. If you do not agree to these terms, you should not use our services."
+            },
+            "section2": {
+                "title": "2. Eligibility",
+                "content": "You must be at least 18 years old to use BeMatch. By using our services, you represent and warrant that you are 18 years of age or older."
+            },
+            "section3": {
+                "title": "3. Community Guidelines",
+                "content": "You must treat all users with respect. Harassment, hate speech, nudity, or illegal activities are not permitted. Violation of these rules may result in suspension or deletion of your account."
+            },
+            "section4": {
+                "title": "4. Disclaimer of Liability",
+                "content": "BeMatch is not responsible for your interactions with other users. You are responsible for your own safety. Be careful when sharing personal information."
+            }
+        },
+        "privacy": {
+            "title": "Privacy Policy",
+            "section1": {
+                "title": "1. Information We Collect",
+                "content": "To create your profile, we collect information such as your name, email, date of birth, photos, and location. This information is used to provide you with better matches."
+            },
+            "section2": {
+                "title": "2. Use of Information",
+                "content": "Your information is used to provide, improve, and personalize our services. Your information is not shared with third parties for marketing purposes without your consent."
+            },
+            "section3": {
+                "title": "3. Data Security",
+                "content": "We take industry-standard security measures to protect your data. However, remember that no system is 100% secure."
+            }
+        },
+        "faq": {
+            "title": "FAQ",
+            "q1": {
+                "title": "What is BeMatch Gold?",
+                "content": "BeMatch Gold is a premium subscription that allows you to see who likes you, get unlimited likes, and remove ads."
+            },
+            "q2": {
+                "title": "How can I delete my account?",
+                "content": "To delete your account, you can go to the 'Privacy and Security' section in the 'Settings' menu. Note that this action is irreversible."
+            },
+            "q3": {
+                "title": "How can I report a user?",
+                "content": "You can report inappropriate behavior to us by using the 'Report' option in a user's profile menu."
+            }
+        }
+    },
+    "match": {
+        "title": "It's a Match!",
+        "description": "You and {name} liked each other.",
+        "sendMessage": "Send Message",
+        "keepSwiping": "Keep Swiping"
+    },
+    "report": {
+        "title": "Report User",
+        "description": "Help us keep our community safe.",
+        "reasonTitle": "Reason for Report",
+        "reasonDescription": "Please select the most appropriate reason for your report.",
+        "descriptionTitle": "Description (Optional)",
+        "descriptionInfo": "Please provide more details about the incident.",
+        "descriptionPlaceholder": "Tell us what happened...",
+        "submitButton": "Submit Report",
+        "successTitle": "Report Sent",
+        "successDescription": "Thank you for your feedback. Our team will review the situation as soon as possible.",
+        "errorTitle": "Error",
+        "errorDescription": "An error occurred while sending the report. Please try again.",
+        "reasonRequired": "Please specify a reason.",
+        "loginRequired": "You must be logged in.",
+        "blockConfirmTitle": "Block User?",
+        "blockConfirmDescription": "This user will be blocked. Are you sure?",
+        "yesBlock": "Yes, Block",
+        "noThanks": "No, Thanks",
+        "blockSuccessTitle": "User blocked.",
+        "blockErrorDescription": "An error occurred while blocking the user. Please try again."
+    },
+    "notifications": {
+        "title": "Notifications",
+        "description": "Get instant updates about new matches and messages.",
+        "notSupported": "Not supported on this device",
+        "active": "Notifications are active",
+        "enableButton": "Enable Notifications",
+        "blockedButton": "Notifications Blocked",
+        "blockedTitle": "Notifications Blocked",
+        "blockedDescription": "To enable notifications, you need to change your browser settings."
+    }
+}
