@@ -1,0 +1,36 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ¦¦ Kullanýcý Fotoðraflarý ¦¦
+    match /users/{userId}/photos/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // ¦¦ Sesli Mesajlar (Yeni Eklendi) ¦¦
+    match /voice_messages/{fileName} {
+      allow read: if request.auth != null;
+      // Sadece giriþ yapmýþ kullanýcýlar, 20MB altý ve ses formatýnda dosya yükleyebilir
+      allow write: if request.auth != null 
+                   && request.resource.size < 20 * 1024 * 1024 
+                   && request.resource.contentType.matches('audio/.*');
+    }
+
+    // ¦¦ Mesaj Medyalarý (resim/video gönderme) ¦¦
+    match /conversations/{conversationId}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && request.resource.size < 10 * 1024 * 1024;
+    }
+
+    // ¦¦ Diðer her þey engelle ¦¦
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

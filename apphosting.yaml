@@ -1,0 +1,4 @@
+kind: "AppHostingYaml"
+schemaVersion: "v1"
+runConfig:
+  command: "npm run start"

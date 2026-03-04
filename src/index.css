@@ -1,0 +1,277 @@
+﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  /* Primary Colors */
+  --primary: #E63946;
+  --primary-light: #FF4D5A;
+  --primary-dark: #C5283D;
+  --primary-gradient: linear-gradient(135deg, #FF1744 0%, #D50000 100%);
+
+  /* Background */
+  --bg-primary: #0A0A0F;
+  --bg-secondary: #12121A;
+  --bg-card: rgba(255, 255, 255, 0.04);
+  --bg-card-hover: rgba(255, 255, 255, 0.08);
+  --bg-input: rgba(255, 255, 255, 0.06);
+  --bg-input-focus: rgba(255, 255, 255, 0.1);
+
+  /* Glass */
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-border-focus: rgba(230, 57, 70, 0.5);
+
+  /* Text */
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-muted: rgba(255, 255, 255, 0.35);
+  --text-error: #FF5252;
+  --text-success: #4CAF50;
+
+  /* Semantic overlay / separator / highlight tokens */
+  --overlay-light: rgba(255, 255, 255, 0.05);
+  --overlay-medium: rgba(255, 255, 255, 0.1);
+  --overlay-strong: rgba(255, 255, 255, 0.15);
+  --overlay-heavy: rgba(255, 255, 255, 0.25);
+  --separator: rgba(255, 255, 255, 0.04);
+  --frosted-bg: rgba(10, 10, 15, 0.85);
+  --frosted-bg-light: rgba(10, 10, 15, 0.6);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
+
+  /* Misc */
+  --border-radius: 14px;
+  --border-radius-sm: 10px;
+  --border-radius-lg: 20px;
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 30px rgba(230, 57, 70, 0.15);
+
+  /* Generic Aliases */
+  --bg: var(--bg-primary);
+  --text: var(--text-primary);
+  --border: var(--glass-border);
+  --surface: var(--bg-secondary);
+  --surface-light: var(--bg-card-hover);
+}
+
+[data-theme='light'] {
+  /* Background */
+  --bg-primary: #F5F5F8;
+  --bg-secondary: #FFFFFF;
+  --bg-card: rgba(0, 0, 0, 0.035);
+  --bg-card-hover: rgba(0, 0, 0, 0.065);
+  --bg-input: rgba(0, 0, 0, 0.04);
+  --bg-input-focus: rgba(0, 0, 0, 0.07);
+
+  /* Glass */
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(0, 0, 0, 0.12);
+  --glass-border-focus: rgba(230, 57, 70, 0.4);
+
+  /* Text */
+  --text-primary: #1A1A2E;
+  --text-secondary: #555566;
+  --text-muted: #8E8E9A;
+
+  /* Semantic overlay / separator / highlight tokens */
+  --overlay-light: rgba(0, 0, 0, 0.03);
+  --overlay-medium: rgba(0, 0, 0, 0.06);
+  --overlay-strong: rgba(0, 0, 0, 0.09);
+  --overlay-heavy: rgba(0, 0, 0, 0.14);
+  --separator: rgba(0, 0, 0, 0.06);
+  --frosted-bg: rgba(255, 255, 255, 0.92);
+  --frosted-bg-light: rgba(248, 249, 250, 0.88);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.12);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.22);
+
+  /* Misc */
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  --shadow-glow: 0 0 12px rgba(230, 57, 70, 0.06);
+
+  /* Generic Aliases */
+  --bg: var(--bg-primary);
+  --text: var(--text-primary);
+  --border: var(--glass-border);
+  --surface: var(--bg-secondary);
+  --surface-light: var(--bg-card-hover);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Background Effect */
+.app-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.app-background::before {
+  content: '';
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(230, 57, 70, 0.12) 0%, transparent 70%);
+  top: -150px;
+  right: -150px;
+  animation: float1 15s ease-in-out infinite;
+}
+
+.app-background::after {
+  content: '';
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(255, 23, 68, 0.08) 0%, transparent 70%);
+  bottom: -100px;
+  left: -100px;
+  animation: float2 12s ease-in-out infinite;
+}
+
+[data-theme='light'] .app-background::before {
+  background: radial-gradient(circle, rgba(230, 57, 70, 0.05) 0%, transparent 70%);
+}
+
+[data-theme='light'] .app-background::after {
+  background: radial-gradient(circle, rgba(255, 23, 68, 0.03) 0%, transparent 70%);
+}
+
+@keyframes float1 {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate(-50px, 50px) scale(1.1);
+  }
+}
+
+@keyframes float2 {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate(30px, -30px) scale(1.15);
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* Base Input Styles */
+input,
+select,
+textarea {
+  font-family: 'Inter', sans-serif;
+}
+
+/* Selection */
+::selection {
+  background: rgba(230, 57, 70, 0.3);
+  color: var(--text-primary);
+}
+
+/* Bottom Navigation */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--frosted-bg);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 20px;
+  z-index: 100;
+}
+
+[data-theme='light'] .bottom-nav {
+  box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.04);
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 12px;
+  transition: var(--transition);
+  position: relative;
+}
+
+.nav-item:hover {
+  color: var(--text-secondary);
+}
+
+.nav-item.active {
+  color: var(--primary);
+}
+
+.nav-item.active::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 3px;
+  background: var(--primary-gradient);
+  border-radius: 0 0 3px 3px;
+}
+
+.nav-item .nav-label {
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
