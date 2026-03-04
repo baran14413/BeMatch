@@ -32,7 +32,7 @@ interface Announcement {
     isActive: boolean;
     buttonText?: string;
     buttonLink?: string;
-    createdAt: any;
+    createdAt: { seconds: number; nanoseconds: number } | null | undefined;
     priority: number;
 }
 
@@ -103,7 +103,7 @@ export default function AdminAnnouncements() {
         try {
             await deleteDoc(doc(db, 'announcements', id));
             toast.success("Duyuru silindi");
-        } catch (err) {
+        } catch {
             toast.error("Silme hatası");
         }
     };
@@ -114,7 +114,7 @@ export default function AdminAnnouncements() {
                 isActive: !ann.isActive
             });
             toast.success(ann.isActive ? "Duyuru yayından kaldırıldı" : "Duyuru yayına alındı");
-        } catch (err) {
+        } catch {
             toast.error("Durum güncellenemedi");
         }
     };
@@ -260,7 +260,7 @@ export default function AdminAnnouncements() {
                                     <select
                                         className="admin-input" style={{ width: '100%' }}
                                         value={current.type}
-                                        onChange={e => setCurrent({ ...current, type: e.target.value as any })}
+                                        onChange={e => setCurrent({ ...current, type: e.target.value as Announcement['type'] })}
                                     >
                                         <option value="info">Bilgilendirme (Mavi)</option>
                                         <option value="promo">Kampanya (Altın)</option>

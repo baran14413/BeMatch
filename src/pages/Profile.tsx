@@ -24,7 +24,7 @@ export default function Profile() {
     const [matchesCount, setMatchesCount] = useState(0)
     const [viewsCount, setViewsCount] = useState(0)
 
-    const [realtimeRole, setRealtimeRole] = useState<'user' | 'admin'>(userProfile?.role || 'user')
+    const [realtimeRole, setRealtimeRole] = useState<string>(userProfile?.role || 'user')
 
     useEffect(() => {
         if (!user) return

@@ -24,6 +24,7 @@ const navGroups = [
         allowedRoles: ['admin', 'mod_users'],
         items: [
             { name: 'Kullanıcılar', path: '/admin/users', icon: Users },
+            { name: 'Bot Kullanıcılar', path: '/admin/bots', icon: Bot },
             { name: 'Premium (Gold) Üyeler', path: '/admin/premium-users', icon: Star },
         ],
     },

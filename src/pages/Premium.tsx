@@ -1,13 +1,26 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { collection, query, onSnapshot, orderBy } from 'firebase/firestore'
-import { db } from '../firebase'
+import { collection, query, onSnapshot, orderBy, doc, updateDoc, addDoc, serverTimestamp, increment, setDoc } from 'firebase/firestore'
+import { db, auth } from '../firebase'
 import { motion } from 'framer-motion'
 import { ChevronLeft, Zap, Star, Crown, Check, Loader } from 'lucide-react'
 import { purchaseProduct } from '../utils/billing'
 import './Premium.css'
 
-const ICONS: Record<string, any> = {
+interface Package {
+    id: string;
+    name: string;
+    price: string;
+    period: string;
+    color: string;
+    icon: string;
+    popular: boolean;
+    bestDeal: boolean;
+    order: number;
+    features: string[];
+}
+
+const ICONS: Record<string, React.ElementType> = {
     Zap: Zap,
     Star: Star,
     Crown: Crown
@@ -33,15 +46,15 @@ const DEFAULT_PACKAGES = [
 
 export default function Premium() {
     const navigate = useNavigate()
-    const [packages, setPackages] = useState<any[]>([])
+    const [packages, setPackages] = useState<Package[]>([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         const q = query(collection(db, 'subscription_plans'), orderBy('order', 'asc'))
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const loaded: any[] = []
+            const loaded: Package[] = []
             snapshot.forEach(doc => {
-                loaded.push({ id: doc.id, ...doc.data() })
+                loaded.push({ id: doc.id, ...doc.data() } as Package)
             })
             // If DB is empty, use defaults
             setPackages(loaded.length > 0 ? loaded : DEFAULT_PACKAGES)
@@ -56,10 +69,68 @@ export default function Premium() {
     }, [])
 
     const handlePurchase = async (basePlanId: string) => {
+        const pkg = packages.find(p => p.id === basePlanId)
+        if (!pkg) return
+
         // bematch_gold_sub is the subscription product ID in Play Console
         // basePlanId is one of: gold-weekly, gold-monthly, gold-yearly
         const success = await purchaseProduct('bematch_gold_sub', basePlanId)
         if (success) {
+            if (db && auth.currentUser) {
+                const uid = auth.currentUser.uid;
+                const now = Date.now(); // eslint-disable-line react-hooks/purity
+                const days = pkg.period === 'haftalık' ? 7 : pkg.period === 'aylık' ? 30 : 365
+                const expiryDate = now + (days * 24 * 60 * 60 * 1000)
+
+                // 1. Update User Profile
+                await updateDoc(doc(db, 'users', uid), {
+                    isPremium: true,
+                    premiumPlan: pkg.id,
+                    subscription: {
+                        planId: pkg.id,
+                        planName: pkg.name,
+                        status: 'active',
+                        expiryDate: expiryDate,
+                        period: pkg.period
+                    }
+                }).catch((err: unknown) => console.error("Subscription update failed:", err))
+
+                // 2. Send System Notification
+                await addDoc(collection(db, `users/${uid}/notifications`), {
+                    title: 'BeMatch Gold Aktif! 👑',
+                    body: `Tebrikler! ${pkg.name} üyeliğiniz başarıyla aktif edildi. Ayrıcalıklı dünyanın keyfini çıkarın!`,
+                    type: 'premium_activated',
+                    read: false,
+                    createdAt: serverTimestamp()
+                }).catch(() => { });
+
+                // 3. Send System Chat Message
+                const sysChatId = `system_${uid}`;
+                const welcomeMsg = `Harika haber! ${pkg.name} BeMatch Gold üyeliğin aktif edildi. Artık sınırsız özelliklerin tadını çıkarabilirsin! 👑✨`;
+
+                await updateDoc(doc(db, 'chats', sysChatId), {
+                    updatedAt: now,
+                    lastMessage: welcomeMsg,
+                    [`unreadCount_${uid}`]: increment(1)
+                }).catch(async () => {
+                    // If chat doesn't exist, create it
+                    await setDoc(doc(db, 'chats', sysChatId), {
+                        participants: ['system', uid],
+                        updatedAt: now,
+                        lastMessage: welcomeMsg,
+                        [`unreadCount_${uid}`]: 1
+                    }, { merge: true });
+                });
+
+                await addDoc(collection(db, `chats/${sysChatId}/messages`), {
+                    type: 'text',
+                    content: welcomeMsg,
+                    senderId: 'system',
+                    createdAt: now,
+                    status: 'sent'
+                }).catch(() => { });
+            }
+
             alert('Satın alma başarılı! BeMatch Gold aktif edildi. 🎉')
             navigate(-1)
         }

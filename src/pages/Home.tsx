@@ -1,11 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion'
 import { useLocation } from 'react-router-dom'
-import { X, Heart, Star, RotateCcw, MapPin, ChevronUp } from 'lucide-react'
-import { collection, getDocs, doc, updateDoc, arrayUnion, getDoc, increment } from 'firebase/firestore'
+import { X, Heart, Star, RotateCcw, MapPin, ChevronUp, Crown } from 'lucide-react'
+import { collection, getDocs, doc, updateDoc, arrayUnion, getDoc, increment, FieldValue } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../context/AuthContext'
 import type { DemoUser } from '../data/demoUsers'
+import { usePremium } from '../hooks/usePremium'
 import BottomNav from '../components/BottomNav'
 import ProfileDetail from '../components/ProfileDetail'
 import { sendNotification } from '../utils/notifications'
@@ -16,6 +17,7 @@ import './Home.css'
 export default function Home() {
     const { t } = useTranslation()
     const { user } = useAuth()
+    usePremium()
     const [users, setUsers] = useState<DemoUser[]>([])
     const [loading, setLoading] = useState(true)
     const [removedUsers, setRemovedUsers] = useState<DemoUser[]>([])
@@ -150,20 +152,20 @@ export default function Home() {
                     job: data.job,
                     school: data.school,
                     _score: score
-                } as any) // We use Firebase String ID but DemoUser interface expects number for local array (will fix type cast if needed but this is mostly duck typing)
+                })
             })
 
-            // Sort by distance descending (we pop from the end of the array, so closest distance MUST be at the end)
+            // Sort by distance descending
             firebaseUsers.sort((a, b) => b._score - a._score)
 
-            setUsers(firebaseUsers)
+            setUsers(firebaseUsers as unknown as DemoUser[])
         } catch (err) {
             console.error('Kullanıcılar yüklenemedi:', err)
         } finally {
             setLoading(false)
             setIsRefreshing(false)
         }
-    }, [user])
+    }, [user, t])
 
     useEffect(() => {
         fetchUsers()
@@ -186,8 +188,10 @@ export default function Home() {
         try {
             updateDoc(doc(db, 'users', viewedId), {
                 profileViews: increment(1)
-            }).catch(() => { /* user doc might not exist for demo users */ })
-        } catch (_) { }
+            }).catch(err => { console.warn("Profile view inc failed:", err) })
+        } catch (err) {
+            console.warn("Profile view update failed:", err)
+        }
     }
 
     const dismissTutorial = () => {
@@ -211,7 +215,7 @@ export default function Home() {
                 const targetRef = doc(db, 'users', targetDocId)
 
                 if (direction === 'right' || direction === 'up') {
-                    const updateData: any = {
+                    const updateData: { likedUsers: FieldValue; superLikedUsers?: FieldValue } = {
                         likedUsers: arrayUnion(currentUser.id)
                     }
                     if (direction === 'up') {
@@ -293,7 +297,7 @@ export default function Home() {
             setCurrentPhotoIndex(0)
             setSwipeDirection(null)
         }, 100) // Reduced delay for faster card transitions
-    }, [currentUser, user])
+    }, [currentUser, user, t])
 
     const handleRewind = async () => {
         if (removedUsers.length === 0) return
@@ -645,7 +649,10 @@ function SwipeCard({ user, photoIndex, onSwipe, onNextPhoto, onPrevPhoto, onOpen
             {/* User Info */}
             <div className="card-info">
                 <div className="user-name-age">
-                    <span className="user-name">{user.name}</span>
+                    <span className="user-name" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {user.name}
+                        {user.subscription?.status === 'active' && <Crown size={20} color="#facc15" fill="#facc15" strokeWidth={2.5} />}
+                    </span>
                     <span className="user-age">{user.age}</span>
                 </div>
                 <div className="user-distance">

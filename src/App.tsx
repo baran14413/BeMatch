@@ -44,6 +44,7 @@ const AdminTranslations = lazy(() => import('./pages/admin/AdminTranslations'))
 const AdminMaintenance = lazy(() => import('./pages/admin/AdminMaintenance'))
 const AdminPlaceholder = lazy(() => import('./pages/admin/AdminPlaceholder'))
 const AdminMap = lazy(() => import('./pages/admin/AdminMap'))
+const AdminBots = lazy(() => import('./pages/admin/AdminBots'))
 
 
 function LoadingScreen() {
@@ -99,7 +100,7 @@ function App() {
     const unsubMaint = onSnapshot(doc(db, 'admin_settings', 'system_config'), (snapshot) => {
       if (snapshot.exists()) {
         const flags = snapshot.data().flags || [];
-        const maintFlag = flags.find((f: any) => f.id === 'flag_maint');
+        const maintFlag = flags.find((f: { id: string; enabled: boolean }) => f.id === 'flag_maint');
         setIsMaintenance(!!maintFlag?.enabled);
       }
     }, (err) => {
@@ -165,6 +166,7 @@ function App() {
                 <Route path="marketing" element={<AdminMarketing />} />
                 <Route path="logs" element={<AdminAuditLogs />} />
                 <Route path="map" element={<AdminMap />} />
+                <Route path="bots" element={<AdminBots />} />
 
                 {/* Placeholder Routes */}
                 <Route path="premium-users" element={<AdminPremiumUsers />} />

@@ -43,8 +43,9 @@ export default function Login() {
         try {
             await login(email, password)
             navigate('/home')
-        } catch (err: any) {
-            const code = err?.code || ''
+        } catch (err: unknown) {
+            const error = err as { code?: string };
+            const code = error?.code || ''
             if (code === 'auth/user-not-found' || code === 'auth/invalid-credential') setError(t('login.errorGeneric'))
             else if (code === 'auth/wrong-password') setError(t('login.errorGeneric'))
             else if (code === 'auth/invalid-email') setError(t('login.errorGeneric'))
@@ -71,8 +72,9 @@ export default function Login() {
                 setForgotPasswordModal(false)
                 setResetMessage('')
             }, 5000)
-        } catch (err: any) {
-            const code = err?.code || ''
+        } catch (err: unknown) {
+            const error = err as { code?: string };
+            const code = error?.code || ''
             if (code === 'auth/user-not-found') setResetError(t('login.err_user_not_found'))
             else if (code === 'auth/invalid-email') setResetError(t('login.err_invalid_email'))
             else setResetError(t('login.err_reset_gen'))

@@ -4,8 +4,15 @@ import { Wrench, Clock, Megaphone, ShieldAlert } from 'lucide-react';
 import { onSnapshot, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 
+interface SystemConfig {
+    maintenanceMsg?: string;
+    maintenanceEndTime?: string;
+    flags?: { id: string; enabled: boolean }[];
+    [key: string]: unknown;
+}
+
 export default function MaintenanceScreen() {
-    const [config, setConfig] = React.useState<any>(null);
+    const [config, setConfig] = React.useState<SystemConfig | null>(null);
 
     React.useEffect(() => {
         const unsub = onSnapshot(doc(db, 'admin_settings', 'system_config'), (snapshot) => {

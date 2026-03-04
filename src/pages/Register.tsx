@@ -235,15 +235,16 @@ export default function Register() {
                 maxDistance,
             })
             navigate('/home')
-        } catch (err: any) {
-            const code = err?.code || ''
+        } catch (err: unknown) {
+            const error = err as { code?: string; message?: string };
+            const code = error?.code || ''
             if (code === 'auth/email-already-in-use') setAuthError(t('register.err_in_use'))
             else if (code === 'auth/weak-password') setAuthError(t('register.err_weak'))
             else if (code === 'auth/invalid-email') setAuthError(t('register.err_invalid'))
             else if (code === 'auth/invalid-credential') setAuthError(t('register.err_cred'))
             else if (code === 'auth/operation-not-allowed') setAuthError(t('register.err_not_allowed'))
             else if (code === 'permission-denied') setAuthError(t('register.err_denied'))
-            else setAuthError(t('register.err_unknown') + (err?.message || ''))
+            else setAuthError(t('register.err_unknown') + (error?.message || ''))
             console.error('Register error:', err)
         } finally {
             setAuthLoading(false)

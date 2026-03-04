@@ -11,16 +11,16 @@ import {
     Mail, Key, Pause,
     ChevronLeft, Zap, Ruler, Loader, Navigation,
     SlidersHorizontal, Search, Image as ImageIcon, Hash, X,
-    Settings as SettingsIcon, Smartphone, Languages, HardDrive
+    Settings as SettingsIcon, Smartphone, Languages, HardDrive,
+    XCircle
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
-import { doc, updateDoc } from 'firebase/firestore'
-import { updateEmail, updatePassword, sendEmailVerification } from 'firebase/auth'
+import { doc, updateDoc, collection, addDoc, serverTimestamp, setDoc, increment } from 'firebase/firestore'
 import { db } from '../firebase'
+import { updateEmail, updatePassword, sendEmailVerification } from 'firebase/auth'
 import { AlertCircle } from 'lucide-react'
-import './Settings.css'
 import './Settings.css'
 
 /* ── Reusable Components ── */
@@ -61,7 +61,7 @@ function RangeSlider({ value, onChange, min, max, unit, label }: {
 }
 
 /* ── Category Definitions ── */
-type CategoryId = 'profile' | 'gallery' | 'interests' | 'discovery' | 'notifications' | 'privacy' | 'premium' | 'system' | 'account'
+type CategoryId = 'profile' | 'gallery' | 'interests' | 'discovery' | 'notifications' | 'privacy' | 'premium' | 'wallet' | 'system' | 'account'
 
 interface Category {
     id: CategoryId
@@ -87,6 +87,7 @@ export default function Settings() {
         { id: 'notifications', label: t('settings.cat_notif'), icon: <Bell size={20} />, desc: t('settings.cat_notif_desc'), color: '#10b981' },
         { id: 'privacy', label: t('settings.cat_privacy'), icon: <Shield size={20} />, desc: t('settings.cat_privacy_desc'), color: '#6366f1' },
         { id: 'premium', label: t('settings.cat_premium'), icon: <Crown size={20} />, desc: t('settings.cat_premium_desc'), color: '#f7b731' },
+        { id: 'wallet', label: 'Cüzdanım', icon: <Smartphone size={20} />, desc: 'Paketlerini ve ödemelerini yönet', color: '#fbbf24' },
         { id: 'system', label: t('settings.cat_system'), icon: <SettingsIcon size={20} />, desc: t('settings.cat_system_desc'), color: '#94a3b8' },
         { id: 'account', label: t('settings.cat_account'), icon: <Lock size={20} />, desc: t('settings.cat_account_desc'), color: '#ef4444' },
     ]
@@ -101,6 +102,70 @@ export default function Settings() {
     const [discoverySaveSuccess, setDiscoverySaveSuccess] = useState(false)
     const [isSavingNotifications, setIsSavingNotifications] = useState(false)
     const [notificationsSaveSuccess, setNotificationsSaveSuccess] = useState(false)
+
+    // Subscription Cancellation
+    const [isCancelling, setIsCancelling] = useState(false);
+
+    const handleCancelSubscription = async () => {
+        if (!userProfile?.uid) return;
+        if (!window.confirm('Aboneliğinizi iptal etmek istediğinize emin misiniz? Premium özelliklerinizi hemen kaybedeceksiniz.')) return;
+
+        setIsCancelling(true);
+        try {
+            const uid = userProfile.uid;
+
+            // 1. Update Profile (Both top-level and subscription object)
+            await updateDoc(doc(db, 'users', uid), {
+                isPremium: false,
+                'subscription.status': 'expired',
+                'subscription.cancelledAt': Date.now()
+            });
+
+            // 2. Notification
+            await addDoc(collection(db, `users/${uid}/notifications`), {
+                title: 'Abonelik İptal Edildi ⚠️',
+                body: 'Premium aboneliğiniz isteğiniz üzerine iptal edildi. Tekrar görüşmek üzere!',
+                type: 'subscription_cancelled',
+                read: false,
+                createdAt: serverTimestamp()
+            });
+
+            // 3. System Message
+            const sysChatId = `system_${uid}`;
+            const cancelMsg = "Premium aboneliğiniz iptal edildi. BeMatch Gold ayrıcalıklarını kaybettiğiniz için üzgünüz. 👋";
+
+            // Try to update last message in chat header
+            await updateDoc(doc(db, 'chats', sysChatId), {
+                updatedAt: Date.now(),
+                lastMessage: cancelMsg,
+                [`unreadCount_${uid}`]: increment(1)
+            }).catch(async () => {
+                // If chat doesn't exist, create it
+                await setDoc(doc(db, 'chats', sysChatId), {
+                    participants: ['system', uid],
+                    updatedAt: Date.now(),
+                    lastMessage: cancelMsg,
+                    [`unreadCount_${uid}`]: 1
+                }, { merge: true });
+            });
+
+            // Add the actual message
+            await addDoc(collection(db, `chats/${sysChatId}/messages`), {
+                type: 'text',
+                content: cancelMsg,
+                senderId: 'system',
+                createdAt: Date.now(),
+                status: 'sent'
+            });
+
+            showToast({ title: 'Başarılı', message: 'Aboneliğiniz başarıyla iptal edildi.', type: 'success' });
+        } catch (err) {
+            console.error("Cancel sub error:", err);
+            showToast({ title: 'Hata', message: 'İptal işlemi sırasında bir hata oluştu.', type: 'error' });
+        } finally {
+            setIsCancelling(false);
+        }
+    };
 
     // States — initialized from real profile data
     const [name] = useState(userProfile?.firstName || '')
@@ -355,11 +420,12 @@ export default function Settings() {
                 return
             }
             setAccountModal(null)
-        } catch (err: any) {
-            if (err.code === 'auth/requires-recent-login') {
+        } catch (err: unknown) {
+            const error = err as { code?: string; message?: string };
+            if (error.code === 'auth/requires-recent-login') {
                 setAccountError('Güvenlik nedeniyle lütfen çıkış yapıp tekrar giriş yaptıktan sonra deneyin.')
             } else {
-                setAccountError(err.message || 'Bir hata oluştu.')
+                setAccountError(error.message || 'Bir hata oluştu.')
             }
         } finally {
             setIsProcessingAccount(false)
@@ -385,8 +451,9 @@ export default function Settings() {
                 message: 'Lütfen spam (gereksiz) kutunuzu da kontrol edin.',
                 type: 'success'
             })
-        } catch (err: any) {
-            if (err.code === 'auth/too-many-requests') {
+        } catch (err: unknown) {
+            const error = err as { code?: string; message?: string };
+            if (error.code === 'auth/too-many-requests') {
                 showToast({
                     title: 'Çok Fazla Deneme',
                     message: 'Zaten bir e-posta gönderildi. Lütfen biraz bekleyip tekrar deneyin.',
@@ -395,7 +462,7 @@ export default function Settings() {
             } else {
                 showToast({
                     title: 'Hata',
-                    message: 'Bir hata oluştu: ' + err.message,
+                    message: 'Bir hata oluştu: ' + error.message,
                     type: 'error'
                 })
             }
@@ -513,7 +580,7 @@ export default function Settings() {
                     </div>
                 )
 
-            case 'gallery':
+            case 'gallery': {
                 const hasPhotoChanges = JSON.stringify(realPhotos) !== JSON.stringify(profilePhotos)
                 return (
                     <div className="settings-sub-content">
@@ -555,8 +622,7 @@ export default function Settings() {
                             ))}
                         </div>
 
-                        {/* Gallery Save Button */}
-                        <div style={{ marginTop: 20 }}>
+                        <div style={{ marginTop: 24 }}>
                             <button
                                 className="setting-update-btn profile-save-btn"
                                 onClick={handleSavePhotos}
@@ -594,8 +660,9 @@ export default function Settings() {
                         </AnimatePresence>
                     </div>
                 )
+            }
 
-            case 'interests':
+            case 'interests': {
                 const intListA = [...(userProfile?.interests || [])].sort().join(',')
                 const intListB = [...selectedInterests].sort().join(',')
                 const hasIntChanges = intListA !== intListB
@@ -627,8 +694,9 @@ export default function Settings() {
                         </div>
                     </div>
                 )
+            }
 
-            case 'discovery':
+            case 'discovery': {
                 const origLookingFor = userProfile?.lookingFor === 'female' ? 'women' : userProfile?.lookingFor === 'male' ? 'men' : 'everyone'
                 const hasDiscoveryChanges = distance !== (userProfile?.maxDistance || 25) || genderPref !== origLookingFor || ageRange[0] !== (userProfile?.minAge || 18) || ageRange[1] !== (userProfile?.maxAge || 65) || location !== (userProfile?.locationCity || '')
 
@@ -750,8 +818,9 @@ export default function Settings() {
                         </div>
                     </div>
                 )
+            }
 
-            case 'notifications':
+            case 'notifications': {
                 const origMatch = userProfile?.notificationSettings?.match ?? true
                 const origMessage = userProfile?.notificationSettings?.message ?? true
                 const origLike = userProfile?.notificationSettings?.like ?? true
@@ -815,8 +884,9 @@ export default function Settings() {
                         )}
                     </div>
                 )
+            }
 
-            case 'privacy':
+            case 'privacy': {
                 const origShowProfile = userProfile?.privacySettings?.showProfile ?? true
                 const origShowOnline = userProfile?.privacySettings?.showOnline ?? true
                 const origShowRead = userProfile?.privacySettings?.showRead ?? true
@@ -867,6 +937,7 @@ export default function Settings() {
                         </div>
                     </div>
                 )
+            }
 
             case 'premium':
                 return (
@@ -887,6 +958,95 @@ export default function Settings() {
                         <button className="settings-premium-btn" onClick={() => navigate('/premium')}><Crown size={16} /> {t('settings.upgrade')}</button>
                     </div>
                 )
+
+            case 'wallet': {
+                const sub = userProfile?.subscription;
+                const isActive = sub?.status === 'active';
+                const expiryDate = sub?.expiryDate ? new Date(sub.expiryDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : null;
+
+                return (
+                    <div className="settings-sub-content">
+                        <div className="wallet-card" style={{
+                            background: isActive ? 'linear-gradient(135deg, #fbbf24, #d97706)' : '#27272a',
+                            padding: '24px',
+                            borderRadius: '20px',
+                            color: isActive ? '#000' : '#fff',
+                            marginBottom: '24px',
+                            position: 'relative',
+                            overflow: 'hidden'
+                        }}>
+                            {isActive && <Crown size={64} style={{ position: 'absolute', right: '-10px', bottom: '-10px', opacity: 0.1, transform: 'rotate(-15deg)' }} />}
+                            <h2 style={{ fontSize: '1.5rem', fontWeight: '800', margin: '0 0 8px 0' }}>{isActive ? sub?.planName : 'Paket Yok'}</h2>
+                            <p style={{ opacity: 0.8, fontSize: '0.9rem', margin: 0 }}>{isActive ? 'Aboneliğiniz Aktif' : 'Şu an aktif bir paketiniz bulunmuyor'}</p>
+
+                            {isActive && expiryDate && (
+                                <div style={{ marginTop: '24px', borderTop: '1px solid rgba(0,0,0,0.1)', paddingTop: '16px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                                        <span style={{ opacity: 0.7 }}>Yenilenme / Bitiş</span>
+                                        <span style={{ fontWeight: '700' }}>{expiryDate}</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {!isActive && (
+                            <div className="wallet-offer" style={{ padding: '20px', background: 'rgba(251, 191, 36, 0.1)', borderRadius: '16px', border: '1px dashed #fbbf24', marginBottom: '24px' }}>
+                                <p style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: '#fbbf24', fontWeight: '600' }}>Hemen Gold'a Geç!</p>
+                                <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                                    Eşleşme şansını 10 kata kadar artırmak ve seni kimlerin beğendiğini görmek için bir paket seç.
+                                </p>
+                                <button
+                                    onClick={() => navigate('/premium')}
+                                    style={{ width: '100%', marginTop: '16px', padding: '12px', borderRadius: '12px', background: '#fbbf24', color: '#000', border: 'none', fontWeight: '700', cursor: 'pointer' }}
+                                >
+                                    Paketleri İncele
+                                </button>
+                            </div>
+                        )}
+
+                        <div className="transaction-history">
+                            <h4 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '16px', color: '#fff' }}>Hızlı Sayılar</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                <div style={{ background: '#171717', padding: '16px', borderRadius: '16px' }}>
+                                    <span style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px' }}>Süper Beğeni</span>
+                                    <span style={{ fontSize: '1.1rem', fontWeight: '700', color: '#fff' }}>{isActive ? 'Sınırsız' : '5 Adet'}</span>
+                                </div>
+                                <div style={{ background: '#171717', padding: '16px', borderRadius: '16px' }}>
+                                    <span style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px' }}>Boost</span>
+                                    <span style={{ fontSize: '1.1rem', fontWeight: '700', color: '#fff' }}>{isActive ? 'Sınırsız' : '0 Adet'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {isActive && (
+                            <button
+                                onClick={handleCancelSubscription}
+                                disabled={isCancelling}
+                                style={{
+                                    width: '100%',
+                                    marginTop: '32px',
+                                    padding: '14px',
+                                    borderRadius: '16px',
+                                    background: 'rgba(239, 68, 68, 0.1)',
+                                    color: '#ef4444',
+                                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                                    fontWeight: '600',
+                                    fontSize: '0.9rem',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                {isCancelling ? <Loader className="spin" size={18} /> : <XCircle size={18} />}
+                                Üyeliği İptal Et
+                            </button>
+                        )}
+                    </div>
+                )
+            }
 
             case 'system':
                 return (

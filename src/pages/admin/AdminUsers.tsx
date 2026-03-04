@@ -9,7 +9,8 @@ import {
 import '../../components/Admin.css';
 import {
     collection, onSnapshot, query, orderBy, limit, doc,
-    updateDoc, setDoc, addDoc, increment, getDocs, where, deleteDoc
+    updateDoc, setDoc, addDoc, increment, getDocs, where, deleteDoc,
+    serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
@@ -147,7 +148,7 @@ export default function AdminUsers() {
             try {
                 await deleteDoc(doc(db, 'users', userId));
                 fullDeleteSuccess = true;
-            } catch (e) {
+            } catch {
                 await updateDoc(doc(db, 'users', userId), {
                     isDeleted: true,
                     deletedAt: new Date().getTime(),
@@ -160,7 +161,7 @@ export default function AdminUsers() {
             } else {
                 toast.success('Kullanıcı PASİFE ÇEKİLDİ (Tam yetki eksik)', { id: tid });
             }
-        } catch (error: any) {
+        } catch {
             toast.error('İşlem sırasında hata oluştu.', { id: tid });
         }
     };
@@ -177,9 +178,13 @@ export default function AdminUsers() {
     const executeAccessAccount = async (userId: string) => {
         closeAdminModal();
         const tid = toast.loading('Hesaba bağlanılıyor...');
-        await impersonate!(userId);
-        toast.success('Bağlantı başarılı. Yönlendiriliyorsunuz...', { id: tid });
-        navigate('/home');
+        try {
+            await impersonate!(userId);
+            toast.success('Bağlantı başarılı. Yönlendiriliyorsunuz...', { id: tid });
+            navigate('/home');
+        } catch {
+            toast.error('Giriş yapılamadı.', { id: tid });
+        }
     };
 
     const handleAccessAccount = (userId: string) => {
@@ -223,7 +228,7 @@ export default function AdminUsers() {
             await updateDoc(doc(db, 'users', userId), { eloScore: increment(-10) }).catch(() => { });
 
             toast.success("Uyarı gönderildi! ELO puanı düşürüldü.", { id: tid });
-        } catch (error) {
+        } catch {
             toast.error("Mesaj gönderilirken bir hata oluştu.", { id: tid });
         }
     };
@@ -247,7 +252,6 @@ export default function AdminUsers() {
         closeAdminModal();
         if (!planSelection.trim()) { toast.error("Paket seçimi iptal edildi."); return; }
 
-        // Extract plan ID from format "Aylık (gold-monthly)"
         let finalPlanId = planSelection;
         const match = planSelection.match(/\(([^)]+)\)/);
         if (match && match[1]) {
@@ -256,12 +260,54 @@ export default function AdminUsers() {
 
         const tid = toast.loading('Kullanıcıya Premium tanımlanıyor...');
         try {
+            // Calculate expiry (30 days default if not specified)
+            const days = finalPlanId.includes('weekly') ? 7 : finalPlanId.includes('monthly') ? 30 : 365;
+            const expiryDate = Date.now() + (days * 24 * 60 * 60 * 1000);
+
+            // 1. Update User Document (Both legacy and new structure)
             await updateDoc(doc(db, 'users', userId), {
                 isPremium: true,
-                premiumPlan: finalPlanId
+                premiumPlan: finalPlanId,
+                subscription: {
+                    planId: finalPlanId,
+                    planName: finalPlanId.includes('weekly') ? 'Haftalık' : finalPlanId.includes('monthly') ? 'Aylık' : 'Yıllık',
+                    status: 'active',
+                    expiryDate: expiryDate,
+                    period: finalPlanId.includes('weekly') ? 'haftalık' : finalPlanId.includes('monthly') ? 'aylık' : 'yıllık'
+                }
             });
+
+            // 2. Send System Notification
+            await addDoc(collection(db, `users/${userId}/notifications`), {
+                title: 'Premium Aktif Edildi! 👑',
+                body: 'Tebrikler! Premium üyeliğiniz yönetim tarafından aktif edildi. Tüm özelliklerin tadını çıkarın!',
+                type: 'premium_activated',
+                read: false,
+                createdAt: serverTimestamp()
+            });
+
+            // 3. Send System Chat Message
+            const sysChatId = `system_${userId}`;
+            const welcomeMsg = "Tebrikler! Premium üyeliğiniz aktif edildi. BeMatch Gold ayrıcalıklı özelliklerin tadını çıkarın! 👑✨";
+
+            await setDoc(doc(db, 'chats', sysChatId), {
+                participants: ['system', userId],
+                updatedAt: Date.now(),
+                lastMessage: welcomeMsg,
+                [`unreadCount_${userId}`]: increment(1)
+            }, { merge: true });
+
+            await addDoc(collection(db, `chats/${sysChatId}/messages`), {
+                type: 'text',
+                content: welcomeMsg,
+                senderId: 'system',
+                createdAt: Date.now(),
+                status: 'sent'
+            });
+
             toast.success(`${finalPlanId} paketi başarıyla tanımlandı!`, { id: tid });
         } catch (error) {
+            console.error("Premium error:", error);
             toast.error("Premium tanımlanırken bir hata oluştu.", { id: tid });
         }
     };
@@ -297,7 +343,7 @@ export default function AdminUsers() {
         try {
             await updateDoc(doc(db, 'users', userId), { role: roleValue });
             toast.success(`Kullanıcı rolü başarıyla değiştirildi!`, { id: tid });
-        } catch (error) {
+        } catch {
             toast.error("Rol atanırken bir hata oluştu.", { id: tid });
         }
     };
@@ -345,7 +391,7 @@ export default function AdminUsers() {
                 bannedIp: includeIp
             });
             toast.success(`Kullanıcı başarıyla banlandı! Sebep: ${reason}`, { id: tid });
-        } catch (error) {
+        } catch {
             toast.error("Ban atılırken bir hata oluştu.", { id: tid });
         }
     };

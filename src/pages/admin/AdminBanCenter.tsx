@@ -89,7 +89,7 @@ export default function AdminBanCenter() {
             await logAdminAction('UNBAN_USER', userId, 'Admin tarafından ban kaldırıldı');
 
             toast.success('Kullanıcının banı başarıyla kaldırıldı!', { id: tid });
-        } catch (error) {
+        } catch {
             toast.error("İşlem sırasında bir hata oluştu.", { id: tid });
         }
     };
@@ -103,7 +103,7 @@ export default function AdminBanCenter() {
         });
     };
 
-    const handleModalConfirm = (inputValue?: string) => {
+    const handleModalConfirm = () => {
         if (modalConfig.actionId === 'unban') executeUnbanUser(modalConfig.actionTarget);
     };
 

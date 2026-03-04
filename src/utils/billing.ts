@@ -27,7 +27,7 @@ export async function purchaseProduct(productId: string, basePlanId?: string): P
             alert(result.error || 'Satın alma başarısız oldu.')
             return false
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Billing error:', error)
         alert('Ödeme işlemi sırasında bir hata oluştu.')
         return false

@@ -1,4 +1,4 @@
-import { collection, query, where, getDocs, addDoc, doc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../firebase';
 
 export type AutoMessageTrigger = 'WELCOME' | 'MATCH' | 'INACTIVITY' | 'PREMIUM_EXPIRED';

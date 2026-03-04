@@ -35,7 +35,7 @@ i18n
     });
 
 // function to inject dynamic resources from Firestore
-export const addDynamicResources = (lng: string, translations: any) => {
+export const addDynamicResources = (lng: string, translations: object) => {
     i18n.addResourceBundle(lng, 'translation', translations, true, true);
 };
 

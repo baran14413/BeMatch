@@ -4,10 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
     ChevronLeft, Send, Image, X,
     MoreHorizontal, Pencil, Trash2, CheckCheck,
-    Reply, Mic, MoreVertical, Ban, Flag, BadgeCheck
+    Reply, Mic, MoreVertical, Ban, Flag, BadgeCheck, Crown
 } from 'lucide-react'
 import { collection, query, onSnapshot, addDoc, doc, updateDoc, deleteDoc, increment, arrayUnion, arrayRemove } from 'firebase/firestore'
 import ProfileDetail from '../components/ProfileDetail'
+import type { ProfileUser } from '../components/ProfileDetail'
 import { ref as rtdbRef, onValue } from 'firebase/database'
 import { db, rtdb } from '../firebase'
 import { useAuth } from '../context/AuthContext'
@@ -79,7 +80,7 @@ export default function Chat() {
     const [blockedByMe, setBlockedByMe] = useState(false)
     const [toastMsg, setToastMsg] = useState<string | null>(null)
     const [showProfile, setShowProfile] = useState(false)
-    const [fullTargetProfile, setFullTargetProfile] = useState<any>(null)
+    const [fullTargetProfile, setFullTargetProfile] = useState<ProfileUser | null>(null)
 
     // Clear toast message automatically
     useEffect(() => {
@@ -216,7 +217,7 @@ export default function Chat() {
                                 setFullTargetProfile({
                                     id: userSnap.id,
                                     name: td.firstName || 'İsimsiz',
-                                    age: age || null,
+                                    age: age || undefined,
                                     bio: td.bio || '',
                                     photos: td.photos || [],
                                     interests: td.interests || [],
@@ -258,7 +259,9 @@ export default function Chat() {
                         // Set ourselves as online immediately when entering a chat just in case
                         try {
                             updateDoc(doc(db, 'users', currentUser.uid), { isOnline: true })
-                        } catch (e) { }
+                        } catch (err) {
+                            console.warn("Status update failed:", err)
+                        }
                     }
                 }
             }
@@ -315,7 +318,9 @@ export default function Chat() {
             // Every time a new message comes in while we're staring at the chat, reset unread.
             try {
                 updateDoc(doc(db, 'chats', chatId), { [`unreadCount_${currentUser.uid}`]: 0 })
-            } catch (e) { }
+            } catch (err) {
+                console.warn("Unread reset failed:", err)
+            }
         })
 
         return () => {
@@ -325,9 +330,11 @@ export default function Chat() {
             // Reset typing status on unmount
             try {
                 updateDoc(doc(db, 'chats', chatId), { [`typing.${currentUser.uid}`]: false })
-            } catch (e) { }
+            } catch (err) {
+                console.warn("Typing reset failed:", err)
+            }
         }
-    }, [chatId, currentUser])
+    }, [chatId, currentUser, t])
 
     useEffect(() => {
         if (messages.length > 0) {
@@ -470,7 +477,7 @@ export default function Chat() {
         try {
             const chatRef = doc(db, 'chats', chatId)
             if (blockedByMe) {
-                await updateDoc(chatRef, { blockedBy: arrayRemove(currentUser.uid) })
+                await updateDoc(chatRef, { blockedBy: arrayRemove(currentUser.uid) }).catch(() => { })
                 setToastMsg(t('chat.unblocked'))
             } else {
                 await updateDoc(chatRef, { blockedBy: arrayUnion(currentUser.uid) })
@@ -629,14 +636,18 @@ export default function Chat() {
                                     try {
                                         updateDoc(doc(db, 'users', chatTarget.id), {
                                             profileViews: increment(1)
-                                        }).catch(() => { })
-                                    } catch (_) { }
+                                        }).catch(err => console.warn("Profile view inc failed:", err))
+                                        if (inputRef.current) inputRef.current.focus()
+                                    } catch (err) {
+                                        console.warn("Profile view update failed:", err)
+                                    }
                                 }
                             }}
                         />
                         <div className="chat-user-info">
                             <span className="chat-user-name" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 {chatTarget.name}
+                                {fullTargetProfile?.subscription?.status === 'active' && <Crown size={16} color="#facc15" fill="#facc15" />}
                                 {chatTarget.isSystem && <BadgeCheck size={16} color="#0EA5E9" />}
                             </span>
                             {isTargetTyping ? (
@@ -991,7 +1002,9 @@ export default function Chat() {
                                                 typingTimeoutRef.current = setTimeout(() => {
                                                     updateDoc(doc(db, 'chats', chatId), { [`typing.${currentUser.uid}`]: false })
                                                 }, 2000)
-                                            } catch (e) { }
+                                            } catch (err) {
+                                                console.warn("Typing status update failed:", err)
+                                            }
                                         }
                                     }}
                                     onKeyDown={e => e.key === 'Enter' && sendMessage()}
@@ -1041,7 +1054,9 @@ export default function Chat() {
                                                 typingTimeoutRef.current = setTimeout(() => {
                                                     updateDoc(doc(db, 'chats', chatId), { [`typing.${currentUser.uid}`]: false })
                                                 }, 2000)
-                                            } catch (e) { }
+                                            } catch (err) {
+                                                console.warn("Typing status update failed:", err)
+                                            }
                                         }
                                     }}
                                     onKeyDown={e => e.key === 'Enter' && sendMessage()}
@@ -1062,7 +1077,7 @@ export default function Chat() {
             )}
             {/* Profile Detail Modal */}
             <AnimatePresence>
-                {showProfile && fullTargetProfile && (
+                {showProfile && !!fullTargetProfile && (
                     <ProfileDetail
                         user={fullTargetProfile}
                         photoIndex={0}

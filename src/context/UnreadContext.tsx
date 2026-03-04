@@ -9,6 +9,7 @@ interface UnreadContextType {
 
 const UnreadContext = createContext<UnreadContextType>({ totalUnread: 0 })
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useUnread = () => useContext(UnreadContext)
 
 export const UnreadProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -17,7 +18,9 @@ export const UnreadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     useEffect(() => {
         if (!user) {
-            setTotalUnread(0)
+            if (totalUnread !== 0) {
+                setTimeout(() => setTotalUnread(0), 0)
+            }
             return
         }
 
@@ -41,7 +44,7 @@ export const UnreadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         })
 
         return () => unsubscribe()
-    }, [user])
+    }, [user, totalUnread])
 
     return (
         <UnreadContext.Provider value={{ totalUnread }}>

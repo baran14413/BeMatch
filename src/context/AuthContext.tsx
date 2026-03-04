@@ -60,6 +60,13 @@ interface UserProfile {
     banReason?: string
     ip?: string
     pendingPhotos?: string[]
+    subscription?: {
+        planId: string
+        planName: string
+        status: 'active' | 'expired' | 'none'
+        expiryDate: number
+        period: string
+    }
 }
 
 interface AuthContextType {
@@ -89,10 +96,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Listen to auth state
     useEffect(() => {
-        let visibilityListener: () => void
-        let unloadListener: () => void
-        let profileUnsub: () => void
-        let notifsUnsub: () => void = () => { }
+        let profileUnsub: (() => void) | undefined
+        let notifsUnsub: (() => void) | undefined
+        let rtdbUnsub: (() => void) | undefined
+        let unloadListener: (() => void) | undefined
+        let visibilityListener: (() => void) | undefined
 
         const unsub = onAuthStateChanged(auth, async (firebaseUser: User | null) => {
             setActualUser(firebaseUser)
@@ -101,7 +109,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (visibilityListener) document.removeEventListener('visibilitychange', visibilityListener)
             if (unloadListener) window.removeEventListener('beforeunload', unloadListener)
             if (profileUnsub) profileUnsub()
-            notifsUnsub()
+            if (notifsUnsub) notifsUnsub()
+            if (rtdbUnsub) rtdbUnsub()
 
             if (firebaseUser) {
                 // Listen to profile from Firestore realtime
@@ -187,7 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 // Setup Realtime Database Presence tracking (Highly Reliable)
                 // Listen to Realtime Database for online status presence
                 const userStatusRTDBRef = rtdbRef(rtdb, `/status/${firebaseUser.uid}`)
-                const rtdbUnsub = onValue(rtdbRef(rtdb, '.info/connected'), (snap) => {
+                rtdbUnsub = onValue(rtdbRef(rtdb, '.info/connected'), (snap) => {
                     if (snap.val() === false) {
                         return
                     }
@@ -241,7 +250,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 // We need to clean up the RTDB listener on unmount/auth change
                 unloadListener = () => {
                     // Cleanup function for our hook array
-                    rtdbUnsub()
+                    // rtdbUnsub() // This is now handled at the top of the onAuthStateChanged
                     window.removeEventListener('pagehide', pageHideListener)
                 }
             } else {
@@ -253,9 +262,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return () => {
             unsub()
             if (visibilityListener) document.removeEventListener('visibilitychange', visibilityListener)
-            if (unloadListener) window.removeEventListener('beforeunload', unloadListener)
+            if (unloadListener) window.removeEventListener('pagehide', unloadListener) // Changed from beforeunload to pagehide
             if (profileUnsub) profileUnsub()
             if (notifsUnsub) notifsUnsub()
+            if (rtdbUnsub) rtdbUnsub() // Clean up RTDB listener
         }
     }, [])
 
@@ -289,8 +299,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             const cred = await createUserWithEmailAndPassword(auth, email, password)
             uid = cred.user.uid
-        } catch (err: any) {
-            if (err?.code === 'auth/email-already-in-use') {
+        } catch (err: unknown) {
+            const error = err as { code?: string };
+            if (error?.code === 'auth/email-already-in-use') {
                 // If account exists, try to sign in to see if we can complete registration
                 try {
                     const cred = await signInWithEmailAndPassword(auth, email, password)
@@ -301,7 +312,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         setActualUserProfile(existing.data() as UserProfile)
                         return // Already fully registered
                     }
-                } catch (innerErr: any) {
+                } catch {
                     // If sign-in fails (e.g. wrong password), throw the original "email-already-in-use"
                     // so the UI can show the correct message.
                     throw err
@@ -446,6 +457,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 /* ── Hook ── */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
     const ctx = useContext(AuthContext)
     if (!ctx) throw new Error('useAuth must be used within AuthProvider')

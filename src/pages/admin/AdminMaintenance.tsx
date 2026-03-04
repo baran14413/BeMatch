@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { toast } from 'react-hot-toast';
-import { motion } from 'framer-motion';
 import {
     Wrench,
     Power,
@@ -10,14 +9,14 @@ import {
     MessageSquare,
     Save,
     AlertTriangle,
-    Eye,
-    CheckCircle2
+    Eye
 } from 'lucide-react';
 import '../../components/Admin.css';
 
 interface SystemFlag {
     id: string;
     enabled: boolean;
+    [key: string]: unknown;
 }
 
 export default function AdminMaintenance() {
@@ -31,8 +30,8 @@ export default function AdminMaintenance() {
         const unsub = onSnapshot(doc(db, 'admin_settings', 'system_config'), (snapshot) => {
             if (snapshot.exists()) {
                 const data = snapshot.data();
-                const flags = data.flags || [];
-                const flag = flags.find((f: any) => f.id === 'flag_maint');
+                const flags: SystemFlag[] = data.flags || [];
+                const flag = flags.find((f: SystemFlag) => f.id === 'flag_maint');
                 setIsEnabled(!!flag?.enabled);
                 setMaintenanceMsg(data.maintenanceMsg || 'BeMatch\'i sana daha iyi bir deneyim sunmak için güncelliyoruz. Çok yakında daha güçlü bir şekilde döneceğiz.');
                 setEndTime(data.maintenanceEndTime || '');
@@ -51,7 +50,7 @@ export default function AdminMaintenance() {
             // Get current flags to update only the maintenance one
             const snapshot = await (await import('firebase/firestore')).getDoc(configRef);
             if (snapshot.exists()) {
-                const flags = snapshot.data().flags.map((f: any) =>
+                const flags = (snapshot.data().flags as SystemFlag[]).map((f: SystemFlag) =>
                     f.id === 'flag_maint' ? { ...f, enabled: isEnabled } : f
                 );
 

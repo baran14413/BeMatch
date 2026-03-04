@@ -12,7 +12,7 @@ interface AuditLog {
     targetId: string;
     details: string;
     ip: string;
-    timestamp: any;
+    timestamp: { toDate?: () => Date } | number | null;
 }
 
 export default function AdminAuditLogs() {
@@ -35,9 +35,16 @@ export default function AdminAuditLogs() {
         return () => unsub();
     }, []);
 
-    const formatTime = (ts: any) => {
+    const formatTime = (ts: { toDate?: () => Date } | number | null) => {
         if (!ts) return '';
-        const d = ts.toDate ? ts.toDate() : new Date(ts);
+        let d: Date;
+        if (typeof ts === 'number') {
+            d = new Date(ts);
+        } else if (ts && typeof ts.toDate === 'function') {
+            d = ts.toDate();
+        } else {
+            d = new Date(ts as unknown as string);
+        }
         // Format: YYYY-MM-DD HH:mm:ss
         return d.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
     };

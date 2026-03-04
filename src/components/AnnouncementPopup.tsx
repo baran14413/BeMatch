@@ -5,8 +5,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, ExternalLink, Info, AlertTriangle, Star, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+interface Announcement {
+    id: string;
+    title: string;
+    message?: string;
+    body?: string;
+    type: 'info' | 'warning' | 'promotion' | 'update' | 'promo';
+    priority?: number;
+    createdAt?: { seconds: number };
+    isActive: boolean;
+    buttonText?: string;
+    buttonLink?: string;
+    imageUrl?: string;
+}
+
 export default function AnnouncementPopup() {
-    const [announcement, setAnnouncement] = useState<any>(null);
+    const [announcement, setAnnouncement] = useState<Announcement | null>(null);
     const [isOpen, setIsOpen] = useState(false);
     const navigate = useNavigate();
 
@@ -20,7 +34,7 @@ export default function AnnouncementPopup() {
         const unsub = onSnapshot(q, (snapshot) => {
             if (!snapshot.empty) {
                 // Sort by priority and date on client side to avoid missing index errors
-                const allActive = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as any));
+                const allActive = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as unknown as Announcement));
                 allActive.sort((a, b) => {
                     if (b.priority !== a.priority) return (b.priority || 0) - (a.priority || 0);
                     return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
@@ -151,9 +165,9 @@ export default function AnnouncementPopup() {
                                         onClick={(e) => {
                                             e.preventDefault();
                                             handleClose();
-                                            if (announcement.buttonLink.startsWith('http')) {
+                                            if (announcement.buttonLink?.startsWith('http')) {
                                                 window.open(announcement.buttonLink, '_blank');
-                                            } else {
+                                            } else if (announcement.buttonLink) {
                                                 navigate(announcement.buttonLink);
                                             }
                                         }}

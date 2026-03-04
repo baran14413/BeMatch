@@ -84,10 +84,11 @@ export default function Report() {
         try {
             const photoUrls: string[] = []
 
+            const now = new Date().getTime()
             // Upload all photos
             for (let i = 0; i < photos.length; i++) {
                 const file = photos[i]
-                const sRef = storageRef(storage, `reports/${Date.now()}_${file.name}`)
+                const sRef = storageRef(storage, `reports/${now}_${file.name}`)
                 const snapshot = await uploadBytes(sRef, file)
                 const url = await getDownloadURL(snapshot.ref)
                 photoUrls.push(url)
@@ -117,7 +118,7 @@ export default function Report() {
                 reasonText: reasonText,
                 description,
                 screenshotUrls: photoUrls,
-                createdAt: new Date().getTime(),
+                createdAt: now,
                 status: 'pending'
             })
 
@@ -127,7 +128,9 @@ export default function Report() {
                     eloScore: increment(-50),
                     reportCount: increment(1)
                 })
-            } catch (ignore) { }
+            } catch (err) {
+                console.warn("Penalty update failed:", err)
+            }
 
             // Send Automated System Messages
             const sendSystemMessage = async (userId: string, messageText: string) => {

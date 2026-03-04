@@ -110,7 +110,7 @@ export default function Matches() {
             }
         }
         fetchMatches()
-    }, [user])
+    }, [user, t])
 
     const currentDisplayList = activeTab === 'mutual' ? mutualMatches : likesYou
 

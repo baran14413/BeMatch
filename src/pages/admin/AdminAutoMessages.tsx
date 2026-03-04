@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { toast } from 'react-hot-toast';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
     MessageSquare,
     Plus,
@@ -15,7 +15,6 @@ import {
     X,
     RefreshCw,
     Zap,
-    Settings,
     UserPlus,
     Heart,
     Moon,
@@ -32,7 +31,7 @@ interface AutoMessage {
     body: string;
     isActive: boolean;
     delayMinutes: number;
-    createdAt: any;
+    createdAt: { seconds: number; nanoseconds: number } | null | undefined;
 }
 
 const TRIGGER_TYPES = [
@@ -94,9 +93,9 @@ export default function AdminAutoMessages() {
                 isActive: true,
                 delayMinutes: 0
             });
-        } catch (err) {
-            console.error(err);
-            toast.error('Kaydedilemedi', { id: tid });
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            toast.error(`Erişim reddedildi: ${err.message}`, { id: tid });
         }
     };
 
@@ -105,7 +104,7 @@ export default function AdminAutoMessages() {
         try {
             await deleteDoc(doc(db, 'auto_messages', id));
             toast.success("Mesaj silindi");
-        } catch (err) {
+        } catch {
             toast.error("Silme hatası");
         }
     };
@@ -116,7 +115,7 @@ export default function AdminAutoMessages() {
                 isActive: !msg.isActive
             });
             toast.success(msg.isActive ? "Mesaj pasife alındı" : "Mesaj aktifleştirildi");
-        } catch (err) {
+        } catch {
             toast.error("Durum güncellenemedi");
         }
     };
@@ -263,7 +262,7 @@ export default function AdminAutoMessages() {
                                     <select
                                         className="admin-input" style={{ width: '100%' }}
                                         value={current.triggerType}
-                                        onChange={e => setCurrent({ ...current, triggerType: e.target.value as any })}
+                                        onChange={e => setCurrent({ ...current, triggerType: e.target.value as AutoMessage['triggerType'] })}
                                     >
                                         {TRIGGER_TYPES.map(t => (
                                             <option key={t.value} value={t.value}>{t.label}</option>
@@ -364,7 +363,7 @@ export default function AdminAutoMessages() {
                                     <div style={{ marginTop: 'auto', textAlign: 'center', padding: '12px', background: `${currentTrigger.color}10`, borderRadius: '12px', border: `1px dashed ${currentTrigger.color}33` }}>
                                         <currentTrigger.icon size={16} color={currentTrigger.color} style={{ marginBottom: '8px' }} />
                                         <div style={{ fontSize: '0.7rem', color: currentTrigger.color, fontWeight: 'bold' }}>{currentTrigger.label}</div>
-                                        <div style={{ fontSize: '0.6rem', color: '#666', marginTop: '4px' }}>{current.delayMinutes > 0 ? `${current.delayMinutes} dk sonra tetiklenecek` : 'Anında gönderilecek'}</div>
+                                        <div style={{ fontSize: '0.6rem', color: '#666', marginTop: '4px' }}>{(current.delayMinutes || 0) > 0 ? `${current.delayMinutes} dk sonra tetiklenecek` : 'Anında gönderilecek'}</div>
                                     </div>
                                 </div>
 

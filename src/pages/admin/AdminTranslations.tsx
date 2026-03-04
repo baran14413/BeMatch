@@ -18,7 +18,7 @@ import translationTR from '../../locales/tr/translation.json';
 import translationEN from '../../locales/en/translation.json';
 import translationDE from '../../locales/de/translation.json';
 
-const LOCAL_RESOURCES: any = {
+const LOCAL_RESOURCES: Record<string, unknown> = {
     tr: translationTR,
     en: translationEN,
     de: translationDE
@@ -26,7 +26,7 @@ const LOCAL_RESOURCES: any = {
 
 export default function AdminTranslations() {
     const [activeLang, setActiveLang] = useState('tr');
-    const [translations, setTranslations] = useState<any>({});
+    const [translations, setTranslations] = useState<Record<string, unknown>>({});
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -47,7 +47,7 @@ export default function AdminTranslations() {
     }, [activeLang]);
 
     const handleValueChange = (key: string, value: string) => {
-        setTranslations((prev: any) => ({ ...prev, [key]: value }));
+        setTranslations((prev) => ({ ...prev, [key]: value }));
         setModifiedKeys((prev) => new Set(prev).add(key));
     };
 
@@ -73,11 +73,11 @@ export default function AdminTranslations() {
         const tid = toast.loading('Yerel dosyalarla senkronize ediliyor...');
         try {
             // Flatten the local JSON structure for easy management
-            const flatten = (obj: any, prefix = ''): any => {
-                return Object.keys(obj).reduce((acc: any, k) => {
+            const flatten = (obj: Record<string, unknown>, prefix = ''): Record<string, unknown> => {
+                return Object.keys(obj).reduce((acc: Record<string, unknown>, k) => {
                     const pre = prefix.length ? prefix + '.' : '';
                     if (typeof obj[k] === 'object' && obj[k] !== null && !Array.isArray(obj[k])) {
-                        Object.assign(acc, flatten(obj[k], pre + k));
+                        Object.assign(acc, flatten(obj[k] as Record<string, unknown>, pre + k));
                     } else {
                         acc[pre + k] = obj[k];
                     }
@@ -85,7 +85,12 @@ export default function AdminTranslations() {
                 }, {});
             };
 
-            const flattenedLocal = flatten(LOCAL_RESOURCES[activeLang]);
+            // Check if the active language has local resources defined
+            if (!LOCAL_RESOURCES[activeLang]) {
+                throw new Error(`Local resources for language '${activeLang}' are not available.`);
+            }
+
+            const flattenedLocal = flatten(LOCAL_RESOURCES[activeLang] as Record<string, unknown>);
             await setDoc(doc(db, 'i18n', activeLang), flattenedLocal);
             toast.success('Senkronizasyon başarılı!', { id: tid });
         } catch (error) {
@@ -185,7 +190,7 @@ export default function AdminTranslations() {
                                                     resize: 'vertical',
                                                     minHeight: '40px'
                                                 }}
-                                                value={translations[key] || ''}
+                                                value={(translations[key] as string) || ''}
                                                 onChange={e => handleValueChange(key, e.target.value)}
                                             />
                                         </td>

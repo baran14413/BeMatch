@@ -1,10 +1,32 @@
 import { motion } from 'framer-motion'
-import { ChevronDown, Briefcase, GraduationCap, MapPin } from 'lucide-react'
+import { ChevronDown, Briefcase, GraduationCap, MapPin, Crown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import type { DemoUser } from '../data/demoUsers'
+
+
+export interface ProfileUser {
+    id: string | number;
+    name?: string;
+    firstName?: string;
+    photos?: string[];
+    photo?: string;
+    age?: number;
+    job?: string;
+    school?: string;
+    distance?: string;
+    bio?: string;
+    interests?: string[];
+    lookingFor?: string;
+    subscription?: {
+        planId: string
+        planName: string
+        status: 'active' | 'expired' | 'none'
+        expiryDate: number
+        period: string
+    }
+}
 
 interface ProfileDetailProps {
-    user: DemoUser | any
+    user: ProfileUser | null
     photoIndex: number
     onClose: () => void
 }
@@ -46,7 +68,10 @@ export default function ProfileDetail({ user, photoIndex, onClose }: ProfileDeta
 
                 <div className="detail-body">
                     <div className="detail-name-age">
-                        <span className="detail-name">{user?.name || user?.firstName || t('detail.unnamed')}</span>
+                        <span className="detail-name" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {user?.name || user?.firstName || t('detail.unnamed')}
+                            {user?.subscription?.status === 'active' && <Crown size={24} color="#facc15" fill="#facc15" strokeWidth={2.5} />}
+                        </span>
                         {user?.age && <span className="detail-age">{user.age}</span>}
                     </div>
 

@@ -44,6 +44,7 @@ export default function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) 
     const analyserRef = useRef<AnalyserNode | null>(null)
     const animationFrameRef = useRef<number>(0)
     const nativeWaveformInterval = useRef<ReturnType<typeof setInterval> | null>(null)
+    const shouldUploadOnStop = useRef(false)
 
     // Cleanup function - STRICT requirement 3
     const cleanupAudioResources = useCallback(() => {
@@ -62,52 +63,46 @@ export default function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) 
         }
     }, [])
 
-    useEffect(() => {
-        startRecording()
-        return () => {
-            if (timerRef.current) clearInterval(timerRef.current)
-            cleanupAudioResources()
-            // If component abruptly unmounts, forcefully kill tracks if they somehow survived
-            const stream = mediaRecorderRef.current?.stream
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop())
-            }
-            if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
-                audioCtxRef.current.close()
-            }
-            if (previewAudioRef.current) {
-                previewAudioRef.current.pause()
-                previewAudioRef.current.src = ''
-            }
+    const executeUpload = useCallback(async (blobToUpload: Blob | null) => {
+        if (!blobToUpload || blobToUpload.size === 0) {
+            console.error("Yüklenecek ses dosyası bulunamadı.")
+            setStatus('error')
+            setErrorMessage("Ses kaydedilemedi. Lütfen tekrar deneyin.")
+            return
         }
-    }, [cleanupAudioResources])
 
-    useEffect(() => {
-        let interval: ReturnType<typeof setInterval> | null = null
-        if (status === 'recording') {
-            interval = setInterval(() => {
-                setRecordingTime(prev => prev + 1)
-            }, 1000)
-            timerRef.current = interval
-        }
-        return () => {
-            if (interval) {
-                clearInterval(interval)
-                if (timerRef.current === interval) timerRef.current = null
-            }
-        }
-    }, [status])
+        setIsUploading(true)
+        const filename = `voice_${Date.now()}.webm`
+        const storageRef = ref(storage, `voice_messages/${filename}`)
 
-    // Format time helpers
-    const formatTime = (seconds: number) => {
-        if (!seconds || isNaN(seconds)) return '0:00'
-        const mins = Math.floor(seconds / 60)
-        const secs = Math.floor(seconds % 60)
-        return `${mins}:${secs.toString().padStart(2, '0')}`
-    }
+        const uploadTask = uploadBytesResumable(storageRef, blobToUpload)
+
+        uploadTask.on(
+            'state_changed',
+            () => { },
+            (error) => {
+                console.error("Ses yükleme hatası:", error)
+                setIsUploading(false)
+                // Use a local cleanup if needed or just handle state
+                cleanupAudioResources()
+                onCancel()
+            },
+            async () => {
+                try {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref)
+                    onSend(downloadURL, recordingTime)
+                } catch (err) {
+                    console.error("URL alınamadı:", err)
+                    cleanupAudioResources()
+                    onCancel()
+                }
+                setIsUploading(false)
+            }
+        )
+    }, [cleanupAudioResources, onCancel, onSend, recordingTime])
 
     // Draw Live Waveform - Requirement 4
-    const drawWaveform = () => {
+    const drawWaveform = useCallback(() => {
         if (!analyserRef.current) return
         const bufferLength = analyserRef.current.frequencyBinCount
         const dataArray = new Uint8Array(bufferLength)
@@ -130,15 +125,12 @@ export default function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) 
 
         setWaveformData(heights)
         animationFrameRef.current = requestAnimationFrame(drawWaveform)
-    }
+    }, [])
 
-    // A ref to track if we should upload immediately after stop
-    const shouldUploadOnStop = useRef(false)
-
-    const startRecording = async () => {
+    const startRecording = useCallback(async () => {
         try {
             // App native environment permission check for Android/iOS
-            const isNative = typeof window !== 'undefined' && 'Capacitor' in window && (window as any).Capacitor.isNativePlatform();
+            const isNative = typeof window !== 'undefined' && 'Capacitor' in window && (window as unknown as { Capacitor: { isNativePlatform: () => boolean } }).Capacitor.isNativePlatform();
 
             if (isNative) {
                 const { VoiceRecorder } = await import('capacitor-voice-recorder')
@@ -160,7 +152,19 @@ export default function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) 
                 return
             }
 
-            // Requirement 1: Graceful Permission & High-Fidelity Audio Constraints
+            // Web Platform Environment Checks
+            if (typeof window === 'undefined') return
+
+            // Requirement 1: Insecure Context Check (HTTP vs HTTPS)
+            // Browsers disable mediaDevices on non-localhost HTTP
+            if (!window.isSecureContext) {
+                throw new Error("Mikrofon erişimi için HTTPS bağlantısı gereklidir. Lütfen güvenli bir bağlantı üzerinden (SSL) deneyin.")
+            }
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error("Tarayıcınız ses kaydını desteklemiyor veya mikrofon donanımı bulunamadı.")
+            }
+
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     echoCancellation: true,
@@ -169,14 +173,18 @@ export default function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) 
                     sampleRate: 48000,
                     channelCount: 1
                 }
-            }).catch(() => {
-                throw new Error("Lütfen tarayıcı / cihaz ayarlarından mikrofona izin verin.")
+            }).catch((err) => {
+                console.error("getUserMedia error:", err)
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    throw new Error("Mikrofon izni reddedildi. Lütfen tarayıcı ayarlarından siteye izin verin.")
+                }
+                throw new Error("Mikrofon erişimi sağlanamadı. Lütfen donanım bağlantısını kontrol edin.")
             })
 
             setStatus('recording')
 
             // Setup real waveform analyzer
-            const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+            const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
             audioCtxRef.current = audioCtx
             const analyser = audioCtx.createAnalyser()
             analyser.fftSize = 64
@@ -234,15 +242,16 @@ export default function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) 
             // Requirement 3: Smooth Chunking (no timeslice)
             mediaRecorder.start()
 
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Mikrofon izni alınamadı:", err)
             setStatus('error')
-            setErrorMessage(err.message || "Mikrofon kullanılamıyor.")
+            const error = err as { message?: string }
+            setErrorMessage(error.message || "Mikrofon kullanılamıyor.")
         }
-    }
+    }, [drawWaveform, executeUpload])
 
-    const stopRecording = async () => {
-        const isNative = typeof window !== 'undefined' && 'Capacitor' in window && (window as any).Capacitor.isNativePlatform()
+    const stopRecording = useCallback(async () => {
+        const isNative = typeof window !== 'undefined' && 'Capacitor' in window && (window as unknown as { Capacitor: { isNativePlatform: () => boolean } }).Capacitor.isNativePlatform();
         if (isNative) {
             cleanupAudioResources()
             try {
@@ -266,7 +275,7 @@ export default function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) 
                         executeUpload(blob)
                     }
                 }
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error("Native recording stop error:", err)
                 setStatus('error')
                 setErrorMessage("Kayıt tamamlanamadı.")
@@ -277,9 +286,9 @@ export default function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) 
         // Strict Stop & Resource free triggers onstop
         cleanupAudioResources()
         setStatus('preview')
-    }
+    }, [cleanupAudioResources, executeUpload])
 
-    const handleCancel = () => {
+    const handleCancel = useCallback(() => {
         cleanupAudioResources()
         // If aborting, make sure we definitively kill streams outside of onstop too just in case
         const stream = mediaRecorderRef.current?.stream
@@ -292,6 +301,59 @@ export default function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) 
 
         if (timerRef.current) clearInterval(timerRef.current)
         onCancel()
+    }, [cleanupAudioResources, onCancel])
+
+    const handleSend = useCallback(async () => {
+        if (status === 'recording') {
+            shouldUploadOnStop.current = true
+            await stopRecording() // This triggers the async stop logic
+            return
+        }
+        executeUpload(audioBlob)
+    }, [audioBlob, executeUpload, status, stopRecording])
+
+    useEffect(() => {
+        startRecording()
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current)
+            cleanupAudioResources()
+            // If component abruptly unmounts, forcefully kill tracks if they somehow survived
+            const stream = mediaRecorderRef.current?.stream
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop())
+            }
+            if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+                audioCtxRef.current.close()
+            }
+            if (previewAudioRef.current) {
+                previewAudioRef.current.pause()
+                previewAudioRef.current.src = ''
+            }
+        }
+    }, [cleanupAudioResources, startRecording])
+
+    useEffect(() => {
+        let interval: ReturnType<typeof setInterval> | null = null
+        if (status === 'recording') {
+            interval = setInterval(() => {
+                setRecordingTime(prev => prev + 1)
+            }, 1000)
+            timerRef.current = interval
+        }
+        return () => {
+            if (interval) {
+                clearInterval(interval)
+                if (timerRef.current === interval) timerRef.current = null
+            }
+        }
+    }, [status])
+
+    // Format time helpers
+    const formatTime = (seconds: number) => {
+        if (!seconds || isNaN(seconds)) return '0:00'
+        const mins = Math.floor(seconds / 60)
+        const secs = Math.floor(seconds % 60)
+        return `${mins}:${secs.toString().padStart(2, '0')}`
     }
 
     // Initialize native Audio when preview mode opens
@@ -331,50 +393,6 @@ export default function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) 
         } else {
             previewAudioRef.current.play().catch(e => console.error(e))
         }
-    }
-
-    const handleSend = async () => {
-        if (status === 'recording') {
-            shouldUploadOnStop.current = true
-            await stopRecording() // This triggers the async stop logic
-            return
-        }
-        executeUpload(audioBlob)
-    }
-
-    const executeUpload = async (blobToUpload: Blob | null) => {
-        if (!blobToUpload || blobToUpload.size === 0) {
-            console.error("Yüklenecek ses dosyası bulunamadı.")
-            setStatus('error')
-            setErrorMessage("Ses kaydedilemedi. Lütfen tekrar deneyin.")
-            return
-        }
-
-        setIsUploading(true)
-        const filename = `voice_${Date.now()}.webm`
-        const storageRef = ref(storage, `voice_messages/${filename}`)
-
-        const uploadTask = uploadBytesResumable(storageRef, blobToUpload)
-
-        uploadTask.on(
-            'state_changed',
-            () => { },
-            (error) => {
-                console.error("Ses yükleme hatası:", error)
-                setIsUploading(false)
-                handleCancel()
-            },
-            async () => {
-                try {
-                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref)
-                    onSend(downloadURL, recordingTime)
-                } catch (err) {
-                    console.error("URL alınamadı:", err)
-                    handleCancel()
-                }
-                setIsUploading(false)
-            }
-        )
     }
 
     // Render Error State

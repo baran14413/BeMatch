@@ -6,12 +6,12 @@ import {
 } from 'lucide-react';
 import {
     AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    BarChart, Bar, Legend, YAxis
+    BarChart, Bar, Legend
 } from 'recharts';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase';
 import '../../components/Admin.css';
-import React, { lazy, Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 const GlobeGL = lazy(() => import('react-globe.gl'));
 
 // Initial Data structures
@@ -35,7 +35,25 @@ const initialActivityData = [
     { day: 'Paz', active: 0, new: 0 },
 ];
 
-const StatCard = ({ title, value, change, isPositive, icon: Icon, color, subtitle }: any) => (
+interface HeatmapPoint {
+    lat: number;
+    lng: number;
+    city: string;
+    weight: number;
+    status: 'online' | 'offline';
+}
+
+interface StatCardProps {
+    title: string;
+    value: string | number;
+    change?: string;
+    isPositive?: boolean;
+    icon: React.ElementType;
+    color: string;
+    subtitle?: string;
+}
+
+const StatCard = ({ title, value, change, isPositive, icon: Icon, color, subtitle }: StatCardProps) => (
     <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -76,7 +94,7 @@ export default function AdminDashboard() {
 
     const [revenueData, setRevenueData] = useState(initialRevenueData);
     const [activityData, setActivityData] = useState(initialActivityData);
-    const [heatmapData, setHeatmapData] = useState<any[]>([]);
+    const [heatmapData, setHeatmapData] = useState<HeatmapPoint[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -98,7 +116,7 @@ export default function AdminDashboard() {
             const newRevenueMap = new Map();
             initialRevenueData.forEach(d => newRevenueMap.set(d.name, { ...d, gold: 0, premium: 0 }));
 
-            const locations: any[] = [];
+            const locations: HeatmapPoint[] = [];
 
             snapshot.forEach(doc => {
                 const data = doc.data();
@@ -142,7 +160,7 @@ export default function AdminDashboard() {
             // Very simple Mock Revenue Distribution logic just to make the chart alive for now
             // Distribution is just aesthetic using the totals
             if (total > 0) {
-                let currentHour = new Date().getHours();
+                const currentHour = new Date().getHours();
                 // Map current hour to one of our buckets
                 let bucket = '12:00';
                 if (currentHour < 4) bucket = '00:00';
@@ -153,8 +171,8 @@ export default function AdminDashboard() {
                 else if (currentHour < 23) bucket = '20:00';
                 else bucket = '23:59';
 
-                let goldC = Math.floor(total * 0.15); // Assume 15% are gold
-                let premC = Math.floor(total * 0.35); // Assume 35% are premium
+                const goldC = Math.floor(total * 0.15); // Assume 15% are gold
+                const premC = Math.floor(total * 0.35); // Assume 35% are premium
                 newRevenueMap.set(bucket, { name: bucket, gold: goldC * 19.99, premium: premC * 9.99, amt: 0 });
             }
 
@@ -259,15 +277,18 @@ export default function AdminDashboard() {
                                 height={350}
                                 globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg"
                                 pointsData={heatmapData}
-                                pointAltitude={d => (d as any).weight * 0.1}
-                                pointColor={d => (d as any).status === 'online' ? '#10b981' : '#ef4444'}
-                                pointRadius={d => (d as any).weight * 0.5}
-                                pointLabel={d => `
-                                    <div style="background: rgba(0,0,0,0.8); padding: 8px; border-radius: 8px; border: 1px solid var(--god-border);">
-                                        <b style="color: ${(d as any).status === 'online' ? '#10b981' : '#ef4444'}">${(d as any).status === 'online' ? '🟢 Aktif' : '🔴 Çevrimdışı'}</b><br/>
-                                        <span style="color: #fff; font-size: 12px;">${(d as any).city}</span>
-                                    </div>
-                                `}
+                                pointAltitude={(d: object) => (d as HeatmapPoint).weight * 0.1}
+                                pointColor={(d: object) => (d as HeatmapPoint).status === 'online' ? '#10b981' : '#ef4444'}
+                                pointRadius={(d: object) => (d as HeatmapPoint).weight * 0.5}
+                                pointLabel={(d: object) => {
+                                    const point = d as HeatmapPoint;
+                                    return `
+                                        <div style="background: rgba(0,0,0,0.8); padding: 8px; border-radius: 8px; border: 1px solid var(--god-border);">
+                                            <b style="color: ${point.status === 'online' ? '#10b981' : '#ef4444'}">${point.status === 'online' ? '🟢 Aktif' : '🔴 Çevrimdışı'}</b><br/>
+                                            <span style="color: #fff; font-size: 12px;">${point.city}</span>
+                                        </div>
+                                    `;
+                                }}
                                 backgroundColor="rgba(0,0,0,0)"
                             />
                         </Suspense>

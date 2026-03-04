@@ -12,6 +12,18 @@ import {
 } from 'lucide-react';
 import '../../components/Admin.css';
 
+function formatDistanceToNowLocal(timestamp: number) {
+    if (!timestamp) return 'Bilinmiyor';
+    const diff = Date.now() - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return 'Az önce';
+    if (minutes < 60) return `${minutes} dk önce`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} saat önce`;
+    const days = Math.floor(hours / 24);
+    return `${days} gün önce`;
+}
+
 interface AdminPremiumUser {
     id: string;
     firstName: string;
@@ -24,6 +36,7 @@ interface AdminPremiumUser {
     email: string;
     photoURL?: string;
     ip?: string;
+    lastActiveString?: string;
 }
 
 export default function AdminPremiumUsers() {
@@ -69,7 +82,8 @@ export default function AdminPremiumUsers() {
                     premiumPlan: data.premiumPlan || 'Premium',
                     email: data.email || 'Bilinmiyor',
                     photoURL: data.photos && data.photos.length > 0 ? data.photos[0] : undefined,
-                    ip: data.ip || 'Bilinmiyor'
+                    ip: data.ip || 'Bilinmiyor',
+                    lastActiveString: formatDistanceToNowLocal(data.lastActive || Date.now())
                 });
             });
 
@@ -92,10 +106,15 @@ export default function AdminPremiumUsers() {
         try {
             await updateDoc(doc(db, 'users', userId), {
                 isPremium: false,
-                premiumPlan: 'İptal Edildi'
+                premiumPlan: 'İptal Edildi',
+                subscription: {
+                    status: 'expired',
+                    planId: 'none',
+                    expiryDate: Date.now()
+                }
             });
             toast.success('Kullanıcının premium üyeliği iptal edildi.', { id: tid });
-        } catch (error: any) {
+        } catch {
             toast.error('İşlem sırasında hata oluştu.', { id: tid });
         }
     };
@@ -121,11 +140,22 @@ export default function AdminPremiumUsers() {
 
         const tid = toast.loading('Paket güncelleniyor...');
         try {
+            const days = finalPlanId.includes('weekly') ? 7 : finalPlanId.includes('monthly') ? 30 : 365;
+            const expiryDate = Date.now() + (days * 24 * 60 * 60 * 1000);
+
             await updateDoc(doc(db, 'users', userId), {
-                premiumPlan: finalPlanId
+                premiumPlan: finalPlanId,
+                isPremium: true,
+                subscription: {
+                    planId: finalPlanId,
+                    planName: finalPlanId.includes('weekly') ? 'Haftalık' : finalPlanId.includes('monthly') ? 'Aylık' : 'Yıllık',
+                    status: 'active',
+                    expiryDate: expiryDate,
+                    period: finalPlanId.includes('weekly') ? 'haftalık' : finalPlanId.includes('monthly') ? 'aylık' : 'yıllık'
+                }
             });
             toast.success(`Paket başarıyla ${finalPlanId} olarak değiştirildi!`, { id: tid });
-        } catch (error) {
+        } catch {
             toast.error("Paket güncellenirken hata oluştu.", { id: tid });
         }
     };
@@ -164,8 +194,9 @@ export default function AdminPremiumUsers() {
             } else {
                 toast.error('İşlem desteklenmiyor!', { id: tid });
             }
-        } catch (error: any) {
-            toast.error(`Erişim reddedildi: ${error.message}`, { id: tid });
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            toast.error(`Erişim reddedildi: ${err.message}`, { id: tid });
         }
     };
 
@@ -180,18 +211,6 @@ export default function AdminPremiumUsers() {
         u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         u.id.toLowerCase().includes(searchTerm.toLowerCase())
     );
-
-    const formatDistanceToNowLocal = (timestamp: number) => {
-        if (!timestamp) return 'Bilinmiyor';
-        const diff = Date.now() - timestamp;
-        const minutes = Math.floor(diff / 60000);
-        if (minutes < 1) return 'Az önce';
-        if (minutes < 60) return `${minutes} dk önce`;
-        const hours = Math.floor(minutes / 60);
-        if (hours < 24) return `${hours} saat önce`;
-        const days = Math.floor(hours / 24);
-        return `${days} gün önce`;
-    };
 
     return (
         <div>
@@ -269,7 +288,7 @@ export default function AdminPremiumUsers() {
                                                 <MapPin size={14} /> {user.locationCity}
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--god-text-muted)', fontSize: '0.75rem', marginTop: '4px' }}>
-                                                <Clock size={14} /> Son görülme: {formatDistanceToNowLocal(user.lastActive)}
+                                                <Clock size={14} /> Son görülme: {user.lastActiveString}
                                             </div>
                                         </td>
                                         <td>

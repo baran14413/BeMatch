@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Pencil, Trash2, Pin, X, Check, BadgeCheck } from 'lucide-react'
+import { Pencil, Trash2, Pin, X, Check, BadgeCheck, Crown } from 'lucide-react'
 import { collection, query, where, onSnapshot, doc, getDoc, getDocs, writeBatch, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../context/AuthContext'
@@ -22,6 +22,13 @@ interface Conversation {
     updatedAt: number
     isSystem?: boolean
     isDeleted?: boolean
+    subscription?: {
+        planId: string
+        planName: string
+        status: 'active' | 'expired' | 'none'
+        expiryDate: number
+        period: string
+    }
 }
 
 export default function Messages() {
@@ -91,7 +98,8 @@ export default function Messages() {
                                 online: false, // RTDB logic isn't heavily needed here yet
                                 pinned: Array.isArray(data.pinnedBy) && data.pinnedBy.includes(user.uid),
                                 updatedAt: data.updatedAt || 0,
-                                isDeleted
+                                isDeleted,
+                                subscription: otherUserData.subscription
                             })
                         }
                     } catch (err) {
@@ -113,7 +121,7 @@ export default function Messages() {
         })
 
         return () => unsubscribe()
-    }, [user])
+    }, [user, t])
 
     const toggleSelect = (id: string) => {
         setSelected(prev => {
@@ -147,7 +155,9 @@ export default function Messages() {
                 // 3. Clear our unread count to 0 just in case
                 try {
                     await updateDoc(doc(db, 'chats', chatId), { [`unreadCount_${user.uid}`]: 0 })
-                } catch (e) { }
+                } catch (err) {
+                    console.warn("Unread reset failed:", err)
+                }
             }
             showToast({
                 title: t('msg.success'),
@@ -278,6 +288,7 @@ export default function Messages() {
                                     <div className="conv-top-row">
                                         <span className={`conv-name ${c.unread > 0 ? 'unread-bold' : ''}`} style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: c.isDeleted ? 0.6 : 1 }}>
                                             {c.name}
+                                            {c.subscription?.status === 'active' && <Crown size={14} color="#facc15" fill="#facc15" />}
                                             {c.isSystem && <BadgeCheck size={14} color="#0EA5E9" />}
                                         </span>
                                         <span className="conv-time">{c.time}</span>

@@ -20,7 +20,7 @@ export interface SubscriptionPlan {
     order: number;
 }
 
-const ICONS: Record<string, any> = {
+const ICONS: Record<string, React.ReactNode> = {
     Zap: <Zap size={24} />,
     Star: <Star size={24} />,
     Crown: <Crown size={24} />
@@ -114,7 +114,7 @@ export default function AdminSubscriptionPlans() {
             await setDoc(doc(db, 'subscription_plans', editingPlan.id), editingPlan);
             toast.success('Paket başarıyla kaydedildi!', { id: tid });
             setIsEditModalOpen(false);
-        } catch (error) {
+        } catch {
             toast.error('Kaydedilirken hata oluştu.', { id: tid });
         }
     };
@@ -125,7 +125,7 @@ export default function AdminSubscriptionPlans() {
             await deleteDoc(doc(db, 'subscription_plans', deleteModal.targetId));
             toast.success('Paket silindi!', { id: tid });
             setDeleteModal({ isOpen: false, targetId: '' });
-        } catch (error) {
+        } catch {
             toast.error('Silinirken hata oluştu.', { id: tid });
         }
     };
@@ -175,7 +175,7 @@ export default function AdminSubscriptionPlans() {
                         <button className="admin-btn" style={{ background: '#a855f7', border: 'none', padding: '8px 16px' }} onClick={seedDefaultPlans}>Hemen Kaydet</button>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px', padding: '0 20px', opacity: 0.7 }}>
-                        {DEFAULT_PACKAGES.map((pkg, idx) => (
+                        {DEFAULT_PACKAGES.map((pkg) => (
                             <div key={pkg.id} style={{ position: 'relative', background: 'var(--god-surface-2)', border: '1px solid var(--god-border)', borderRadius: '24px', padding: '24px', filter: 'grayscale(0.5)' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
                                     <div style={{ width: 44, height: 44, borderRadius: '12px', background: `${pkg.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: pkg.color }}>

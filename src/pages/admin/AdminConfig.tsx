@@ -117,7 +117,7 @@ export default function AdminConfig() {
         try {
             await setDoc(doc(db, 'admin_settings', 'system_config'), config);
             toast.success('Tüm sistem ayarları başarıyla yayınlandı!', { id: tid });
-        } catch (err) {
+        } catch {
             toast.error('Kaydetme başarısız oldu.', { id: tid });
         } finally {
             setIsSaving(false);

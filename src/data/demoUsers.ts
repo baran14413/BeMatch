@@ -1,5 +1,5 @@
 export interface DemoUser {
-    id: number
+    id: string | number
     name: string
     age: number
     bio: string
@@ -10,6 +10,13 @@ export interface DemoUser {
     countryCode?: string
     job?: string
     school?: string
+    subscription?: {
+        planId: string
+        planName: string
+        status: 'active' | 'expired' | 'none'
+        expiryDate: number
+        period: string
+    }
 }
 
 export const demoUsers: DemoUser[] = [
