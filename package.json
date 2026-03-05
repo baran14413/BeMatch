@@ -18,6 +18,7 @@
     "@capacitor/core": "^8.1.0",
     "@capacitor/geolocation": "^8.1.0",
     "@capacitor/local-notifications": "^8.0.1",
+    "@capacitor/push-notifications": "^8.0.1",
     "@google-cloud/storage": "^7.19.0",
     "capacitor-voice-recorder": "^7.0.6",
     "firebase": "^12.9.0",

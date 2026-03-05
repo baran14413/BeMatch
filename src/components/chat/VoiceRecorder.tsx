@@ -46,9 +46,27 @@ export default function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) 
     const nativeWaveformInterval = useRef<ReturnType<typeof setInterval> | null>(null)
     const shouldUploadOnStop = useRef(false)
 
-    // Cleanup function - STRICT requirement 3
-    const cleanupAudioResources = useCallback(() => {
-        // Only stop the recorder to trigger onstop. 
+    // Cleanup function
+    const cleanupAudioResources = useCallback(async () => {
+        // Stop native recorder if running
+        const isNative = typeof window !== 'undefined' && 'Capacitor' in window && (window as unknown as { Capacitor: { isNativePlatform: () => boolean } }).Capacitor.isNativePlatform();
+        if (isNative) {
+            try {
+                const { VoiceRecorder } = await import('capacitor-voice-recorder')
+                // Check if recording before stopping to avoid errors
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const status: any = await VoiceRecorder.getCurrentStatus()
+                if (status?.status === 'RECORDING' || status?.value?.status === 'RECORDING') {
+                    await VoiceRecorder.stopRecording()
+                }
+            } catch {
+                // Ignore — recorder may already be stopped
+            }
+            if (nativeWaveformInterval.current) clearInterval(nativeWaveformInterval.current)
+            return
+        }
+
+        // Web: only stop the recorder to trigger onstop.
         // DO NOT stop tracks here, otherwise the final blob gets corrupted.
         if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
             mediaRecorderRef.current.stop()
@@ -134,6 +152,19 @@ export default function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) 
 
             if (isNative) {
                 const { VoiceRecorder } = await import('capacitor-voice-recorder')
+
+                // CRITICAL FIX: Stop any previously running recording before starting a new one.
+                // Without this, we get ERROR_ALREADY_RECORDING and the mic stays locked.
+                try {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const status: any = await VoiceRecorder.getCurrentStatus()
+                    if (status?.status === 'RECORDING' || status?.value?.status === 'RECORDING') {
+                        await VoiceRecorder.stopRecording()
+                    }
+                } catch {
+                    // Already stopped — safe to continue
+                }
+
                 const { value: hasPermission } = await VoiceRecorder.hasAudioRecordingPermission()
                 if (!hasPermission) {
                     const { value: req } = await VoiceRecorder.requestAudioRecordingPermission()
@@ -316,8 +347,9 @@ export default function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) 
         startRecording()
         return () => {
             if (timerRef.current) clearInterval(timerRef.current)
-            cleanupAudioResources()
-            // If component abruptly unmounts, forcefully kill tracks if they somehow survived
+            // Async cleanup — stop native recorder and free microphone
+            cleanupAudioResources().catch(() => { })
+            // If component abruptly unmounts, forcefully kill web tracks if they somehow survived
             const stream = mediaRecorderRef.current?.stream
             if (stream) {
                 stream.getTracks().forEach(track => track.stop())

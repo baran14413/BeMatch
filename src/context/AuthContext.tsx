@@ -11,7 +11,7 @@ import {
 import { doc, setDoc, getDoc, updateDoc, onSnapshot, collection, writeBatch, serverTimestamp } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { ref as rtdbRef, onValue, onDisconnect, set as rtdbSet } from 'firebase/database'
-import { auth, db, storage, rtdb } from '../firebase'
+import { auth, db, storage, rtdb, initFCM } from '../firebase'
 import i18n from '../i18n'
 
 /* ── Types ── */
@@ -60,12 +60,16 @@ interface UserProfile {
     banReason?: string
     ip?: string
     pendingPhotos?: string[]
+    isPremium?: boolean
+    premiumPlan?: string
     subscription?: {
         planId: string
         planName: string
         status: 'active' | 'expired' | 'none'
         expiryDate: number
         period: string
+        cancelReason?: string
+        cancelledAt?: number
     }
 }
 
@@ -141,6 +145,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 } else if ('Notification' in window && Notification.permission === 'default') {
                     Notification.requestPermission()
                 }
+
+                // Initialize FCM and save token to Firestore for background push
+                initFCM(firebaseUser.uid).catch(console.warn)
 
                 // Listen to notifications
                 notifsUnsub = onSnapshot(collection(db, `users/${firebaseUser.uid}/notifications`), (snap) => {

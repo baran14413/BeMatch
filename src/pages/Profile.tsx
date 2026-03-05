@@ -248,32 +248,64 @@ export default function Profile() {
                     </div>
                 </motion.div>
 
-                {/* Premium Card */}
-                <motion.div
-                    className="premium-card"
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                >
-                    <div className="premium-glow" />
-                    <div className="premium-content">
-                        <div className="premium-badge">
-                            <Crown size={20} />
-                            <span>BeMatch Gold</span>
+                {/* Premium Card — only show if NOT premium */}
+                {!(userProfile?.subscription?.status === 'active' || userProfile?.isPremium) && (
+                    <motion.div
+                        className="premium-card"
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.3 }}
+                    >
+                        <div className="premium-glow" />
+                        <div className="premium-content">
+                            <div className="premium-badge">
+                                <Crown size={20} />
+                                <span>BeMatch Gold</span>
+                            </div>
+                            <p className="premium-desc">{t('profile.premium_desc')}</p>
+                            <div className="premium-perks">
+                                <span><Sparkles size={14} /> {t('profile.perk_likes')}</span>
+                                <span><Eye size={14} /> {t('profile.perk_see')}</span>
+                                <span><Zap size={14} /> {t('profile.perk_boost')}</span>
+                                <span><Shield size={14} /> {t('profile.perk_adfree')}</span>
+                            </div>
+                            <button className="premium-btn" onClick={() => navigate('/premium')}>
+                                <Crown size={16} />
+                                {t('profile.upgrade_btn')}
+                            </button>
                         </div>
-                        <p className="premium-desc">{t('profile.premium_desc')}</p>
-                        <div className="premium-perks">
-                            <span><Sparkles size={14} /> {t('profile.perk_likes')}</span>
-                            <span><Eye size={14} /> {t('profile.perk_see')}</span>
-                            <span><Zap size={14} /> {t('profile.perk_boost')}</span>
-                            <span><Shield size={14} /> {t('profile.perk_adfree')}</span>
+                    </motion.div>
+                )}
+
+                {/* Gold Member Badge — show if premium */}
+                {(userProfile?.subscription?.status === 'active' || userProfile?.isPremium) && (
+                    <motion.div
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.3 }}
+                        style={{
+                            margin: '0 16px',
+                            padding: '16px 20px',
+                            background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
+                            borderRadius: '20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            boxShadow: '0 4px 20px rgba(251,191,36,0.3)'
+                        }}
+                    >
+                        <Crown size={28} color="#000" />
+                        <div>
+                            <div style={{ fontWeight: 800, fontSize: '1rem', color: '#000' }}>BeMatch Gold Üyesi 👑</div>
+                            <div style={{ fontSize: '0.8rem', color: 'rgba(0,0,0,0.7)', marginTop: 2 }}>
+                                {userProfile?.subscription?.planName || 'Premium'} · {userProfile?.subscription?.expiryDate
+                                    ? new Date(userProfile.subscription.expiryDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' }) + ' tarihine kadar'
+                                    : 'Aktif'}
+                            </div>
                         </div>
-                        <button className="premium-btn" onClick={() => navigate('/premium')}>
-                            <Crown size={16} />
-                            {t('profile.upgrade_btn')}
-                        </button>
-                    </div>
-                </motion.div>
+                    </motion.div>
+                )}
+
 
                 {/* Photo Gallery — view only */}
                 {photos.length > 0 && (

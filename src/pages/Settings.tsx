@@ -105,10 +105,20 @@ export default function Settings() {
 
     // Subscription Cancellation
     const [isCancelling, setIsCancelling] = useState(false);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [cancelReason, setCancelReason] = useState('');
+
+    const CANCEL_REASONS = [
+        'Çok pahalıydı',
+        'Yeterince kullanmadım',
+        'Teknik bir sorun yaşadım',
+        'Başka bir uygulama kullandım',
+        'Çift hesabım var',
+        'Diğer'
+    ];
 
     const handleCancelSubscription = async () => {
-        if (!userProfile?.uid) return;
-        if (!window.confirm('Aboneliğinizi iptal etmek istediğinize emin misiniz? Premium özelliklerinizi hemen kaybedeceksiniz.')) return;
+        if (!userProfile?.uid || !cancelReason) return;
 
         setIsCancelling(true);
         try {
@@ -118,29 +128,28 @@ export default function Settings() {
             await updateDoc(doc(db, 'users', uid), {
                 isPremium: false,
                 'subscription.status': 'expired',
-                'subscription.cancelledAt': Date.now()
+                'subscription.cancelledAt': Date.now(),
+                'subscription.cancelReason': cancelReason
             });
 
-            // 2. Notification
+            // 2. Notification — styled
             await addDoc(collection(db, `users/${uid}/notifications`), {
-                title: 'Abonelik İptal Edildi ⚠️',
-                body: 'Premium aboneliğiniz isteğiniz üzerine iptal edildi. Tekrar görüşmek üzere!',
+                title: '😔 Abonelik İptal Edildi',
+                body: `Premium aboneliğiniz "${cancelReason}" nedeniyle iptal edildi. Geri dönmenizi dileriz!`,
                 type: 'subscription_cancelled',
                 read: false,
                 createdAt: serverTimestamp()
             });
 
-            // 3. System Message
+            // 3. System Chat Message — styled
             const sysChatId = `system_${uid}`;
-            const cancelMsg = "Premium aboneliğiniz iptal edildi. BeMatch Gold ayrıcalıklarını kaybettiğiniz için üzgünüz. 👋";
+            const cancelMsg = `😔 *Üyeliğiniz İptal Edildi*\n\nAboneliğinizi "${cancelReason}" olarak belirttiğiniz için iptal ettiniz. BeMatch Gold ayrıcalıklarını özleyeceksiniz!\n\nGeri dönmek istediğinizde sizi bekliyoruz. 💛`;
 
-            // Try to update last message in chat header
             await updateDoc(doc(db, 'chats', sysChatId), {
                 updatedAt: Date.now(),
                 lastMessage: cancelMsg,
                 [`unreadCount_${uid}`]: increment(1)
             }).catch(async () => {
-                // If chat doesn't exist, create it
                 await setDoc(doc(db, 'chats', sysChatId), {
                     participants: ['system', uid],
                     updatedAt: Date.now(),
@@ -149,7 +158,6 @@ export default function Settings() {
                 }, { merge: true });
             });
 
-            // Add the actual message
             await addDoc(collection(db, `chats/${sysChatId}/messages`), {
                 type: 'text',
                 content: cancelMsg,
@@ -158,6 +166,8 @@ export default function Settings() {
                 status: 'sent'
             });
 
+            setShowCancelModal(false);
+            setCancelReason('');
             showToast({ title: 'Başarılı', message: 'Aboneliğiniz başarıyla iptal edildi.', type: 'success' });
         } catch (err) {
             console.error("Cancel sub error:", err);
@@ -1004,23 +1014,32 @@ export default function Settings() {
                             </div>
                         )}
 
+                        {/* Hızlı Sayılar - planId'ye göre */}
                         <div className="transaction-history">
-                            <h4 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '16px', color: '#fff' }}>Hızlı Sayılar</h4>
+                            <h4 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '16px', color: '#fff' }}>Paket Özellikleri</h4>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div style={{ background: '#171717', padding: '16px', borderRadius: '16px' }}>
                                     <span style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px' }}>Süper Beğeni</span>
-                                    <span style={{ fontSize: '1.1rem', fontWeight: '700', color: '#fff' }}>{isActive ? 'Sınırsız' : '5 Adet'}</span>
+                                    <span style={{ fontSize: '1.1rem', fontWeight: '700', color: '#fff' }}>
+                                        {!isActive ? '5 Adet' :
+                                            sub?.planId === 'gold-yearly' ? 'Sınırsız' :
+                                                sub?.planId === 'gold-monthly' ? '10/gün' : '5/gün'}
+                                    </span>
                                 </div>
                                 <div style={{ background: '#171717', padding: '16px', borderRadius: '16px' }}>
                                     <span style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px' }}>Boost</span>
-                                    <span style={{ fontSize: '1.1rem', fontWeight: '700', color: '#fff' }}>{isActive ? 'Sınırsız' : '0 Adet'}</span>
+                                    <span style={{ fontSize: '1.1rem', fontWeight: '700', color: '#fff' }}>
+                                        {!isActive ? '0 Adet' :
+                                            sub?.planId === 'gold-yearly' ? 'Sınırsız' :
+                                                sub?.planId === 'gold-monthly' ? '10/gün' : '3/gün'}
+                                    </span>
                                 </div>
                             </div>
                         </div>
 
                         {isActive && (
                             <button
-                                onClick={handleCancelSubscription}
+                                onClick={() => setShowCancelModal(true)}
                                 disabled={isCancelling}
                                 style={{
                                     width: '100%',
@@ -1040,9 +1059,66 @@ export default function Settings() {
                                     transition: 'all 0.2s'
                                 }}
                             >
-                                {isCancelling ? <Loader className="spin" size={18} /> : <XCircle size={18} />}
+                                <XCircle size={18} />
                                 Üyeliği İptal Et
                             </button>
+                        )}
+
+                        {/* Cancel Subscription Modal */}
+                        {showCancelModal && (
+                            <div style={{
+                                position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)',
+                                display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                                zIndex: 9999, padding: '0'
+                            }} onClick={(e) => e.target === e.currentTarget && setShowCancelModal(false)}>
+                                <div style={{
+                                    background: '#1a1a2e', borderRadius: '24px 24px 0 0',
+                                    padding: '28px 24px', width: '100%', maxWidth: '480px',
+                                    borderTop: '1px solid rgba(255,255,255,0.08)'
+                                }}>
+                                    <h3 style={{ margin: '0 0 8px', fontSize: '1.2rem', color: '#fff', textAlign: 'center' }}>Üyeliği İptal Et 😔</h3>
+                                    <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem', marginBottom: '20px' }}>
+                                        Neden iptal etmek istediğinizi belirtir misiniz?
+                                    </p>
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
+                                        {CANCEL_REASONS.map(reason => (
+                                            <button
+                                                key={reason}
+                                                onClick={() => setCancelReason(reason)}
+                                                style={{
+                                                    padding: '12px 16px',
+                                                    borderRadius: '12px',
+                                                    border: cancelReason === reason ? '2px solid #ef4444' : '1px solid rgba(255,255,255,0.1)',
+                                                    background: cancelReason === reason ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.03)',
+                                                    color: cancelReason === reason ? '#ef4444' : '#d1d5db',
+                                                    textAlign: 'left', cursor: 'pointer', fontSize: '0.9rem',
+                                                    fontWeight: cancelReason === reason ? '600' : '400',
+                                                    transition: 'all 0.15s'
+                                                }}
+                                            >
+                                                {cancelReason === reason ? '✓ ' : ''}{reason}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <button
+                                            onClick={() => { setShowCancelModal(false); setCancelReason(''); }}
+                                            style={{ flex: 1, padding: '13px', borderRadius: '12px', background: 'rgba(255,255,255,0.07)', color: '#fff', border: 'none', fontWeight: '600', cursor: 'pointer' }}
+                                        >
+                                            Vazgeç
+                                        </button>
+                                        <button
+                                            onClick={handleCancelSubscription}
+                                            disabled={!cancelReason || isCancelling}
+                                            style={{ flex: 1, padding: '13px', borderRadius: '12px', background: !cancelReason ? 'rgba(239,68,68,0.3)' : '#ef4444', color: '#fff', border: 'none', fontWeight: '700', cursor: !cancelReason ? 'default' : 'pointer', opacity: !cancelReason ? 0.6 : 1 }}
+                                        >
+                                            {isCancelling ? 'İptal Ediliyor...' : 'İptal Et'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         )}
                     </div>
                 )

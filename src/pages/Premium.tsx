@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { collection, query, onSnapshot, orderBy, doc, updateDoc, addDoc, serverTimestamp, increment, setDoc } from 'firebase/firestore'
 import { db, auth } from '../firebase'
+import { useAuth } from '../context/AuthContext'
 import { motion } from 'framer-motion'
 import { ChevronLeft, Zap, Star, Crown, Check, Loader } from 'lucide-react'
 import { purchaseProduct } from '../utils/billing'
@@ -46,6 +47,7 @@ const DEFAULT_PACKAGES = [
 
 export default function Premium() {
     const navigate = useNavigate()
+    const { userProfile } = useAuth()
     const [packages, setPackages] = useState<Package[]>([])
     const [loading, setLoading] = useState(true)
 
@@ -95,18 +97,20 @@ export default function Premium() {
                     }
                 }).catch((err: unknown) => console.error("Subscription update failed:", err))
 
-                // 2. Send System Notification
+                // 2. Send System Notification — styled rich message
+                const activationTitle = '🎉 BeMatch Gold Aktif!';
+                const activationBody = `Tebrikler ${auth.currentUser?.displayName || ''}! ${pkg.name} üyeliğiniz başarıyla başlatıldı. Eşleşme dünyasının ayrıcalıklı üyesisiniz artık! 👑`;
                 await addDoc(collection(db, `users/${uid}/notifications`), {
-                    title: 'BeMatch Gold Aktif! 👑',
-                    body: `Tebrikler! ${pkg.name} üyeliğiniz başarıyla aktif edildi. Ayrıcalıklı dünyanın keyfini çıkarın!`,
+                    title: activationTitle,
+                    body: activationBody,
                     type: 'premium_activated',
                     read: false,
                     createdAt: serverTimestamp()
                 }).catch(() => { });
 
-                // 3. Send System Chat Message
+                // 3. Send System Chat Message — styled
                 const sysChatId = `system_${uid}`;
-                const welcomeMsg = `Harika haber! ${pkg.name} BeMatch Gold üyeliğin aktif edildi. Artık sınırsız özelliklerin tadını çıkarabilirsin! 👑✨`;
+                const welcomeMsg = `🎊 *Harika Haber!* \n\n${pkg.name} BeMatch Gold üyeliğin aktif edildi! Artık:\n\n✨ Süper Beğenileri kullanabilirsin\n👁️ Seni kimin beğendiğini görebilirsin\n⚡ Boost ile öne çıkabilirsin\n🚫 Reklamlardan özgürsün\n\nBeMatch Gold ailesine hoş geldin! 👑`;
 
                 await updateDoc(doc(db, 'chats', sysChatId), {
                     updatedAt: now,
@@ -165,6 +169,26 @@ export default function Premium() {
                     </h1>
                     <p style={{ color: '#9ca3af', fontSize: '0.95rem', marginTop: '8px' }}>Eşleşme şansını maksimuma çıkar!</p>
                 </motion.div>
+
+                {/* Active Subscription Banner */}
+                {userProfile?.subscription?.status === 'active' && (
+                    <div style={{
+                        width: '100%', maxWidth: '400px',
+                        padding: '16px 20px',
+                        background: 'linear-gradient(135deg, #1a3a1a, #0d1f0d)',
+                        border: '1px solid #22c55e',
+                        borderRadius: '16px',
+                        display: 'flex', alignItems: 'center', gap: '12px'
+                    }}>
+                        <Check size={22} color="#22c55e" />
+                        <div>
+                            <div style={{ fontWeight: 700, color: '#22c55e', fontSize: '0.9rem' }}>Mevcut Üyeliğiniz</div>
+                            <div style={{ color: '#d1fae5', fontSize: '1rem', fontWeight: 800 }}>
+                                {userProfile.subscription.planName} Paketi
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="packages-grid" style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', maxWidth: '400px' }}>
                     {loading ? (
