@@ -1,23 +1,25 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { X, Heart, Star, RotateCcw, MapPin, ChevronUp, Crown } from 'lucide-react'
 import { collection, getDocs, doc, updateDoc, arrayUnion, getDoc, increment, FieldValue } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../context/AuthContext'
 import type { DemoUser } from '../data/demoUsers'
-import { usePremium } from '../hooks/usePremium'
 import BottomNav from '../components/BottomNav'
 import ProfileDetail from '../components/ProfileDetail'
 import { sendNotification } from '../utils/notifications'
 import { useTranslation } from 'react-i18next'
 import AnnouncementPopup from '../components/AnnouncementPopup'
+import { useWallet } from '../hooks/useWallet'
 import './Home.css'
+
 
 export default function Home() {
     const { t } = useTranslation()
     const { user } = useAuth()
-    usePremium()
+    const navigate = useNavigate()
+    const { consumeFeature } = useWallet()
     const [users, setUsers] = useState<DemoUser[]>([])
     const [loading, setLoading] = useState(true)
     const [removedUsers, setRemovedUsers] = useState<DemoUser[]>([])
@@ -99,6 +101,12 @@ export default function Home() {
                 // Exclude bad data (allow if they at least have pending photos or real photos)
                 if ((!data.photos || data.photos.length === 0) && (!data.pendingPhotos || data.pendingPhotos.length === 0)) return
 
+                // 0. Incognito Mode Filter
+                if (data.privacySettings?.incognitoMode === true) {
+                    const hasLikedMe = (data.likedUsers || []).includes(user.uid) || (data.superLikedUsers || []).includes(user.uid)
+                    if (!hasLikedMe) return // Hide user if they are in incognito and haven't liked current user
+                }
+
                 // 1. Same City Priority (No longer strictly filtered out, just sorted by distance later)
                 // Filter removed to allow other cities when same city is depleted
 
@@ -135,6 +143,11 @@ export default function Home() {
                 let score = 0
                 score -= distObj.val * 0.1
 
+                // Boost özelliği: süresi dolmamışsa profil sırasını en tepeye alıyoruz
+                if (data.boostedUntil && data.boostedUntil > Date.now()) {
+                    score += 10000
+                }
+
                 const targetInterests: string[] = data.interests || []
 
                 firebaseUsers.push({
@@ -158,7 +171,7 @@ export default function Home() {
             // Sort by distance descending
             firebaseUsers.sort((a, b) => b._score - a._score)
 
-            setUsers(firebaseUsers as unknown as DemoUser[])
+            setUsers(firebaseUsers)
         } catch (err) {
             console.error('Kullanıcılar yüklenemedi:', err)
         } finally {
@@ -205,9 +218,23 @@ export default function Home() {
 
     const handleSwipe = useCallback(async (direction: 'left' | 'right' | 'up') => {
         if (!currentUser) return
+
         setSwipeDirection(direction)
 
-        // Save action to Firestore
+        // 1. Check Wallet Balance & Consume
+        if (direction === 'right' || direction === 'up') {
+            const feature = direction === 'up' ? 'superLikes' : 'likes';
+            const canConsume = await consumeFeature(feature);
+
+            if (!canConsume) {
+                // Return to original position (handled by framer usually, but here we prevent the record)
+                setSwipeDirection(null);
+                navigate('/premium');
+                return;
+            }
+        }
+
+        // 2. Save action to Firestore
         if (user) {
             try {
                 const userRef = doc(db, 'users', user.uid)
@@ -297,11 +324,20 @@ export default function Home() {
             setCurrentPhotoIndex(0)
             setSwipeDirection(null)
         }, 100) // Reduced delay for faster card transitions
-    }, [currentUser, user, t])
+    }, [currentUser, user, t, navigate])
 
     const handleRewind = async () => {
         if (removedUsers.length === 0) return
+
+        // Wallet Check
+        const canRewind = await consumeFeature('rewinds');
+        if (!canRewind) {
+            navigate('/premium');
+            return;
+        }
+
         const lastRemoved = removedUsers[0]
+
         setRemovedUsers(prev => prev.slice(1))
         setUsers(prev => [...prev, lastRemoved])
         setCurrentPhotoIndex(0)
@@ -337,7 +373,7 @@ export default function Home() {
     }
 
     const prevPhoto = () => {
-        if (currentPhotoIndex > 0) {
+        if (currentUser && currentPhotoIndex > 0) {
             setCurrentPhotoIndex(prev => prev - 1)
         }
     }
@@ -386,7 +422,6 @@ export default function Home() {
                     </motion.div>
                 ) : (
                     <>
-                        {/* Background card (next) */}
                         {users.length > 1 && (
                             <motion.div
                                 className="swipe-card"
@@ -481,7 +516,6 @@ export default function Home() {
                 )}
             </AnimatePresence>
 
-            {/* Bottom Navigation */}
             <BottomNav active="home" />
 
             {/* Tutorial Overlay */}
@@ -653,7 +687,7 @@ function SwipeCard({ user, photoIndex, onSwipe, onNextPhoto, onPrevPhoto, onOpen
                         {user.name}
                         {user.subscription?.status === 'active' && <Crown size={20} color="#facc15" fill="#facc15" strokeWidth={2.5} />}
                     </span>
-                    <span className="user-age">{user.age}</span>
+                    <span className="user-age">{user.age > 0 ? user.age : ''}</span>
                 </div>
                 <div className="user-distance">
                     <MapPin size={12} /> {user.distance}

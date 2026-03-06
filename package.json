@@ -11,6 +11,7 @@
     "start": "serve -s dist -l 8080"
   },
   "dependencies": {
+    "@capacitor-community/admob": "^8.0.0",
     "@capacitor/android": "^8.1.0",
     "@capacitor/app": "^8.0.1",
     "@capacitor/camera": "^8.0.1",

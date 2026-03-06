@@ -54,6 +54,16 @@
             </intent-filter>
         </service>
 
+        <!-- BroadcastReceiver for inline notification reply action -->
+        <receiver
+            android:name=".NotificationReplyReceiver"
+            android:exported="false" />
+
+        <!-- AdMob App ID -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-5523567140729033~9160480461" />
+
     </application>
 
     <!-- Permissions -->

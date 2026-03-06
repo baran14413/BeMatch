@@ -3,75 +3,82 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     Settings, MapPin,
-    Heart, Eye, Star, Crown, Sparkles,
-    Shield, Zap, X, ChevronLeft, ChevronRight, AlertCircle
+    Heart, Eye, Star, Zap,
+    Shield, X, ChevronLeft, ChevronRight, AlertCircle, Crown
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import { collection, query, where, getDocs } from 'firebase/firestore'
+import type { UserProfile } from '../context/AuthContext'
+import { collection, query, where, getDocs, updateDoc, doc, onSnapshot } from 'firebase/firestore'
 import { db } from '../firebase'
 import BottomNav from '../components/BottomNav'
 import { useTranslation } from 'react-i18next'
+import { useWallet } from '../hooks/useWallet'
+import toast from 'react-hot-toast'
 import './Profile.css'
 
 export default function Profile() {
     const { t } = useTranslation()
     const navigate = useNavigate()
-    const { userProfile, user } = useAuth()
+    const { user, userProfile: authProfile } = useAuth()
+    const { consumeFeature } = useWallet()
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+    const [loading, setLoading] = useState(true)
     const [viewingPhoto, setViewingPhoto] = useState<number | null>(null)
+    const [realtimeRole, setRealtimeRole] = useState<string>(authProfile?.role || 'user')
 
     // Stats
     const [likesCount, setLikesCount] = useState(0)
     const [matchesCount, setMatchesCount] = useState(0)
     const [viewsCount, setViewsCount] = useState(0)
 
-    const [realtimeRole, setRealtimeRole] = useState<string>(userProfile?.role || 'user')
-
     useEffect(() => {
-        if (!user) return
+        if (!user) {
+            setLoading(false)
+            return
+        }
         const uid = user.uid
 
-        // 1. Listen for realtime role changes
-        import('firebase/firestore').then(({ doc, onSnapshot }) => {
-            const roleUnsub = onSnapshot(doc(db, 'users', uid), (docSnap) => {
-                if (docSnap.exists()) {
-                    setRealtimeRole(docSnap.data().role || 'user')
-                }
-            })
-            // Realtime role listener cleanup handled internally or on unmount safely
-            return () => roleUnsub()
+        // 1. Listen for realtime profile changes
+        const unsub = onSnapshot(doc(db, 'users', uid), (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data() as UserProfile
+                setUserProfile(data)
+                setRealtimeRole(data.role || 'user')
+                setViewsCount(data.profileViews || 0)
+            }
+            setLoading(false)
         })
 
+        // 2. Fetch Stats (Likes & Matches)
         const fetchStats = async () => {
             try {
-                const myDocSnap = await getDocs(query(collection(db, 'users'), where('__name__', '==', uid)))
-                const myData = myDocSnap.docs[0]?.data()
-                const myLikedUsers = myData?.likedUsers || []
+                const userDocSnap = await getDocs(query(collection(db, 'users'), where('__name__', '==', uid)))
 
-                const usersSnap = await getDocs(collection(db, 'users'))
-                let pendingLikes = 0
-                let mutualMatches = 0
+                if (userDocSnap.docs.length > 0) {
+                    const myData = userDocSnap.docs[0].data() as UserProfile
+                    const myLikedUsers = myData?.likedUsers || []
 
-                usersSnap.forEach(docSnap => {
-                    if (docSnap.id === uid) return
-                    const data = docSnap.data()
+                    const usersSnap = await getDocs(collection(db, 'users'))
+                    let pendingLikes = 0
+                    let mutualMatches = 0
 
-                    const likesMe = Array.isArray(data.likedUsers) && data.likedUsers.includes(uid)
-                    const superLikesMe = Array.isArray(data.superLikedUsers) && data.superLikedUsers.includes(uid)
-                    const isLikedByMe = myLikedUsers.includes(docSnap.id)
+                    usersSnap.forEach(docSnap => {
+                        if (docSnap.id === uid) return
+                        const data = docSnap.data()
 
-                    if ((likesMe || superLikesMe) && !isLikedByMe) {
-                        pendingLikes++
-                    } else if ((likesMe || superLikesMe) && isLikedByMe) {
-                        mutualMatches++
-                    }
-                })
+                        const likesMe = Array.isArray(data.likedUsers) && data.likedUsers.includes(uid)
+                        const superLikesMe = Array.isArray(data.superLikedUsers) && data.superLikedUsers.includes(uid)
+                        const isLikedByMe = myLikedUsers.includes(docSnap.id)
 
-                setLikesCount(pendingLikes)
-                setMatchesCount(mutualMatches)
+                        if ((likesMe || superLikesMe) && !isLikedByMe) {
+                            pendingLikes++
+                        } else if ((likesMe || superLikesMe) && isLikedByMe) {
+                            mutualMatches++
+                        }
+                    })
 
-                // 3. Views: use profileViews field from user doc
-                if (myData) {
-                    setViewsCount(myData.profileViews || 0)
+                    setLikesCount(pendingLikes)
+                    setMatchesCount(mutualMatches)
                 }
             } catch (err) {
                 console.error('Stats fetch error:', err)
@@ -79,13 +86,25 @@ export default function Profile() {
         }
 
         fetchStats()
+        return () => unsub()
     }, [user])
+
+    if (loading) {
+        return (
+            <div className="profile-page">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80vh', color: 'var(--text-muted)' }}>
+                    {t('profile.loading')}
+                </div>
+                <BottomNav active="profile" />
+            </div>
+        )
+    }
 
     if (!userProfile) {
         return (
             <div className="profile-page">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80vh', color: 'var(--text-muted)' }}>
-                    {t('profile.loading')}
+                    {t('profile.no_profile_data')}
                 </div>
                 <BottomNav active="profile" />
             </div>
@@ -113,33 +132,56 @@ export default function Profile() {
     const photos = isPending ? pendingPhotos : (userProfile.photos || [])
     const interests = userProfile.interests || []
 
-    // Profile completion
-    const fields = [
-        userProfile.firstName,
-        userProfile.lastName,
-        userProfile.birthDate,
-        userProfile.gender,
-        userProfile.lookingFor,
-        interests.length > 0,
-        photos.length > 0,
-        userProfile.locationCity,
-    ]
-    const filledCount = fields.filter(Boolean).length
-    const completionPercent = Math.round((filledCount / fields.length) * 100)
+    const completionPercent = (() => {
+        const fields = [
+            userProfile.firstName,
+            userProfile.lastName,
+            userProfile.birthDate,
+            userProfile.gender,
+            userProfile.lookingFor,
+            (interests && interests.length > 0),
+            (photos && photos.length > 0),
+            userProfile.locationCity,
+        ]
+        const filledCount = fields.filter(Boolean).length
+        return Math.round((filledCount / fields.length) * 100)
+    })()
+
+    const handleBoost = async () => {
+        if (!user) return;
+        const tid = toast.loading('Öne çıkarma aktif ediliyor...');
+        try {
+            const canBoost = await consumeFeature('boosts');
+            if (!canBoost) {
+                toast.dismiss(tid);
+                navigate('/premium');
+                return;
+            }
+
+            // 30 mins boost
+            const boostedUntil = Date.now() + (30 * 60 * 1000);
+            await updateDoc(doc(db, 'users', user.uid), {
+                boostedUntil: boostedUntil
+            });
+
+            toast.success('Profiliniz 30 dakika boyunca en önde görünecek! 🔥', { id: tid });
+        } catch (error) {
+            toast.error('Boost hatası oluştu.', { id: tid });
+        }
+    }
 
     return (
         <div className="profile-page">
             <div className="profile-scroll">
-
-                {/* Clean Header — just avatar, name, meta */}
+                {/* Clean Header */}
                 <div className="profile-header-clean">
-                    <div style={{ display: 'flex', position: 'absolute', top: '16px', right: '16px', gap: '10px' }}>
+                    <div style={{ display: 'flex', position: 'absolute', top: '16px', right: '16px', gap: '10px', zIndex: 10 }}>
                         {realtimeRole === 'admin' && (
-                            <button className="profile-settings-btn" style={{ position: 'relative', top: 0, right: 0, backgroundColor: '#ef4444' }} onClick={() => navigate('/admin')}>
+                            <button className="profile-settings-btn" style={{ position: 'relative', background: '#ef4444' }} onClick={() => navigate('/admin')}>
                                 <Shield size={20} color="#fff" />
                             </button>
                         )}
-                        <button className="profile-settings-btn" style={{ position: 'relative', top: 0, right: 0 }} onClick={() => navigate('/settings')}>
+                        <button className="profile-settings-btn" style={{ position: 'relative' }} onClick={() => navigate('/settings')}>
                             <Settings size={20} />
                             {user && !user.emailVerified && (
                                 <div style={{ position: 'absolute', top: -4, right: -4, background: '#1e293b', borderRadius: '50%' }}>
@@ -208,7 +250,7 @@ export default function Profile() {
                     )}
 
                     {/* Completion Bar */}
-                    <div className="profile-completion">
+                    <div className="profile-completion" style={{ marginBottom: 0 }}>
                         <div className="completion-label">
                             <span>{t('profile.completion')}</span>
                             <span className="completion-pct">{completionPercent}%</span>
@@ -224,12 +266,36 @@ export default function Profile() {
                     </div>
                 </div>
 
+                {/* Premium Banner */}
+                <div
+                    className="premium-banner"
+                    onClick={() => navigate('/premium')}
+                    style={{
+                        margin: '16px', background: 'linear-gradient(135deg, #facc15 0%, #d97706 100%)',
+                        borderRadius: '16px', padding: '16px', display: 'flex', alignItems: 'center',
+                        justifyContent: 'space-between', cursor: 'pointer', color: '#000',
+                        boxShadow: '0 8px 16px rgba(250, 204, 21, 0.2)'
+                    }}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: 44, height: 44, background: 'rgba(255,255,255,0.25)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Crown size={24} color="#000" fill="#000" />
+                        </div>
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>BeMatch Gold</h3>
+                            <p style={{ margin: '2px 0 0', fontSize: '0.85rem', fontWeight: 600, opacity: 0.85 }}>Eşleşme şansını 10x artır!</p>
+                        </div>
+                    </div>
+                    <ChevronRight size={20} color="#000" />
+                </div>
+
                 {/* Stats Row */}
                 <motion.div
                     className="profile-stats"
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.2 }}
+                    style={{ margin: '0 16px 16px' }}
                 >
                     <div className="stat-card">
                         <Heart size={18} className="stat-icon likes" />
@@ -248,64 +314,30 @@ export default function Profile() {
                     </div>
                 </motion.div>
 
-                {/* Premium Card — only show if NOT premium */}
-                {!(userProfile?.subscription?.status === 'active' || userProfile?.isPremium) && (
-                    <motion.div
-                        className="premium-card"
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.3 }}
-                    >
-                        <div className="premium-glow" />
-                        <div className="premium-content">
-                            <div className="premium-badge">
-                                <Crown size={20} />
-                                <span>BeMatch Gold</span>
-                            </div>
-                            <p className="premium-desc">{t('profile.premium_desc')}</p>
-                            <div className="premium-perks">
-                                <span><Sparkles size={14} /> {t('profile.perk_likes')}</span>
-                                <span><Eye size={14} /> {t('profile.perk_see')}</span>
-                                <span><Zap size={14} /> {t('profile.perk_boost')}</span>
-                                <span><Shield size={14} /> {t('profile.perk_adfree')}</span>
-                            </div>
-                            <button className="premium-btn" onClick={() => navigate('/premium')}>
-                                <Crown size={16} />
-                                {t('profile.upgrade_btn')}
-                            </button>
-                        </div>
-                    </motion.div>
-                )}
-
-                {/* Gold Member Badge — show if premium */}
-                {(userProfile?.subscription?.status === 'active' || userProfile?.isPremium) && (
-                    <motion.div
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.3 }}
+                {/* Boost Button */}
+                <div style={{ padding: '0 16px', marginBottom: 16 }}>
+                    <motion.button
+                        onClick={handleBoost}
+                        whileTap={{ scale: 0.95 }}
                         style={{
-                            margin: '0 16px',
-                            padding: '16px 20px',
-                            background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
-                            borderRadius: '20px',
+                            width: '100%',
+                            padding: '16px',
+                            background: 'rgba(168, 85, 247, 0.1)',
+                            border: '1px solid rgba(168, 85, 247, 0.3)',
+                            borderRadius: '16px',
                             display: 'flex',
                             alignItems: 'center',
+                            justifyContent: 'center',
                             gap: '12px',
-                            boxShadow: '0 4px 20px rgba(251,191,36,0.3)'
+                            cursor: 'pointer',
+                            color: '#a855f7',
+                            fontWeight: 700
                         }}
                     >
-                        <Crown size={28} color="#000" />
-                        <div>
-                            <div style={{ fontWeight: 800, fontSize: '1rem', color: '#000' }}>BeMatch Gold Üyesi 👑</div>
-                            <div style={{ fontSize: '0.8rem', color: 'rgba(0,0,0,0.7)', marginTop: 2 }}>
-                                {userProfile?.subscription?.planName || 'Premium'} · {userProfile?.subscription?.expiryDate
-                                    ? new Date(userProfile.subscription.expiryDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' }) + ' tarihine kadar'
-                                    : 'Aktif'}
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-
+                        <Zap size={22} fill="#a855f7" />
+                        Profilini Öne Çıkar (Boost)
+                    </motion.button>
+                </div>
 
                 {/* Photo Gallery — view only */}
                 {photos.length > 0 && (
@@ -371,7 +403,7 @@ export default function Profile() {
                 <div style={{ height: 100 }} />
             </div>
 
-            {/* Photo Lightbox with navigation */}
+            {/* Photo Lightbox */}
             <AnimatePresence>
                 {viewingPhoto !== null && photos.length > 0 && (
                     <motion.div
@@ -420,4 +452,3 @@ export default function Profile() {
         </div>
     )
 }
-

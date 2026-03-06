@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { ChevronDown, Briefcase, GraduationCap, MapPin, Crown } from 'lucide-react'
+import { ChevronDown, Briefcase, GraduationCap, MapPin } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 
@@ -16,13 +16,6 @@ export interface ProfileUser {
     bio?: string;
     interests?: string[];
     lookingFor?: string;
-    subscription?: {
-        planId: string
-        planName: string
-        status: 'active' | 'expired' | 'none'
-        expiryDate: number
-        period: string
-    }
 }
 
 interface ProfileDetailProps {
@@ -70,7 +63,6 @@ export default function ProfileDetail({ user, photoIndex, onClose }: ProfileDeta
                     <div className="detail-name-age">
                         <span className="detail-name" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             {user?.name || user?.firstName || t('detail.unnamed')}
-                            {user?.subscription?.status === 'active' && <Crown size={24} color="#facc15" fill="#facc15" strokeWidth={2.5} />}
                         </span>
                         {user?.age && <span className="detail-age">{user.age}</span>}
                     </div>

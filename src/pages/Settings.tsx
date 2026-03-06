@@ -6,19 +6,20 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
     ArrowLeft, Camera, MapPin, User,
     Bell, BellOff, Eye, EyeOff, Lock, Shield, Globe,
-    Trash2, LogOut, Crown, ChevronRight, Heart,
+    Trash2, LogOut, ChevronRight, Heart,
     Calendar, MessageCircle, Sparkles,
     Mail, Key, Pause,
-    ChevronLeft, Zap, Ruler, Loader, Navigation,
-    SlidersHorizontal, Search, Image as ImageIcon, Hash, X,
-    Settings as SettingsIcon, Smartphone, Languages, HardDrive,
-    XCircle
+    ChevronLeft, Loader, Navigation,
+    Search, Image as ImageIcon, Hash, X,
+    Settings as SettingsIcon, Smartphone, Languages, HardDrive, Wallet, Crown, RefreshCcw, Star, Zap
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
-import { doc, updateDoc, collection, addDoc, serverTimestamp, setDoc, increment } from 'firebase/firestore'
+import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../firebase'
+import { useWallet } from '../hooks/useWallet'
+import { UNLIMITED } from '../utils/subscriptionConstants'
 import { updateEmail, updatePassword, sendEmailVerification } from 'firebase/auth'
 import { AlertCircle } from 'lucide-react'
 import './Settings.css'
@@ -86,8 +87,8 @@ export default function Settings() {
         { id: 'discovery', label: t('settings.cat_discovery'), icon: <Search size={20} />, desc: t('settings.cat_discovery_desc'), color: '#f59e0b' },
         { id: 'notifications', label: t('settings.cat_notif'), icon: <Bell size={20} />, desc: t('settings.cat_notif_desc'), color: '#10b981' },
         { id: 'privacy', label: t('settings.cat_privacy'), icon: <Shield size={20} />, desc: t('settings.cat_privacy_desc'), color: '#6366f1' },
-        { id: 'premium', label: t('settings.cat_premium'), icon: <Crown size={20} />, desc: t('settings.cat_premium_desc'), color: '#f7b731' },
-        { id: 'wallet', label: 'Cüzdanım', icon: <Smartphone size={20} />, desc: 'Paketlerini ve ödemelerini yönet', color: '#fbbf24' },
+        { id: 'premium', label: 'BeMatch Premium', icon: <Crown size={20} />, desc: 'Özel ayrıcalıkları keşfet', color: '#facc15' },
+        { id: 'wallet', label: 'Cüzdanım', icon: <Wallet size={20} />, desc: 'Jeton, Boost ve Süper Beğeni', color: '#10b981' },
         { id: 'system', label: t('settings.cat_system'), icon: <SettingsIcon size={20} />, desc: t('settings.cat_system_desc'), color: '#94a3b8' },
         { id: 'account', label: t('settings.cat_account'), icon: <Lock size={20} />, desc: t('settings.cat_account_desc'), color: '#ef4444' },
     ]
@@ -102,80 +103,8 @@ export default function Settings() {
     const [discoverySaveSuccess, setDiscoverySaveSuccess] = useState(false)
     const [isSavingNotifications, setIsSavingNotifications] = useState(false)
     const [notificationsSaveSuccess, setNotificationsSaveSuccess] = useState(false)
+    const { walletStats } = useWallet()
 
-    // Subscription Cancellation
-    const [isCancelling, setIsCancelling] = useState(false);
-    const [showCancelModal, setShowCancelModal] = useState(false);
-    const [cancelReason, setCancelReason] = useState('');
-
-    const CANCEL_REASONS = [
-        'Çok pahalıydı',
-        'Yeterince kullanmadım',
-        'Teknik bir sorun yaşadım',
-        'Başka bir uygulama kullandım',
-        'Çift hesabım var',
-        'Diğer'
-    ];
-
-    const handleCancelSubscription = async () => {
-        if (!userProfile?.uid || !cancelReason) return;
-
-        setIsCancelling(true);
-        try {
-            const uid = userProfile.uid;
-
-            // 1. Update Profile (Both top-level and subscription object)
-            await updateDoc(doc(db, 'users', uid), {
-                isPremium: false,
-                'subscription.status': 'expired',
-                'subscription.cancelledAt': Date.now(),
-                'subscription.cancelReason': cancelReason
-            });
-
-            // 2. Notification — styled
-            await addDoc(collection(db, `users/${uid}/notifications`), {
-                title: '😔 Abonelik İptal Edildi',
-                body: `Premium aboneliğiniz "${cancelReason}" nedeniyle iptal edildi. Geri dönmenizi dileriz!`,
-                type: 'subscription_cancelled',
-                read: false,
-                createdAt: serverTimestamp()
-            });
-
-            // 3. System Chat Message — styled
-            const sysChatId = `system_${uid}`;
-            const cancelMsg = `😔 *Üyeliğiniz İptal Edildi*\n\nAboneliğinizi "${cancelReason}" olarak belirttiğiniz için iptal ettiniz. BeMatch Gold ayrıcalıklarını özleyeceksiniz!\n\nGeri dönmek istediğinizde sizi bekliyoruz. 💛`;
-
-            await updateDoc(doc(db, 'chats', sysChatId), {
-                updatedAt: Date.now(),
-                lastMessage: cancelMsg,
-                [`unreadCount_${uid}`]: increment(1)
-            }).catch(async () => {
-                await setDoc(doc(db, 'chats', sysChatId), {
-                    participants: ['system', uid],
-                    updatedAt: Date.now(),
-                    lastMessage: cancelMsg,
-                    [`unreadCount_${uid}`]: 1
-                }, { merge: true });
-            });
-
-            await addDoc(collection(db, `chats/${sysChatId}/messages`), {
-                type: 'text',
-                content: cancelMsg,
-                senderId: 'system',
-                createdAt: Date.now(),
-                status: 'sent'
-            });
-
-            setShowCancelModal(false);
-            setCancelReason('');
-            showToast({ title: 'Başarılı', message: 'Aboneliğiniz başarıyla iptal edildi.', type: 'success' });
-        } catch (err) {
-            console.error("Cancel sub error:", err);
-            showToast({ title: 'Hata', message: 'İptal işlemi sırasında bir hata oluştu.', type: 'error' });
-        } finally {
-            setIsCancelling(false);
-        }
-    };
 
     // States — initialized from real profile data
     const [name] = useState(userProfile?.firstName || '')
@@ -223,6 +152,7 @@ export default function Settings() {
     const [genderPref, setGenderPref] = useState<'women' | 'men' | 'everyone'>(
         userProfile?.lookingFor === 'female' ? 'women' : userProfile?.lookingFor === 'male' ? 'men' : 'everyone'
     )
+
     const [globalMode, setGlobalMode] = useState(false)
 
     const [notifMatch, setNotifMatch] = useState(userProfile?.notificationSettings?.match ?? true)
@@ -254,6 +184,7 @@ export default function Settings() {
     const [showOnline, setShowOnline] = useState(userProfile?.privacySettings?.showOnline ?? true)
     const [showRead, setShowRead] = useState(userProfile?.privacySettings?.showRead ?? true)
     const [showDistance, setShowDistance] = useState(userProfile?.privacySettings?.showDistance ?? true)
+    const [incognitoMode, setIncognitoMode] = useState(userProfile?.privacySettings?.incognitoMode ?? false)
     const [isSavingPrivacy, setIsSavingPrivacy] = useState(false)
     const [privacySaveSuccess, setPrivacySaveSuccess] = useState(false)
 
@@ -360,7 +291,8 @@ export default function Settings() {
                     showProfile,
                     showOnline,
                     showRead,
-                    showDistance
+                    showDistance,
+                    incognitoMode
                 }
             })
             setPrivacySaveSuccess(true)
@@ -934,6 +866,21 @@ export default function Settings() {
                             <Toggle checked={showDistance} onChange={setShowDistance} />
                         </div>
 
+                        <div className="setting-separator" style={{ margin: '20px 0', borderBottom: '1px solid var(--border-color)' }} />
+
+                        <div className="setting-row">
+                            <div className="setting-row-left">
+                                <EyeOff size={18} color="var(--primary)" />
+                                <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <span className="setting-name">Gizli Mod (Incognito)</span>
+                                    </div>
+                                    <span className="setting-sub">Sadece beğendiğin kişilere görünür olursun.</span>
+                                </div>
+                            </div>
+                            <Toggle checked={incognitoMode} onChange={setIncognitoMode} />
+                        </div>
+
                         {/* Privacy Save Button */}
                         <div style={{ marginTop: 20 }}>
                             <button
@@ -949,180 +896,88 @@ export default function Settings() {
                 )
             }
 
+
+
             case 'premium':
                 return (
                     <div className="settings-sub-content">
-                        <div className="premium-hero">
-                            <div className="premium-hero-icon"><Crown size={36} /></div>
-                            <h3>BeMatch Gold</h3>
-                            <p>{t('settings.premium_desc')}</p>
+                        <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                            <Crown size={48} color="#facc15" fill="#facc15" style={{ marginBottom: 16 }} />
+                            <h2 style={{ fontSize: '1.5rem', marginBottom: 8, fontWeight: 700 }}>BeMatch <span style={{ color: '#facc15' }}>Gold</span></h2>
+                            <p style={{ color: 'var(--text-muted)', marginBottom: 24 }}>Eşleşme şansını 10'a katlamak için ayrıcalıkları keşfet.</p>
+                            <button onClick={() => navigate('/premium')} style={{ background: 'linear-gradient(135deg, #facc15, #d97706)', color: 'white', padding: '12px 24px', borderRadius: 24, border: 'none', fontWeight: 700, fontSize: '1rem', cursor: 'pointer' }}>
+                                Premium'u İncele
+                            </button>
                         </div>
-                        <div className="premium-features-list">
-                            <div className="pf-item"><Sparkles size={16} /> {t('settings.pf_likes')}</div>
-                            <div className="pf-item"><Eye size={16} /> {t('settings.pf_see')}</div>
-                            <div className="pf-item"><SlidersHorizontal size={16} /> {t('settings.pf_filter')}</div>
-                            <div className="pf-item"><Ruler size={16} /> {t('settings.pf_boost')}</div>
-                            <div className="pf-item"><Shield size={16} /> {t('settings.pf_adfree')}</div>
-                            <div className="pf-item"><Zap size={16} /> {t('settings.pf_undo')}</div>
-                        </div>
-                        <button className="settings-premium-btn" onClick={() => navigate('/premium')}><Crown size={16} /> {t('settings.upgrade')}</button>
                     </div>
                 )
 
-            case 'wallet': {
-                const sub = userProfile?.subscription;
-                const isActive = sub?.status === 'active';
-                const expiryDate = sub?.expiryDate ? new Date(sub.expiryDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : null;
-
+            case 'wallet':
                 return (
                     <div className="settings-sub-content">
-                        <div className="wallet-card" style={{
-                            background: isActive ? 'linear-gradient(135deg, #fbbf24, #d97706)' : '#27272a',
-                            padding: '24px',
-                            borderRadius: '20px',
-                            color: isActive ? '#000' : '#fff',
-                            marginBottom: '24px',
-                            position: 'relative',
-                            overflow: 'hidden'
-                        }}>
-                            {isActive && <Crown size={64} style={{ position: 'absolute', right: '-10px', bottom: '-10px', opacity: 0.1, transform: 'rotate(-15deg)' }} />}
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: '800', margin: '0 0 8px 0' }}>{isActive ? sub?.planName : 'Paket Yok'}</h2>
-                            <p style={{ opacity: 0.8, fontSize: '0.9rem', margin: 0 }}>{isActive ? 'Aboneliğiniz Aktif' : 'Şu an aktif bir paketiniz bulunmuyor'}</p>
-
-                            {isActive && expiryDate && (
-                                <div style={{ marginTop: '24px', borderTop: '1px solid rgba(0,0,0,0.1)', paddingTop: '16px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                                        <span style={{ opacity: 0.7 }}>Yenilenme / Bitiş</span>
-                                        <span style={{ fontWeight: '700' }}>{expiryDate}</span>
-                                    </div>
+                        {/* Summary Header */}
+                        <div style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.05))', borderRadius: 16, padding: 24, border: '1px solid rgba(16, 185, 129, 0.3)', marginBottom: 24 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text)' }}>Günlük Haklarınız</h3>
+                                    <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Haklarınız, paket limitlerinize göre gece yarısı yenilenir.</p>
                                 </div>
-                            )}
+                                <Wallet size={36} color="#10b981" />
+                            </div>
                         </div>
 
-                        {!isActive && (
-                            <div className="wallet-offer" style={{ padding: '20px', background: 'rgba(251, 191, 36, 0.1)', borderRadius: '16px', border: '1px dashed #fbbf24', marginBottom: '24px' }}>
-                                <p style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: '#fbbf24', fontWeight: '600' }}>Hemen Gold'a Geç!</p>
-                                <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.4 }}>
-                                    Eşleşme şansını 10 kata kadar artırmak ve seni kimlerin beğendiğini görmek için bir paket seç.
-                                </p>
+                        {/* Balance Cards */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+                            {/* Likes */}
+                            <div style={{ background: 'var(--surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                                <Heart size={28} color="#ec4899" fill="rgba(236,72,153,0.1)" />
+                                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Beğeni</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
+                                    {walletStats.likes === UNLIMITED ? '∞ Sınırsız' : walletStats.likes}
+                                </div>
+                            </div>
+
+                            {/* Super Likes */}
+                            <div style={{ background: 'var(--surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                                <Star size={28} color="#3b82f6" fill="rgba(59,130,246,0.1)" />
+                                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Süper Beğeni</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>
+                                    {walletStats.superLikes === UNLIMITED ? '∞ Sınırsız' : walletStats.superLikes}
+                                </div>
+                            </div>
+
+                            {/* Boosts */}
+                            <div style={{ background: 'var(--surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                                <Zap size={28} color="#a855f7" fill="rgba(168,85,247,0.1)" />
+                                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Öne Çıkarma</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#a855f7' }}>
+                                    {walletStats.boosts === UNLIMITED ? '∞ Sınırsız' : walletStats.boosts}
+                                </div>
+                            </div>
+
+                            {/* Rewinds */}
+                            <div style={{ background: 'var(--surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                                <RefreshCcw size={28} color="#eab308" />
+                                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Geri Alma</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#eab308' }}>
+                                    {walletStats.rewinds === UNLIMITED ? '∞ Sınırsız' : walletStats.rewinds}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* CTA */}
+                        {userProfile?.subscription?.planId === 'FREE' && (
+                            <div style={{ marginTop: 24 }}>
                                 <button
                                     onClick={() => navigate('/premium')}
-                                    style={{ width: '100%', marginTop: '16px', padding: '12px', borderRadius: '12px', background: '#fbbf24', color: '#000', border: 'none', fontWeight: '700', cursor: 'pointer' }}
+                                    style={{ width: '100%', padding: '14px', background: 'linear-gradient(135deg, #facc15, #d97706)', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 700, fontSize: '1rem', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
                                 >
-                                    Paketleri İncele
+                                    <Crown size={20} fill="white" /> Limiti Kaldır & Yükselt
                                 </button>
                             </div>
                         )}
-
-                        {/* Hızlı Sayılar - planId'ye göre */}
-                        <div className="transaction-history">
-                            <h4 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '16px', color: '#fff' }}>Paket Özellikleri</h4>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                <div style={{ background: '#171717', padding: '16px', borderRadius: '16px' }}>
-                                    <span style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px' }}>Süper Beğeni</span>
-                                    <span style={{ fontSize: '1.1rem', fontWeight: '700', color: '#fff' }}>
-                                        {!isActive ? '5 Adet' :
-                                            sub?.planId === 'gold-yearly' ? 'Sınırsız' :
-                                                sub?.planId === 'gold-monthly' ? '10/gün' : '5/gün'}
-                                    </span>
-                                </div>
-                                <div style={{ background: '#171717', padding: '16px', borderRadius: '16px' }}>
-                                    <span style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px' }}>Boost</span>
-                                    <span style={{ fontSize: '1.1rem', fontWeight: '700', color: '#fff' }}>
-                                        {!isActive ? '0 Adet' :
-                                            sub?.planId === 'gold-yearly' ? 'Sınırsız' :
-                                                sub?.planId === 'gold-monthly' ? '10/gün' : '3/gün'}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {isActive && (
-                            <button
-                                onClick={() => setShowCancelModal(true)}
-                                disabled={isCancelling}
-                                style={{
-                                    width: '100%',
-                                    marginTop: '32px',
-                                    padding: '14px',
-                                    borderRadius: '16px',
-                                    background: 'rgba(239, 68, 68, 0.1)',
-                                    color: '#ef4444',
-                                    border: '1px solid rgba(239, 68, 68, 0.2)',
-                                    fontWeight: '600',
-                                    fontSize: '0.9rem',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '8px',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                <XCircle size={18} />
-                                Üyeliği İptal Et
-                            </button>
-                        )}
-
-                        {/* Cancel Subscription Modal */}
-                        {showCancelModal && (
-                            <div style={{
-                                position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)',
-                                display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-                                zIndex: 9999, padding: '0'
-                            }} onClick={(e) => e.target === e.currentTarget && setShowCancelModal(false)}>
-                                <div style={{
-                                    background: '#1a1a2e', borderRadius: '24px 24px 0 0',
-                                    padding: '28px 24px', width: '100%', maxWidth: '480px',
-                                    borderTop: '1px solid rgba(255,255,255,0.08)'
-                                }}>
-                                    <h3 style={{ margin: '0 0 8px', fontSize: '1.2rem', color: '#fff', textAlign: 'center' }}>Üyeliği İptal Et 😔</h3>
-                                    <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem', marginBottom: '20px' }}>
-                                        Neden iptal etmek istediğinizi belirtir misiniz?
-                                    </p>
-
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-                                        {CANCEL_REASONS.map(reason => (
-                                            <button
-                                                key={reason}
-                                                onClick={() => setCancelReason(reason)}
-                                                style={{
-                                                    padding: '12px 16px',
-                                                    borderRadius: '12px',
-                                                    border: cancelReason === reason ? '2px solid #ef4444' : '1px solid rgba(255,255,255,0.1)',
-                                                    background: cancelReason === reason ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.03)',
-                                                    color: cancelReason === reason ? '#ef4444' : '#d1d5db',
-                                                    textAlign: 'left', cursor: 'pointer', fontSize: '0.9rem',
-                                                    fontWeight: cancelReason === reason ? '600' : '400',
-                                                    transition: 'all 0.15s'
-                                                }}
-                                            >
-                                                {cancelReason === reason ? '✓ ' : ''}{reason}
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    <div style={{ display: 'flex', gap: '10px' }}>
-                                        <button
-                                            onClick={() => { setShowCancelModal(false); setCancelReason(''); }}
-                                            style={{ flex: 1, padding: '13px', borderRadius: '12px', background: 'rgba(255,255,255,0.07)', color: '#fff', border: 'none', fontWeight: '600', cursor: 'pointer' }}
-                                        >
-                                            Vazgeç
-                                        </button>
-                                        <button
-                                            onClick={handleCancelSubscription}
-                                            disabled={!cancelReason || isCancelling}
-                                            style={{ flex: 1, padding: '13px', borderRadius: '12px', background: !cancelReason ? 'rgba(239,68,68,0.3)' : '#ef4444', color: '#fff', border: 'none', fontWeight: '700', cursor: !cancelReason ? 'default' : 'pointer', opacity: !cancelReason ? 0.6 : 1 }}
-                                        >
-                                            {isCancelling ? 'İptal Ediliyor...' : 'İptal Et'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 )
-            }
 
             case 'system':
                 return (
@@ -1375,6 +1230,8 @@ export default function Settings() {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+
         </div>
     )
 }

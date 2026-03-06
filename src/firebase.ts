@@ -45,28 +45,12 @@ if (!Capacitor.isNativePlatform() && typeof window !== 'undefined' && 'serviceWo
  */
 export const initFCM = async (uid: string): Promise<void> => {
     try {
-        // Android native — FCM handled by Capacitor Push Notifications plugin
+        // Android native — FCM handled by BeMatchFirebaseMessagingService.java
+        // The native service reads FCM tokens directly from google-services.json
+        // No Capacitor plugin needed; the native implementation handles all push routing
         if (Capacitor.isNativePlatform()) {
-            try {
-                // Dynamic import — @capacitor/push-notifications types may not be installed
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                // @ts-ignore
-                const cap = await import('@capacitor/push-notifications').catch(() => null) as any
-                if (!cap) return
-                const { PushNotifications } = cap
-                await PushNotifications.requestPermissions()
-                await PushNotifications.register()
-
-                PushNotifications.addListener('registration', async (token: { value: string }) => {
-                    await saveFcmToken(uid, token.value, 'android')
-                })
-
-                PushNotifications.addListener('pushNotificationReceived', (_notification: unknown) => {
-                    // App is in foreground — Capacitor shows it; nothing extra needed
-                })
-            } catch (e) {
-                console.warn('[FCM] Capacitor PushNotifications not available:', e)
-            }
+            // FCM token is saved by the native service via onNewToken callback
+            // We don't need to do anything here on the JS side for Android
             return
         }
 

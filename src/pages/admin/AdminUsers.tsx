@@ -16,6 +16,7 @@ import { db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import AdminModal, { type ModalType } from '../../components/AdminModal';
+import { grantSubscription } from '../../utils/billing';
 
 function formatDistanceToNowLocal(timestamp: number) {
     if (!timestamp) return 'Bilinmiyor';
@@ -258,24 +259,18 @@ export default function AdminUsers() {
             finalPlanId = match[1];
         }
 
-        const tid = toast.loading('Kullanıcıya Premium tanımlanıyor...');
+        const tid = toast.loading(`${finalPlanId} paketi sisteme işleniyor...`);
         try {
             // Calculate expiry (30 days default if not specified)
             const days = finalPlanId.includes('weekly') ? 7 : finalPlanId.includes('monthly') ? 30 : 365;
-            const expiryDate = Date.now() + (days * 24 * 60 * 60 * 1000);
 
-            // 1. Update User Document (Both legacy and new structure)
-            await updateDoc(doc(db, 'users', userId), {
-                isPremium: true,
-                premiumPlan: finalPlanId,
-                subscription: {
-                    planId: finalPlanId,
-                    planName: finalPlanId.includes('weekly') ? 'Haftalık' : finalPlanId.includes('monthly') ? 'Aylık' : 'Yıllık',
-                    status: 'active',
-                    expiryDate: expiryDate,
-                    period: finalPlanId.includes('weekly') ? 'haftalık' : finalPlanId.includes('monthly') ? 'aylık' : 'yıllık'
-                }
-            });
+            // USE THE UNIFIED SECURE METHOD
+            const res = await grantSubscription(userId, finalPlanId, days);
+
+            if (!res.success) {
+                toast.error(`Kritik hata: ${res.error}`, { id: tid });
+                return;
+            }
 
             // 2. Send System Notification
             await addDoc(collection(db, `users/${userId}/notifications`), {

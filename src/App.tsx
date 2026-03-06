@@ -2,9 +2,37 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { useAuth } from './context/AuthContext'
-import { collection, onSnapshot, doc } from 'firebase/firestore'
+import { collection, onSnapshot, doc, setDoc } from 'firebase/firestore'
 import { db } from './firebase'
 import { addDynamicResources } from './i18n'
+import { AdMob } from '@capacitor-community/admob'
+import { PushNotifications } from '@capacitor/push-notifications'
+import { Capacitor } from '@capacitor/core'
+
+// Initialize AdMob on app startup
+AdMob.initialize().catch(err => console.error("AdMob init failed:", err))
+
+// Initialize Push Notifications for Android/iOS
+if (Capacitor.isNativePlatform()) {
+  PushNotifications.requestPermissions().then(result => {
+    if (result.receive === 'granted') {
+      PushNotifications.register();
+    }
+  });
+
+  PushNotifications.addListener('registration', (token) => {
+    console.log('Push registration success, token: ' + token.value);
+    localStorage.setItem('fcm_token_native', token.value);
+  });
+
+  PushNotifications.addListener('registrationError', (error: any) => {
+    console.error('Error on registration: ' + JSON.stringify(error));
+  });
+
+  PushNotifications.addListener('pushNotificationReceived', (notification) => {
+    console.log('Push received: ' + JSON.stringify(notification));
+  });
+}
 
 // Lazy loaded components
 const Login = lazy(() => import('./pages/Login'))
@@ -15,10 +43,10 @@ const Messages = lazy(() => import('./pages/Messages'))
 const Chat = lazy(() => import('./pages/Chat'))
 const Profile = lazy(() => import('./pages/Profile'))
 const Settings = lazy(() => import('./pages/Settings'))
+const Premium = lazy(() => import('./pages/Premium'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./pages/TermsOfService'))
 const Report = lazy(() => import('./pages/Report'))
-const Premium = lazy(() => import('./pages/Premium'))
 const MaintenanceScreen = lazy(() => import('./pages/MaintenanceScreen'))
 
 // Admin System
@@ -92,7 +120,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const { userProfile } = useAuth();
+  const { userProfile, user } = useAuth();
   const [isMaintenance, setIsMaintenance] = useState(false);
 
   useEffect(() => {
@@ -109,6 +137,17 @@ function App() {
 
     return () => unsubMaint();
   }, []);
+
+  useEffect(() => {
+    // Save FCM token if available
+    const token = localStorage.getItem('fcm_token_native');
+    if (token && user) {
+      setDoc(doc(db, 'users', user.uid), {
+        fcmTokenNative: token,
+        fcmUpdatedAt: Date.now()
+      }, { merge: true }).catch(console.error);
+    }
+  }, [user]); // Re-run when user changes
 
   useEffect(() => {
     // Load dynamic translations from Firestore

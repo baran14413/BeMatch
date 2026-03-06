@@ -18,6 +18,14 @@ export interface SubscriptionPlan {
     popular: boolean;
     bestDeal: boolean;
     order: number;
+    limits?: {
+        dailySuperLikes: number | 'unlimited';
+        dailyBoosts: number | 'unlimited';
+        rewind: number | 'unlimited';
+        hideAds: boolean;
+        seeWhoLikedYou: boolean;
+        incognitoMode: boolean;
+    };
 }
 
 const ICONS: Record<string, React.ReactNode> = {
@@ -30,17 +38,20 @@ const DEFAULT_PACKAGES: SubscriptionPlan[] = [
     {
         id: 'gold-weekly', name: 'Haftalık', price: '100', period: 'haftalık',
         color: '#ef4444', icon: 'Zap', popular: false, bestDeal: false, order: 1,
-        features: ['Reklamsız Deneyim', 'Günde 5 Süper Beğeni', 'Günde 3 Profil Öne Çıkarma (Boost)', 'Günde 5 Geri Alma (Rewind)', 'Seni Kimlerin Beğendiğini Görme']
+        features: ['Reklamsız Deneyim', 'Günde 5 Süper Beğeni', 'Günde 3 Profil Öne Çıkarma (Boost)', 'Günde 5 Geri Alma (Rewind)', 'Seni Kimlerin Beğendiğini Görme'],
+        limits: { dailySuperLikes: 5, dailyBoosts: 3, rewind: 5, hideAds: true, seeWhoLikedYou: true, incognitoMode: false }
     },
     {
         id: 'gold-monthly', name: 'Aylık', price: '250', period: 'aylık',
         color: '#facc15', icon: 'Star', popular: true, bestDeal: false, order: 2,
-        features: ['Reklamsız Deneyim', 'Gizli Mod (Gelişmiş Profil Kontrolü)', 'Günde 10 Süper Beğeni', 'Günde 10 Profil Öne Çıkarma (Boost)', 'Sınırsız Geri Alma', 'Seni Kimlerin Beğendiğini Görme']
+        features: ['Reklamsız Deneyim', 'Gizli Mod (Gelişmiş Profil Kontrolü)', 'Günde 10 Süper Beğeni', 'Günde 10 Profil Öne Çıkarma (Boost)', 'Sınırsız Geri Alma', 'Seni Kimlerin Beğendiğini Görme'],
+        limits: { dailySuperLikes: 10, dailyBoosts: 10, rewind: 'unlimited', hideAds: true, seeWhoLikedYou: true, incognitoMode: true }
     },
     {
         id: 'gold-yearly', name: 'Yıllık', price: '500', period: 'yıllık',
         color: '#b91c1c', icon: 'Crown', popular: false, bestDeal: true, order: 3,
-        features: ['Tüm BeMatch Gold avantajlarına sınırsız erişim!']
+        features: ['Tüm BeMatch Gold avantajlarına sınırsız erişim!'],
+        limits: { dailySuperLikes: 'unlimited', dailyBoosts: 'unlimited', rewind: 'unlimited', hideAds: true, seeWhoLikedYou: true, incognitoMode: true }
     }
 ];
 
@@ -136,7 +147,15 @@ export default function AdminSubscriptionPlans() {
             name: '', price: '', period: 'aylık',
             color: '#3b82f6', icon: 'Star',
             popular: false, bestDeal: false, order: plans.length + 1,
-            features: ['Özellik 1']
+            features: ['Özellik 1'],
+            limits: {
+                dailySuperLikes: 5,
+                dailyBoosts: 1,
+                rewind: 0,
+                hideAds: true,
+                seeWhoLikedYou: true,
+                incognitoMode: false
+            }
         });
         setIsEditModalOpen(true);
     };
@@ -340,6 +359,61 @@ export default function AdminSubscriptionPlans() {
                                             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                                                 <input type="checkbox" checked={editingPlan.bestDeal} onChange={e => setEditingPlan({ ...editingPlan, bestDeal: e.target.checked })} style={{ width: '16px', height: '16px', accentColor: '#dc2626' }} />
                                                 <span style={{ color: '#dc2626', fontSize: '0.9rem', fontWeight: 'bold' }}>"En İyi Fırsat" Yap</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px', border: '1px solid var(--god-border)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                        <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--god-gold)', fontWeight: 'bold' }}>Premium Limitleri (Sayı veya "unlimited")</label>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--god-text-muted)', marginBottom: '4px' }}>Günlük Super Like</label>
+                                                <input
+                                                    type="text" className="admin-input" style={{ width: '100%' }}
+                                                    value={editingPlan.limits?.dailySuperLikes ?? 5}
+                                                    onChange={e => {
+                                                        const val = e.target.value === 'unlimited' ? 'unlimited' : Number(e.target.value);
+                                                        setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits!, dailySuperLikes: isNaN(val as number) && val !== 'unlimited' ? 0 : val } })
+                                                    }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--god-text-muted)', marginBottom: '4px' }}>Günlük Boost</label>
+                                                <input
+                                                    type="text" className="admin-input" style={{ width: '100%' }}
+                                                    value={editingPlan.limits?.dailyBoosts ?? 1}
+                                                    onChange={e => {
+                                                        const val = e.target.value === 'unlimited' ? 'unlimited' : Number(e.target.value);
+                                                        setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits!, dailyBoosts: isNaN(val as number) && val !== 'unlimited' ? 0 : val } })
+                                                    }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--god-text-muted)', marginBottom: '4px' }}>Günlük Rewind (Geri Alma)</label>
+                                                <input
+                                                    type="text" className="admin-input" style={{ width: '100%' }}
+                                                    value={editingPlan.limits?.rewind ?? 0}
+                                                    onChange={e => {
+                                                        const val = e.target.value === 'unlimited' ? 'unlimited' : Number(e.target.value);
+                                                        setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits!, rewind: isNaN(val as number) && val !== 'unlimited' ? 0 : val } })
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '24px', marginTop: '8px' }}>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                                <input type="checkbox" checked={editingPlan.limits?.hideAds ?? false} onChange={e => setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits!, hideAds: e.target.checked } })} />
+                                                <span style={{ fontSize: '0.85rem' }}>Reklamları Gizle</span>
+                                            </label>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                                <input type="checkbox" checked={editingPlan.limits?.seeWhoLikedYou ?? false} onChange={e => setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits!, seeWhoLikedYou: e.target.checked } })} />
+                                                <span style={{ fontSize: '0.85rem' }}>Beğenenleri Gör</span>
+                                            </label>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                                <input type="checkbox" checked={editingPlan.limits?.incognitoMode ?? false} onChange={e => setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits!, incognitoMode: e.target.checked } })} />
+                                                <span style={{ fontSize: '0.85rem' }}>Gizli Mod</span>
                                             </label>
                                         </div>
                                     </div>

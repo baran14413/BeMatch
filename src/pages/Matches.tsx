@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MapPin, Briefcase, GraduationCap, ChevronDown, MessageCircle, X } from 'lucide-react'
+import { MapPin, Briefcase, GraduationCap, ChevronDown, MessageCircle, X, Star } from 'lucide-react'
 import { collection, getDocs, doc, getDoc, addDoc, query, where } from 'firebase/firestore'
 import { useNavigate } from 'react-router-dom'
 import { db } from '../firebase'
@@ -151,41 +151,64 @@ export default function Matches() {
             ) : (
                 /* Grid */
                 <div className="matches-grid">
-                    {currentDisplayList.map((matchedUser, index) => (
-                        <motion.div
-                            key={matchedUser.id}
-                            className={`match-card ${matchedUser.isDeleted ? 'deactivated' : ''}`}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: index * 0.05, duration: 0.3 }}
-                            onClick={() => {
-                                if (matchedUser.isDeleted) {
-                                    showToast({
-                                        title: t('matches.err_title'),
-                                        message: t('matches.err_disabled'),
-                                        type: 'error'
-                                    })
-                                } else {
-                                    setSelectedUser(matchedUser)
-                                }
-                            }}
-                            style={{ opacity: matchedUser.isDeleted ? 0.5 : 1 }}
-                        >
-                            {matchedUser.photo ? (
-                                <img src={matchedUser.photo} alt={matchedUser.name} className="match-photo" />
-                            ) : (
-                                <div className="match-photo" style={{ background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    {matchedUser.isDeleted ? <X size={40} color="var(--text-muted)" /> : <span style={{ fontSize: 40 }}>{matchedUser.name[0]}</span>}
+                    {currentDisplayList.map((matchedUser, index) => {
+                        const isBlurred = false
+
+                        return (
+                            <motion.div
+                                key={matchedUser.id}
+                                className={`match-card ${matchedUser.isDeleted ? 'deactivated' : ''}`}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: index * 0.05, duration: 0.3 }}
+                                onClick={() => {
+                                    if (matchedUser.isDeleted) {
+                                        showToast({
+                                            title: t('matches.err_title'),
+                                            message: t('matches.err_disabled'),
+                                            type: 'error'
+                                        })
+                                        return
+                                    }
+                                    if (isBlurred) {
+                                        navigate('/premium')
+                                    } else {
+                                        setSelectedUser(matchedUser)
+                                    }
+                                }}
+                                style={{ opacity: matchedUser.isDeleted ? 0.5 : 1 }}
+                            >
+                                <div style={{ filter: isBlurred ? 'blur(10px)' : 'none', width: '100%', height: '100%', position: 'absolute' }}>
+                                    {matchedUser.photo ? (
+                                        <img src={matchedUser.photo} alt={matchedUser.name} className="match-photo" />
+                                    ) : (
+                                        <div className="match-photo" style={{ background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            {matchedUser.isDeleted ? <X size={40} color="var(--text-muted)" /> : <span style={{ fontSize: 40, color: 'var(--text-primary)' }}>{matchedUser.name[0]}</span>}
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                            <div className="match-gradient" />
-                            <div className="match-info">
-                                <span className="match-name">{matchedUser.name}{!matchedUser.isDeleted && `, ${matchedUser.age} `}</span>
-                                <span className="match-time">{matchedUser.matchedAt}</span>
-                            </div>
-                            {!matchedUser.isDeleted && <div className="match-online-dot" />}
-                        </motion.div>
-                    ))}
+                                <div className="match-gradient" />
+                                <div className="match-info">
+                                    <span className="match-name">
+                                        {isBlurred ? 'Gizli Hayran' : `${matchedUser.name}${!matchedUser.isDeleted ? `, ${matchedUser.age}` : ''}`}
+                                    </span>
+                                    <span className="match-time">{matchedUser.matchedAt}</span>
+                                </div>
+                                {!matchedUser.isDeleted && !isBlurred && <div className="match-online-dot" />}
+
+                                {isBlurred && (
+                                    <div style={{
+                                        position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                                        background: 'rgba(0,0,0,0.6)', padding: '8px 16px', borderRadius: '20px',
+                                        color: '#fff', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'
+                                    }}>
+                                        <Star size={16} color="#fbbf24" fill="#fbbf24" />
+                                        Görmek için Premium
+                                    </div>
+                                )}
+                            </motion.div>
+                        )
+                    })}
                 </div>
             )}
 

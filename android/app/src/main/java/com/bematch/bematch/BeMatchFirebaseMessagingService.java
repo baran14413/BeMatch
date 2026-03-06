@@ -6,7 +6,6 @@ import android.app.PendingIntent;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Build;
-import android.os.Bundle;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -16,144 +15,152 @@ import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * BeMatch FCM Messaging Service
+ *
  * Handles push notifications when app is in background or killed.
- * - Creates "BeMatch Mesajlar" notification channel
- * - Shows rich notification with inline reply action for message type
- * - Fixes "i" box in status bar by using ic_stat_notify (white vector drawable)
+ * - Creates notification channels
+ * - Shows rich notification with inline reply for "message" type
+ * - Uses ic_stat_notify (white vector) to fix the "i box" in status bar
  */
 public class BeMatchFirebaseMessagingService extends FirebaseMessagingService {
 
-    private static final String CHANNEL_ID_MESSAGES = "bematch_messages";
-    private static final String CHANNEL_ID_APP = "bematch_app";
-    private static final String KEY_REPLY = "key_text_reply";
-    private static int notifId = 1000;
+        public static final String CHANNEL_ID_MESSAGES = "bematch_messages";
+        public static final String CHANNEL_ID_APP = "bematch_app";
+        public static final String KEY_REPLY = "key_text_reply";
+        public static final String ACTION_REPLY = "com.bematch.bematch.ACTION_REPLY";
 
-    @Override
-    public void onNewToken(String token) {
-        super.onNewToken(token);
-        // Token renewal is handled on the JS side via saveFcmToken()
-        // Nothing needed here for now
-    }
+        private static final AtomicInteger notifCounter = new AtomicInteger(2000);
 
-    @Override
-    public void onMessageReceived(RemoteMessage remoteMessage) {
-        super.onMessageReceived(remoteMessage);
-
-        Map<String, String> data = remoteMessage.getData();
-        String title = data.getOrDefault("title", "BeMatch");
-        String body = data.getOrDefault("body", "");
-        String type = data.getOrDefault("type", "app");
-        String link = data.getOrDefault("link", "");
-
-        // If the app is in foreground, Capacitor handles it — skip
-        // We only need to handle background/killed state
-
-        ensureChannels();
-
-        if ("message".equals(type)) {
-            showMessageNotification(title, body, link);
-        } else {
-            showGeneralNotification(title, body, link, type);
+        @Override
+        public void onNewToken(String token) {
+                super.onNewToken(token);
+                // Token is stored by JS side via AuthContext > initFCM
+                // Nothing needed here — token is fetched fresh on each app launch
         }
-    }
 
-    private void ensureChannels() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationManager nm = getSystemService(NotificationManager.class);
+        @Override
+        public void onMessageReceived(RemoteMessage remoteMessage) {
+                super.onMessageReceived(remoteMessage);
 
-            // Messages channel — high importance for heads-up display
-            NotificationChannel msgChannel = new NotificationChannel(
-                    CHANNEL_ID_MESSAGES,
-                    "BeMatch Mesajlar",
-                    NotificationManager.IMPORTANCE_HIGH
-            );
-            msgChannel.setDescription("Yeni mesaj bildirimleri");
-            msgChannel.enableLights(true);
-            msgChannel.setLightColor(Color.RED);
-            msgChannel.enableVibration(true);
-            nm.createNotificationChannel(msgChannel);
+                Map<String, String> data = remoteMessage.getData();
 
-            // App notifications channel — default importance
-            NotificationChannel appChannel = new NotificationChannel(
-                    CHANNEL_ID_APP,
-                    "BeMatch Bildirimleri",
-                    NotificationManager.IMPORTANCE_DEFAULT
-            );
-            appChannel.setDescription("Eşleşme ve beğeni bildirimleri");
-            nm.createNotificationChannel(appChannel);
+                // If no data payload, use notification payload
+                String title = data.getOrDefault("title",
+                                remoteMessage.getNotification() != null ? remoteMessage.getNotification().getTitle()
+                                                : "BeMatch");
+                String body = data.getOrDefault("body",
+                                remoteMessage.getNotification() != null ? remoteMessage.getNotification().getBody()
+                                                : "");
+                String type = data.getOrDefault("type", "app");
+                String link = data.getOrDefault("link", "/");
+
+                ensureChannels();
+
+                if ("message".equals(type)) {
+                        showMessageNotification(title, body, link);
+                } else {
+                        showGeneralNotification(title, body, link);
+                }
         }
-    }
 
-    private void showMessageNotification(String title, String body, String link) {
-        // Inline reply action
-        RemoteInput remoteInput = new RemoteInput.Builder(KEY_REPLY)
-                .setLabel("Cevapla...")
-                .build();
+        private void ensureChannels() {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        NotificationManager nm = getSystemService(NotificationManager.class);
 
-        Intent replyIntent = new Intent(this, MainActivity.class);
-        replyIntent.setAction("ACTION_REPLY");
-        replyIntent.putExtra("link", link);
-        replyIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        NotificationChannel msgChannel = new NotificationChannel(
+                                        CHANNEL_ID_MESSAGES, "BeMatch Mesajlar", NotificationManager.IMPORTANCE_HIGH);
+                        msgChannel.setDescription("Yeni mesaj bildirimleri");
+                        msgChannel.enableLights(true);
+                        msgChannel.setLightColor(Color.RED);
+                        msgChannel.enableVibration(true);
+                        nm.createNotificationChannel(msgChannel);
 
-        int flags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-                ? PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE
-                : PendingIntent.FLAG_UPDATE_CURRENT;
+                        NotificationChannel appChannel = new NotificationChannel(
+                                        CHANNEL_ID_APP, "BeMatch Bildirimleri", NotificationManager.IMPORTANCE_DEFAULT);
+                        appChannel.setDescription("Eşleşme ve beğeni bildirimleri");
+                        nm.createNotificationChannel(appChannel);
+                }
+        }
 
-        PendingIntent replyPendingIntent = PendingIntent.getActivity(
-                this, notifId, replyIntent, flags);
+        private void showMessageNotification(String title, String body, String link) {
+                int notifId = notifCounter.getAndIncrement();
 
-        NotificationCompat.Action replyAction = new NotificationCompat.Action.Builder(
-                R.drawable.ic_stat_notify,
-                "Cevapla",
-                replyPendingIntent)
-                .addRemoteInput(remoteInput)
-                .build();
+                // ── Inline Reply action ──────────────────────────────────────────────
+                RemoteInput remoteInput = new RemoteInput.Builder(KEY_REPLY)
+                                .setLabel("Yanıtla...")
+                                .build();
 
-        // Tap to open
-        Intent openIntent = new Intent(this, MainActivity.class);
-        openIntent.putExtra("link", link);
-        openIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent openPending = PendingIntent.getActivity(
-                this, notifId + 1, openIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_IMMUTABLE : 0));
+                Intent replyIntent = new Intent(this, NotificationReplyReceiver.class);
+                replyIntent.setAction(ACTION_REPLY);
+                replyIntent.putExtra("notif_id", notifId);
+                replyIntent.putExtra("link", link);
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID_MESSAGES)
-                .setSmallIcon(R.drawable.ic_stat_notify)  // White vector — no "i" box
-                .setContentTitle(title)
-                .setContentText(body)
-                .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setAutoCancel(true)
-                .setContentIntent(openPending)
-                .addAction(replyAction)
-                .setColor(0xFFE63946);  // BeMatch red
+                int replyFlags = PendingIntent.FLAG_UPDATE_CURRENT |
+                                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_MUTABLE : 0);
+                PendingIntent replyPendingIntent = PendingIntent.getBroadcast(
+                                this, notifId, replyIntent, replyFlags);
 
-        NotificationManagerCompat.from(this).notify(notifId++, builder.build());
-    }
+                NotificationCompat.Action replyAction = new NotificationCompat.Action.Builder(
+                                R.drawable.ic_stat_notify, "Yanıtla", replyPendingIntent)
+                                .addRemoteInput(remoteInput)
+                                .setAllowGeneratedReplies(true)
+                                .build();
 
-    private void showGeneralNotification(String title, String body, String link, String type) {
-        Intent openIntent = new Intent(this, MainActivity.class);
-        openIntent.putExtra("link", link);
-        openIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                // ── Open action ──────────────────────────────────────────────────────
+                Intent openIntent = new Intent(this, MainActivity.class);
+                openIntent.putExtra("link", link);
+                openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                int openFlags = PendingIntent.FLAG_UPDATE_CURRENT |
+                                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_IMMUTABLE : 0);
+                PendingIntent openPending = PendingIntent.getActivity(
+                                this, notifId + 1, openIntent, openFlags);
 
-        int flags = PendingIntent.FLAG_UPDATE_CURRENT |
-                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_IMMUTABLE : 0);
+                // ── Notification ─────────────────────────────────────────────────────
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID_MESSAGES)
+                                .setSmallIcon(R.drawable.ic_stat_notify) // white vector — no "i box"
+                                .setContentTitle(title)
+                                .setContentText(body)
+                                .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
+                                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                                .setAutoCancel(true)
+                                .setContentIntent(openPending)
+                                .addAction(replyAction)
+                                .setColor(0xFFE63946);
 
-        PendingIntent openPending = PendingIntent.getActivity(this, notifId, openIntent, flags);
+                try {
+                        NotificationManagerCompat.from(this).notify(notifId, builder.build());
+                } catch (SecurityException e) {
+                        // Permission not granted — user hasn't approved notifications
+                }
+        }
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID_APP)
-                .setSmallIcon(R.drawable.ic_stat_notify)
-                .setContentTitle(title)
-                .setContentText(body)
-                .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setAutoCancel(true)
-                .setContentIntent(openPending)
-                .setColor(0xFFE63946);
+        private void showGeneralNotification(String title, String body, String link) {
+                int notifId = notifCounter.getAndIncrement();
 
-        NotificationManagerCompat.from(this).notify(notifId++, builder.build());
-    }
+                Intent openIntent = new Intent(this, MainActivity.class);
+                openIntent.putExtra("link", link);
+                openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                int flags = PendingIntent.FLAG_UPDATE_CURRENT |
+                                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_IMMUTABLE : 0);
+                PendingIntent openPending = PendingIntent.getActivity(this, notifId, openIntent, flags);
+
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID_APP)
+                                .setSmallIcon(R.drawable.ic_stat_notify)
+                                .setContentTitle(title)
+                                .setContentText(body)
+                                .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
+                                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                                .setAutoCancel(true)
+                                .setContentIntent(openPending)
+                                .setColor(0xFFE63946);
+
+                try {
+                        NotificationManagerCompat.from(this).notify(notifId, builder.build());
+                } catch (SecurityException e) {
+                        // Permission not granted
+                }
+        }
 }

@@ -15,7 +15,7 @@ import { auth, db, storage, rtdb, initFCM } from '../firebase'
 import i18n from '../i18n'
 
 /* ── Types ── */
-interface UserProfile {
+export interface UserProfile {
     uid: string
     firstName: string
     lastName: string
@@ -51,6 +51,7 @@ interface UserProfile {
         showOnline: boolean
         showRead: boolean
         showDistance: boolean
+        incognitoMode: boolean
     }
     role?: 'user' | 'admin' | 'moderator' | 'mod_reports' | 'mod_users' | 'mod_finance' | 'mod_marketing' | 'mod_config'
     deletedAt?: number
@@ -71,6 +72,15 @@ interface UserProfile {
         cancelReason?: string
         cancelledAt?: number
     }
+    wallet?: {
+        lastResetDate: string;
+        likes: number;
+        superLikes: number;
+        boosts: number;
+        rewinds: number;
+        [key: string]: string | number;
+    }
+    boostedUntil?: number
 }
 
 interface AuthContextType {
@@ -118,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (firebaseUser) {
                 // Listen to profile from Firestore realtime
-                profileUnsub = onSnapshot(doc(db, 'users', firebaseUser.uid), (docSnap) => {
+                profileUnsub = onSnapshot(doc(db, 'users', firebaseUser.uid), async (docSnap) => {
                     if (docSnap.exists()) {
                         const data = docSnap.data() as UserProfile;
                         if (data.isDeleted) {
@@ -126,6 +136,94 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             console.warn("Profil pasife çekilmiş, oturum kapatılıyor.");
                             signOut(auth).catch(() => { });
                         } else {
+                            // ==========================================
+                            // SECURE WALLET LAZY RESET & EXPIRY CHECK
+                            // ==========================================
+                            const now = new Date();
+                            const todayStr = now.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+
+                            // Initialize new wallet structure if it doesn't exist
+                            let currentWallet = data.wallet || {
+                                lastResetDate: '',
+                                likes: 10,
+                                superLikes: 0,
+                                boosts: 0,
+                                rewinds: 3
+                            };
+
+                            let currentSub = data.subscription || {
+                                planId: 'FREE',
+                                planName: 'BeMatch Standard',
+                                status: 'none',
+                                expiryDate: 0,
+                                period: 'none',
+                            };
+
+                            let needsUpdate = false;
+
+                            // 1. EXPIRY DOWNGRADE CHECK (If plan is not FREE)
+                            if (currentSub.planId !== 'FREE' && currentSub.expiryDate > 0) {
+                                // We use Date.now() here but in reality Firebase Server Time is better.
+                                // However, since we are reading from the client, we check expiry against strict UTC now.
+                                if (Date.now() > currentSub.expiryDate) {
+                                    console.log("Subscription expired! Downgrading to FREE...");
+                                    currentSub = {
+                                        planId: 'FREE',
+                                        planName: 'BeMatch Standard',
+                                        status: 'expired',
+                                        expiryDate: 0,
+                                        period: 'none',
+                                    };
+                                    needsUpdate = true;
+                                }
+                            }
+
+                            // 2. DAILY REFILL CHECK (Time-Travel Protected via serverTimestamp on update)
+                            if (todayStr !== currentWallet.lastResetDate || needsUpdate) {
+                                console.log(`Refilling wallet for plan: ${currentSub.planId}`);
+                                // Get limits for the current (or downgraded) tier
+                                // We dynamically import getTierLimits or hardcode fallback if import missing
+                                const getTierLimits = (tier: string) => {
+                                    if (tier === 'gold-weekly') return { dailyLikes: -1, dailySuperLikes: 5, dailyBoosts: 3, dailyRewinds: 5 };
+                                    if (tier === 'gold-monthly') return { dailyLikes: -1, dailySuperLikes: 10, dailyBoosts: 10, dailyRewinds: -1 };
+                                    if (tier === 'gold-yearly') return { dailyLikes: -1, dailySuperLikes: -1, dailyBoosts: -1, dailyRewinds: -1 };
+                                    return { dailyLikes: 10, dailySuperLikes: 0, dailyBoosts: 0, dailyRewinds: 3 }; // FREE
+                                };
+
+                                const limits = getTierLimits(currentSub.planId);
+
+                                currentWallet = {
+                                    ...currentWallet, // keep persisting any other wallet meta
+                                    lastResetDate: todayStr,
+                                    likes: limits.dailyLikes,
+                                    superLikes: limits.dailySuperLikes,
+                                    boosts: limits.dailyBoosts,
+                                    rewinds: limits.dailyRewinds
+                                };
+
+                                // Clean up legacy structures to save space
+                                const cleanups = {
+                                    dailyUsage: null,
+                                    bonusUsage: null,
+                                    premiumLimits: null
+                                };
+
+                                updateDoc(doc(db, 'users', firebaseUser.uid), {
+                                    wallet: currentWallet,
+                                    subscription: currentSub,
+                                    walletUpdatedAt: serverTimestamp(), // Secure anti time-travel marker
+                                    ...cleanups
+                                }).catch(() => { });
+
+                                needsUpdate = true;
+                            }
+
+                            // Inject latest changes directly to App state to prevent UI flicker
+                            if (needsUpdate) {
+                                data.wallet = currentWallet;
+                                data.subscription = currentSub;
+                            }
+
                             setActualUserProfile(data)
                         }
                     } else {

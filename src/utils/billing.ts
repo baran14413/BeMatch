@@ -1,35 +1,69 @@
-import { Capacitor, registerPlugin } from '@capacitor/core'
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../firebase';
+import { getTierLimits } from './subscriptionConstants';
 
-interface PlayBillingPlugin {
-    purchase(options: { productId: string; basePlanId?: string }): Promise<{ success: boolean; purchaseToken?: string; error?: string }>
+export interface SubscriptionResult {
+    success: boolean;
+    error?: string;
 }
-
-const PlayBilling = registerPlugin<PlayBillingPlugin>('PlayBilling')
 
 /**
- * Initiate a purchase through Google Play Billing.
- * @param productId - The subscription product ID (e.g. bematch_gold_sub)
- * @param basePlanId - The base plan ID (e.g. gold-monthly, gold-weekly, gold-yearly)
+ * Universal Mock Payment Flow (Tries to imitate real stores + acts as a single gateway)
+ * Grants a subscription tier for a specified amount of days.
+ *
+ * @param userId - Firebase User UID
+ * @param tierId - e.g. 'gold-weekly', 'gold-monthly', 'gold-yearly'
+ * @param periodDays - Duration in days
  */
-export async function purchaseProduct(productId: string, basePlanId?: string): Promise<boolean> {
-    if (!Capacitor.isNativePlatform()) {
-        alert(`Play Store ödeme sistemi sadece Android uygulamasında çalışır.`)
-        return false
-    }
-
+export const grantSubscription = async (userId: string, tierId: string, periodDays: number): Promise<SubscriptionResult> => {
     try {
-        const result = await PlayBilling.purchase({ productId, basePlanId })
-        if (result.success) {
-            console.log('Purchase successful:', result.purchaseToken)
-            return true
-        } else {
-            console.warn('Purchase failed:', result.error)
-            alert(result.error || 'Satın alma başarısız oldu.')
-            return false
+        const userRef = doc(db, 'users', userId);
+        const userSnap = await getDoc(userRef);
+
+        if (!userSnap.exists()) {
+            return { success: false, error: 'User not found' };
         }
-    } catch (error: unknown) {
-        console.error('Billing error:', error)
-        alert('Ödeme işlemi sırasında bir hata oluştu.')
-        return false
+
+        const now = Date.now();
+        const expiryDate = now + periodDays * 24 * 60 * 60 * 1000;
+
+        let periodName = 'none';
+        if (periodDays === 7) periodName = 'haftalık';
+        if (periodDays === 30) periodName = 'aylık';
+        if (periodDays === 365) periodName = 'yıllık';
+
+        const newSubscription = {
+            planId: tierId,
+            planName: `BeMatch Premium (${periodName})`,
+            status: 'active',
+            expiryDate: expiryDate,
+            period: periodName,
+            updatedAt: serverTimestamp()
+        };
+
+        const limits = getTierLimits(tierId);
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        // Immediately refill the wallet limits based on the new tier!
+        const newWallet = {
+            lastResetDate: todayStr,
+            likes: limits.dailyLikes,
+            superLikes: limits.dailySuperLikes,
+            boosts: limits.dailyBoosts,
+            rewinds: limits.dailyRewinds
+        };
+
+        // Batch the updates atomically
+        await updateDoc(userRef, {
+            subscription: newSubscription,
+            wallet: newWallet,
+            isPremium: true,
+            premiumPlan: tierId
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.error("Error granting subscription:", error);
+        return { success: false, error: (error as Error).message };
     }
-}
+};

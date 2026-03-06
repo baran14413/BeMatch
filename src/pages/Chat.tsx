@@ -1,16 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
-    ChevronLeft, Send, Image, X,
-    MoreHorizontal, Pencil, Trash2, CheckCheck,
-    Reply, Mic, MoreVertical, Ban, Flag, BadgeCheck, Crown
-} from 'lucide-react'
-import { collection, query, onSnapshot, addDoc, doc, updateDoc, deleteDoc, increment, arrayUnion, arrayRemove } from 'firebase/firestore'
+import { ChevronLeft, Send, MoreVertical, Flag, Ban, CheckCheck, Trash2, Pencil, Reply, MoreHorizontal, Image, Mic, BadgeCheck, X } from 'lucide-react'
+import { collection, onSnapshot, query, addDoc, updateDoc, doc, arrayUnion, arrayRemove, increment, deleteDoc } from 'firebase/firestore'
 import ProfileDetail from '../components/ProfileDetail'
 import type { ProfileUser } from '../components/ProfileDetail'
 import { ref as rtdbRef, onValue } from 'firebase/database'
 import { db, rtdb } from '../firebase'
+
 import { useAuth } from '../context/AuthContext'
 import VoiceRecorder from '../components/chat/VoiceRecorder'
 import VoiceMessage from '../components/chat/VoiceMessage'
@@ -647,7 +644,6 @@ export default function Chat() {
                         <div className="chat-user-info">
                             <span className="chat-user-name" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 {chatTarget.name}
-                                {fullTargetProfile?.subscription?.status === 'active' && <Crown size={16} color="#facc15" fill="#facc15" />}
                                 {chatTarget.isSystem && <BadgeCheck size={16} color="#0EA5E9" />}
                             </span>
                             {isTargetTyping ? (

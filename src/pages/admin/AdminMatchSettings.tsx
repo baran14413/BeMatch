@@ -16,6 +16,8 @@ interface MatchSettings {
     limits: {
         dailySuperLikes: number;
         dailyBoosts: number;
+        dailyLikes: number;
+        dailyRewinds: number;
         matchExpiryDays: number;
     };
     safety: {
@@ -33,8 +35,10 @@ const DEFAULT_SETTINGS: MatchSettings = {
         activityLevel: 10
     },
     limits: {
-        dailySuperLikes: 5,
-        dailyBoosts: 1,
+        dailySuperLikes: 3,
+        dailyBoosts: 0,
+        dailyLikes: 15,
+        dailyRewinds: 5,
         matchExpiryDays: 30
     },
     safety: {
@@ -167,10 +171,22 @@ export default function AdminMatchSettings() {
                         <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Etkileşim Limitleri</h2>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                        <div className="admin-field">
-                            <label>Günlük Süper Beğeni (Standart)</label>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--god-text-muted)', marginBottom: '4px' }}>Günlük Beğeni (Free)</label>
                             <input
-                                type="number" className="admin-input" style={{ width: '100%' }}
+                                type="number"
+                                className="admin-input"
+                                style={{ width: '100%' }}
+                                value={settings.limits.dailyLikes}
+                                onChange={e => setSettings({ ...settings, limits: { ...settings.limits, dailyLikes: parseInt(e.target.value) } })}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--god-text-muted)', marginBottom: '4px' }}>Günlük Super Like (Free)</label>
+                            <input
+                                type="number"
+                                className="admin-input"
+                                style={{ width: '100%' }}
                                 value={settings.limits.dailySuperLikes}
                                 onChange={e => setSettings({ ...settings, limits: { ...settings.limits, dailySuperLikes: parseInt(e.target.value) } })}
                             />
@@ -181,6 +197,16 @@ export default function AdminMatchSettings() {
                                 type="number" className="admin-input" style={{ width: '100%' }}
                                 value={settings.limits.dailyBoosts}
                                 onChange={e => setSettings({ ...settings, limits: { ...settings.limits, dailyBoosts: parseInt(e.target.value) } })}
+                            />
+                        </div>
+                        <div className="admin-field">
+                            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--god-text-muted)', marginBottom: '4px' }}>Günlük Geri Alma (Rewind - Free)</label>
+                            <input
+                                type="number"
+                                className="admin-input"
+                                style={{ width: '100%' }}
+                                value={settings.limits.dailyRewinds}
+                                onChange={e => setSettings({ ...settings, limits: { ...settings.limits, dailyRewinds: parseInt(e.target.value) } })}
                             />
                         </div>
                         <div className="admin-field">
